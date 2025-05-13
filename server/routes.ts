@@ -480,11 +480,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for new proposal
       await storage.createActivity({
-        userId,
-        clientId: proposal.clientId,
-        projectId: proposal.projectId,
+        user_id: userId,
+        client_id: proposal.client_id,
+        project_id: proposal.project_id,
         type: "proposal_created",
-        description: `Created new proposal: ${proposal.title}`,
+        description: `Created new proposal: ${proposal.title || 'Untitled'}`,
         metadata: {}
       });
       
@@ -509,11 +509,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for updated proposal
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: updatedProposal.clientId,
-        projectId: updatedProposal.projectId,
+        user_id: (req.user as any).id,
+        client_id: updatedProposal.client_id,
+        project_id: updatedProposal.project_id,
         type: "proposal_updated",
-        description: `Updated proposal: ${updatedProposal.title}`,
+        description: `Updated proposal: ${updatedProposal.title || 'Untitled'}`,
         metadata: {}
       });
       
@@ -537,11 +537,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (deleted) {
         // Create activity for deleted proposal
         await storage.createActivity({
-          userId: (req.user as any).id,
-          clientId: proposal.clientId,
-          projectId: proposal.projectId,
+          user_id: (req.user as any).id,
+          client_id: proposal.client_id,
+          project_id: proposal.project_id,
           type: "proposal_deleted",
-          description: `Deleted proposal: ${proposal.title}`,
+          description: `Deleted proposal: ${proposal.title || 'Untitled'}`,
           metadata: {}
         });
         
@@ -594,16 +594,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const moodboard = await storage.createMoodboard(moodboardData);
       
       // Get project to get client ID
-      const project = await storage.getProject(moodboard.projectId);
+      const project = await storage.getProject(moodboard.project_id);
       
       // Create activity for new moodboard
       if (project) {
         await storage.createActivity({
-          userId,
-          clientId: project.clientId,
-          projectId: moodboard.projectId,
+          user_id: userId,
+          client_id: project.client_id,
+          project_id: moodboard.project_id,
           type: "moodboard_created",
-          description: `Created new moodboard: ${moodboard.name}`,
+          description: `Created new moodboard: ${moodboard.name || 'Untitled'}`,
           metadata: {}
         });
       }
@@ -628,16 +628,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get project to get client ID
-      const project = await storage.getProject(updatedMoodboard.projectId);
+      const project = await storage.getProject(updatedMoodboard.project_id);
       
       // Create activity for updated moodboard
       if (project) {
         await storage.createActivity({
-          userId: (req.user as any).id,
-          clientId: project.clientId,
-          projectId: updatedMoodboard.projectId,
+          user_id: (req.user as any).id,
+          client_id: project.client_id,
+          project_id: updatedMoodboard.project_id,
           type: "moodboard_updated",
-          description: `Updated moodboard: ${updatedMoodboard.name}`,
+          description: `Updated moodboard: ${updatedMoodboard.name || 'Untitled'}`,
           metadata: {}
         });
       }

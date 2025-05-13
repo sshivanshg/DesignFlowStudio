@@ -66,9 +66,11 @@ export interface IStorage {
   deleteProposal(id: number): Promise<boolean>;
   
   // Moodboard methods
-  getMoodboards(userId: number): Promise<Moodboard[]>;
+  getMoodboards(): Promise<Moodboard[]>;
   getMoodboard(id: number): Promise<Moodboard | undefined>;
-  getMoodboardsByProjectId(projectId: number): Promise<Moodboard[]>;
+  getMoodboardsByClientId(clientId: number): Promise<Moodboard[]>;
+  getMoodboardTemplates(): Promise<Moodboard[]>;
+  duplicateMoodboard(id: number): Promise<Moodboard | undefined>;
   createMoodboard(moodboard: InsertMoodboard): Promise<Moodboard>;
   updateMoodboard(id: number, moodboard: Partial<Moodboard>): Promise<Moodboard | undefined>;
   deleteMoodboard(id: number): Promise<boolean>;
@@ -1009,7 +1011,7 @@ export class DrizzleStorage implements IStorage {
   }
   
   // Moodboard methods
-  async getMoodboards(userId: number): Promise<Moodboard[]> {
+  async getMoodboards(): Promise<Moodboard[]> {
     return db.select().from(moodboards);
   }
   
@@ -1018,14 +1020,52 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
   
-  async getMoodboardsByProjectId(projectId: number): Promise<Moodboard[]> {
-    const project = await this.getProject(projectId);
-    if (!project) return [];
-    
-    return db.select().from(moodboards).where(eq(moodboards.client_id, project.client_id));
+  async getMoodboardsByClientId(clientId: number): Promise<Moodboard[]> {
+    return db.select().from(moodboards).where(eq(moodboards.client_id, clientId));
+  }
+  
+  async getMoodboardTemplates(): Promise<Moodboard[]> {
+    return db.select().from(moodboards).where(eq(moodboards.isTemplate, true));
+  }
+  
+  async duplicateMoodboard(id: number): Promise<Moodboard | undefined> {
+    try {
+      const existingMoodboard = await this.getMoodboard(id);
+      if (!existingMoodboard) return undefined;
+      
+      // Create a new moodboard based on the existing one
+      const newMoodboard: InsertMoodboard = {
+        client_id: existingMoodboard.client_id,
+        name: `${existingMoodboard.name} (Copy)`,
+        description: existingMoodboard.description,
+        theme: existingMoodboard.theme,
+        sections: existingMoodboard.sections,
+        media: existingMoodboard.media,
+        comments: existingMoodboard.comments,
+        sharedLink: existingMoodboard.sharedLink,
+        pdfURL: existingMoodboard.pdfURL,
+        isTemplate: false
+      };
+      
+      return this.createMoodboard(newMoodboard);
+    } catch (error) {
+      console.error("Error duplicating moodboard:", error);
+      throw new Error(`Failed to duplicate moodboard: ${String(error)}`);
+    }
   }
   
   async createMoodboard(moodboard: InsertMoodboard): Promise<Moodboard> {
+    // Set default sections if not provided
+    if (!moodboard.sections) {
+      moodboard.sections = {
+        colorPalette: { title: "Color Palette", items: [] },
+        furniture: { title: "Furniture", items: [] },
+        layout: { title: "Layout", items: [] },
+        lighting: { title: "Lighting", items: [] },
+        inspiration: { title: "Theme Inspiration", items: [] }
+      };
+    }
+    
     const result = await db.insert(moodboards).values(moodboard).returning();
     return result[0];
   }
@@ -1424,8 +1464,8 @@ export class StorageAdapter implements IStorage {
   }
   
   // Moodboard methods
-  async getMoodboards(userId: number): Promise<Moodboard[]> {
-    const moodboards = await this.drizzleStorage.getMoodboards(userId);
+  async getMoodboards(): Promise<Moodboard[]> {
+    const moodboards = await this.drizzleStorage.getMoodboards();
     return moodboards.map(moodboard => convertKeysToCamelCase(moodboard));
   }
   
@@ -1434,9 +1474,19 @@ export class StorageAdapter implements IStorage {
     return moodboard ? convertKeysToCamelCase(moodboard) : undefined;
   }
   
-  async getMoodboardsByProjectId(projectId: number): Promise<Moodboard[]> {
-    const moodboards = await this.drizzleStorage.getMoodboardsByProjectId(projectId);
+  async getMoodboardsByClientId(clientId: number): Promise<Moodboard[]> {
+    const moodboards = await this.drizzleStorage.getMoodboardsByClientId(clientId);
     return moodboards.map(moodboard => convertKeysToCamelCase(moodboard));
+  }
+  
+  async getMoodboardTemplates(): Promise<Moodboard[]> {
+    const templates = await this.drizzleStorage.getMoodboardTemplates();
+    return templates.map(template => convertKeysToCamelCase(template));
+  }
+  
+  async duplicateMoodboard(id: number): Promise<Moodboard | undefined> {
+    const duplicatedMoodboard = await this.drizzleStorage.duplicateMoodboard(id);
+    return duplicatedMoodboard ? convertKeysToCamelCase(duplicatedMoodboard) : undefined;
   }
   
   async createMoodboard(moodboard: InsertMoodboard): Promise<Moodboard> {

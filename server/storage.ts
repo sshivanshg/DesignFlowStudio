@@ -1,6 +1,7 @@
 import { 
   users, User, InsertUser, 
   clients, Client, InsertClient,
+  leads, Lead, InsertLead,
   projects, Project, InsertProject,
   proposals, Proposal, InsertProposal,
   moodboards, Moodboard, InsertMoodboard,
@@ -549,6 +550,26 @@ export class DrizzleStorage implements IStorage {
     if (!firebaseUid) return undefined;
     const result = await db.select().from(users).where(eq(users.firebase_uid, firebaseUid));
     return result[0];
+  }
+  
+  async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
+    if (!supabaseUid) return undefined;
+    const result = await db.select().from(users).where(eq(users.supabase_uid, supabaseUid));
+    return result[0];
+  }
+  
+  async getUserByField(field: string, value: string): Promise<User | undefined> {
+    if (!field || !value) return undefined;
+    
+    // Convert camelCase field to snake_case for database query
+    const snakeField = field.replace(/([A-Z])/g, "_$1").toLowerCase();
+    
+    // Using a raw SQL query with parameterized values for safe dynamic column access
+    const result = await db.execute(
+      drizzleSql`SELECT * FROM users WHERE ${drizzleSql.identifier(snakeField)} = ${value} LIMIT 1`
+    );
+    
+    return result.length > 0 ? result[0] : undefined;
   }
   
   async createUser(user: InsertUser): Promise<User> {

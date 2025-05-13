@@ -799,45 +799,32 @@ export class StorageAdapter implements IStorage {
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const dbUserData: any = { ...userData };
-    
-    // Convert camelCase to snake_case fields
-    if (userData.firebaseUid) dbUserData.firebase_uid = userData.firebaseUid;
-    if (userData.fullName) dbUserData.full_name = userData.fullName;
-    if (userData.activePlan) dbUserData.active_plan = userData.activePlan;
-    
-    return this.drizzleStorage.updateUser(id, dbUserData);
+    const snakeCaseUserData = convertKeysToSnakeCase(userData);
+    const updatedUser = await this.drizzleStorage.updateUser(id, snakeCaseUserData);
+    return updatedUser ? convertKeysToCamelCase(updatedUser) : undefined;
   }
   
   // Client methods
   async getClients(userId: number): Promise<Client[]> {
-    return this.drizzleStorage.getClients(userId);
+    const clients = await this.drizzleStorage.getClients(userId);
+    return clients.map(client => convertKeysToCamelCase(client));
   }
   
   async getClient(id: number): Promise<Client | undefined> {
-    return this.drizzleStorage.getClient(id);
+    const client = await this.drizzleStorage.getClient(id);
+    return client ? convertKeysToCamelCase(client) : undefined;
   }
   
   async createClient(client: InsertClient): Promise<Client> {
-    const dbClient: any = { ...client };
-    
-    // Convert camelCase to snake_case fields
-    if (client.portalAccess) dbClient.portal_access = client.portalAccess;
-    if (client.lastLogin) dbClient.last_login = client.lastLogin;
-    if (client.projectId) dbClient.project_id = client.projectId;
-    
-    return this.drizzleStorage.createClient(dbClient);
+    const snakeCaseClient = convertKeysToSnakeCase(client);
+    const createdClient = await this.drizzleStorage.createClient(snakeCaseClient);
+    return convertKeysToCamelCase(createdClient);
   }
   
   async updateClient(id: number, client: Partial<Client>): Promise<Client | undefined> {
-    const dbClient: any = { ...client };
-    
-    // Convert camelCase to snake_case fields
-    if (client.portalAccess) dbClient.portal_access = client.portalAccess;
-    if (client.lastLogin) dbClient.last_login = client.lastLogin;
-    if (client.projectId) dbClient.project_id = client.projectId;
-    
-    return this.drizzleStorage.updateClient(id, dbClient);
+    const snakeCaseClient = convertKeysToSnakeCase(client);
+    const updatedClient = await this.drizzleStorage.updateClient(id, snakeCaseClient);
+    return updatedClient ? convertKeysToCamelCase(updatedClient) : undefined;
   }
   
   async deleteClient(id: number): Promise<boolean> {

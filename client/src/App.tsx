@@ -213,7 +213,9 @@ function Router() {
       
       <Route path="/estimate/:leadId">
         <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
-          <Estimate />
+          <AppLayout>
+            <Estimate />
+          </AppLayout>
         </ProtectedRoute>
       </Route>
       

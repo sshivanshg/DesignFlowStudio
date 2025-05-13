@@ -1,19 +1,12 @@
 import React from 'react';
-import { 
-  Bold, 
-  Italic, 
-  Underline, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
-  Trash2
-} from 'lucide-react';
+import { ProposalElement } from '@/pages/proposal-editor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+import { Trash2 } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -21,368 +14,277 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Slider } from '@/components/ui/slider';
-import { ColorPicker } from './ColorPicker';
 
 interface PropertiesPanelProps {
-  element: any;
-  onUpdate: (updates: any) => void;
+  element: ProposalElement;
+  onChange: (updatedElement: ProposalElement) => void;
   onDelete: () => void;
 }
 
-export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanelProps) {
-  if (!element) return null;
+export function PropertiesPanel({ element, onChange, onDelete }: PropertiesPanelProps) {
+  const handleStyleChange = (property: string, value: string | number) => {
+    const updatedStyle = {
+      ...element.style,
+      [property]: value,
+    };
+    
+    onChange({
+      ...element,
+      style: updatedStyle,
+    });
+  };
 
-  // Generate property fields based on element type
-  const renderElementProperties = () => {
+  const handleSizeChange = (property: 'width' | 'height', value: number) => {
+    onChange({
+      ...element,
+      [property]: value,
+    });
+  };
+
+  const renderContentEditor = () => {
     switch (element.type) {
-      case 'heading':
       case 'text':
+      case 'heading':
         return (
-          <>
-            <div className="space-y-4">
-              <div>
-                <Label>Content</Label>
-                {element.type === 'heading' ? (
-                  <Input 
-                    value={element.content || ''} 
-                    onChange={(e) => onUpdate({ content: e.target.value })} 
-                  />
-                ) : (
-                  <Textarea
-                    value={element.content || ''} 
-                    onChange={(e) => onUpdate({ content: e.target.value })}
-                    rows={5}
-                  />
-                )}
-              </div>
-              
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="typography">
-                  <AccordionTrigger>Typography</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Font Size</Label>
-                        <div className="flex items-center space-x-2">
-                          <Slider 
-                            defaultValue={[parseFloat(element.style?.fontSize || '16')]}
-                            min={8}
-                            max={72}
-                            step={1}
-                            onValueChange={(values) => {
-                              onUpdate({ 
-                                style: { 
-                                  ...element.style, 
-                                  fontSize: `${values[0]}px` 
-                                } 
-                              });
-                            }}
-                          />
-                          <span className="w-12 text-sm text-right">
-                            {parseFloat(element.style?.fontSize || '16')}px
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label>Text Color</Label>
-                        <ColorPicker 
-                          color={element.style?.color || '#000000'} 
-                          onChange={(color) => {
-                            onUpdate({ style: { ...element.style, color } });
-                          }}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Alignment</Label>
-                        <div className="flex space-x-1 mt-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.textAlign === 'left' ? 'default' : 'outline'}
-                            onClick={() => onUpdate({ style: { ...element.style, textAlign: 'left' } })}
-                          >
-                            <AlignLeft className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.textAlign === 'center' ? 'default' : 'outline'}
-                            onClick={() => onUpdate({ style: { ...element.style, textAlign: 'center' } })}
-                          >
-                            <AlignCenter className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.textAlign === 'right' ? 'default' : 'outline'}
-                            onClick={() => onUpdate({ style: { ...element.style, textAlign: 'right' } })}
-                          >
-                            <AlignRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label>Font Style</Label>
-                        <div className="flex space-x-1 mt-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.fontWeight === 'bold' ? 'default' : 'outline'}
-                            onClick={() => {
-                              const weight = element.style?.fontWeight === 'bold' ? 'normal' : 'bold';
-                              onUpdate({ style: { ...element.style, fontWeight: weight } });
-                            }}
-                          >
-                            <Bold className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.fontStyle === 'italic' ? 'default' : 'outline'}
-                            onClick={() => {
-                              const style = element.style?.fontStyle === 'italic' ? 'normal' : 'italic';
-                              onUpdate({ style: { ...element.style, fontStyle: style } });
-                            }}
-                          >
-                            <Italic className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={element.style?.textDecoration === 'underline' ? 'default' : 'outline'}
-                            onClick={() => {
-                              const decoration = element.style?.textDecoration === 'underline' ? 'none' : 'underline';
-                              onUpdate({ style: { ...element.style, textDecoration: decoration } });
-                            }}
-                          >
-                            <Underline className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </>
+          <div className="space-y-3">
+            <Label>Content</Label>
+            <Textarea
+              value={element.content}
+              onChange={(e) => {
+                onChange({
+                  ...element,
+                  content: e.target.value,
+                });
+              }}
+              rows={5}
+              className="resize-none"
+            />
+          </div>
         );
-        
+      
       case 'image':
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <Label>Image URL</Label>
-              <Input 
-                value={element.content?.src || ''} 
-                onChange={(e) => onUpdate({ 
-                  content: { 
-                    ...element.content, 
-                    src: e.target.value 
-                  } 
-                })} 
+              <Input
+                value={element.content.src}
+                onChange={(e) => {
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      src: e.target.value,
+                    },
+                  });
+                }}
+                placeholder="https://example.com/image.jpg"
+                className="mt-1"
               />
             </div>
             <div>
               <Label>Alt Text</Label>
-              <Input 
-                value={element.content?.alt || ''} 
-                onChange={(e) => onUpdate({ 
-                  content: { 
-                    ...element.content, 
-                    alt: e.target.value 
-                  } 
-                })} 
+              <Input
+                value={element.content.alt}
+                onChange={(e) => {
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      alt: e.target.value,
+                    },
+                  });
+                }}
+                placeholder="Description of the image"
+                className="mt-1"
               />
             </div>
           </div>
         );
-        
-      case 'pricing-table':
+      
+      case 'pricingTable':
         return (
           <div className="space-y-4">
             <div>
-              <Label>Pricing Items</Label>
-              {element.content?.items?.map((item: any, index: number) => (
-                <div key={index} className="mt-2 p-2 border rounded-md">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Item {index + 1}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        const newItems = [...element.content.items];
-                        newItems.splice(index, 1);
-                        onUpdate({ 
-                          content: { 
-                            ...element.content, 
-                            items: newItems 
-                          } 
+              <Label className="mb-2 block">Items</Label>
+              {element.content.items.map((item, index) => (
+                <div key={index} className="mb-4 p-3 border rounded-md">
+                  <div className="mb-2">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={item.name}
+                      onChange={(e) => {
+                        const updatedItems = [...element.content.items];
+                        updatedItems[index].name = e.target.value;
+                        
+                        onChange({
+                          ...element,
+                          content: {
+                            ...element.content,
+                            items: updatedItems,
+                          },
                         });
                       }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      className="mt-1"
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-xs">Name</Label>
-                      <Input 
-                        size="sm"
-                        className="h-8 text-sm"
-                        value={item.name || ''} 
-                        onChange={(e) => {
-                          const newItems = [...element.content.items];
-                          newItems[index] = { ...newItems[index], name: e.target.value };
-                          onUpdate({ 
-                            content: { 
-                              ...element.content, 
-                              items: newItems 
-                            } 
-                          });
-                        }} 
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Description</Label>
-                      <Input 
-                        size="sm"
-                        className="h-8 text-sm"
-                        value={item.description || ''} 
-                        onChange={(e) => {
-                          const newItems = [...element.content.items];
-                          newItems[index] = { ...newItems[index], description: e.target.value };
-                          onUpdate({ 
-                            content: { 
-                              ...element.content, 
-                              items: newItems 
-                            } 
-                          });
-                        }} 
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Price</Label>
-                      <Input 
-                        size="sm"
-                        className="h-8 text-sm"
-                        type="number"
-                        value={item.price || 0} 
-                        onChange={(e) => {
-                          const newItems = [...element.content.items];
-                          newItems[index] = { 
-                            ...newItems[index], 
-                            price: parseFloat(e.target.value) || 0 
-                          };
-                          
-                          // Update total
-                          const total = newItems.reduce(
-                            (sum, item) => sum + (parseFloat(item.price) || 0), 
-                            0
-                          );
-                          
-                          onUpdate({ 
-                            content: { 
-                              ...element.content, 
-                              items: newItems,
-                              total: total
-                            } 
-                          });
-                        }} 
-                      />
-                    </div>
+                  <div className="mb-2">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) => {
+                        const updatedItems = [...element.content.items];
+                        updatedItems[index].description = e.target.value;
+                        
+                        onChange({
+                          ...element,
+                          content: {
+                            ...element.content,
+                            items: updatedItems,
+                          },
+                        });
+                      }}
+                      className="mt-1"
+                    />
                   </div>
+                  <div className="mb-2">
+                    <Label className="text-xs">Price</Label>
+                    <Input
+                      type="number"
+                      value={item.price}
+                      onChange={(e) => {
+                        const updatedItems = [...element.content.items];
+                        updatedItems[index].price = Number(e.target.value);
+                        
+                        // Recalculate total
+                        const total = updatedItems.reduce((sum, item) => sum + item.price, 0);
+                        
+                        onChange({
+                          ...element,
+                          content: {
+                            ...element.content,
+                            items: updatedItems,
+                            total,
+                          },
+                        });
+                      }}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const updatedItems = element.content.items.filter((_, i) => i !== index);
+                      // Recalculate total
+                      const total = updatedItems.reduce((sum, item) => sum + item.price, 0);
+                      
+                      onChange({
+                        ...element,
+                        content: {
+                          ...element.content,
+                          items: updatedItems,
+                          total,
+                        },
+                      });
+                    }}
+                    className="w-full mt-2"
+                  >
+                    Remove Item
+                  </Button>
                 </div>
               ))}
-              
               <Button
-                type="button"
-                className="mt-2 w-full"
                 variant="outline"
                 onClick={() => {
-                  const newItems = [...(element.content?.items || [])];
-                  newItems.push({ name: 'New Item', description: 'Description', price: 0 });
+                  const updatedItems = [
+                    ...element.content.items,
+                    { name: 'New Item', description: 'Description', price: 0 },
+                  ];
                   
-                  // Update total
-                  const total = newItems.reduce(
-                    (sum, item) => sum + (parseFloat(item.price) || 0), 
-                    0
-                  );
-                  
-                  onUpdate({ 
-                    content: { 
-                      ...element.content, 
-                      items: newItems,
-                      total: total
-                    } 
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      items: updatedItems,
+                    },
                   });
                 }}
+                className="w-full"
               >
                 Add Item
               </Button>
             </div>
-            
             <div>
-              <Label>Total: ${element.content?.total || 0}</Label>
+              <Label>Total</Label>
+              <Input
+                type="number"
+                value={element.content.total}
+                onChange={(e) => {
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      total: Number(e.target.value),
+                    },
+                  });
+                }}
+                className="mt-1"
+              />
             </div>
           </div>
         );
-        
-      case 'scope-block':
+      
+      case 'scopeBlock':
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <Label>Title</Label>
-              <Input 
-                value={element.content?.title || ''} 
-                onChange={(e) => onUpdate({ 
-                  content: { 
-                    ...element.content, 
-                    title: e.target.value 
-                  } 
-                })} 
+              <Input
+                value={element.content.title}
+                onChange={(e) => {
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      title: e.target.value,
+                    },
+                  });
+                }}
+                className="mt-1"
               />
             </div>
-            
             <div>
-              <Label>Scope Items</Label>
-              {element.content?.items?.map((item: string, index: number) => (
-                <div key={index} className="mt-2 flex space-x-2">
-                  <Input 
-                    value={item} 
+              <Label className="mb-2 block">Items</Label>
+              {element.content.items.map((item, index) => (
+                <div key={index} className="mb-2 flex gap-2">
+                  <Input
+                    value={item}
                     onChange={(e) => {
-                      const newItems = [...element.content.items];
-                      newItems[index] = e.target.value;
-                      onUpdate({ 
-                        content: { 
-                          ...element.content, 
-                          items: newItems 
-                        } 
+                      const updatedItems = [...element.content.items];
+                      updatedItems[index] = e.target.value;
+                      
+                      onChange({
+                        ...element,
+                        content: {
+                          ...element.content,
+                          items: updatedItems,
+                        },
                       });
-                    }} 
+                    }}
                   />
                   <Button
-                    type="button"
-                    size="icon"
                     variant="ghost"
+                    size="icon"
                     onClick={() => {
-                      const newItems = [...element.content.items];
-                      newItems.splice(index, 1);
-                      onUpdate({ 
-                        content: { 
-                          ...element.content, 
-                          items: newItems 
-                        } 
+                      const updatedItems = element.content.items.filter((_, i) => i !== index);
+                      
+                      onChange({
+                        ...element,
+                        content: {
+                          ...element.content,
+                          items: updatedItems,
+                        },
                       });
                     }}
                   >
@@ -390,46 +292,37 @@ export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanel
                   </Button>
                 </div>
               ))}
-              
               <Button
-                type="button"
-                className="mt-2 w-full"
                 variant="outline"
                 onClick={() => {
-                  const newItems = [...(element.content?.items || [])];
-                  newItems.push('New scope item');
-                  onUpdate({ 
-                    content: { 
-                      ...element.content, 
-                      items: newItems 
-                    } 
+                  onChange({
+                    ...element,
+                    content: {
+                      ...element.content,
+                      items: [...element.content.items, 'New item'],
+                    },
                   });
                 }}
+                className="w-full mt-2"
               >
                 Add Item
               </Button>
             </div>
           </div>
         );
-        
+      
       default:
-        return <p>No properties available for this element type.</p>;
+        return <div>No properties available for this element type</div>;
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium capitalize">
-          {element.type.replace('-', ' ')} Properties
-        </h3>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onDelete}
-          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
+    <div className="p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-lg">Properties</h3>
+        <Button variant="destructive" size="sm" onClick={onDelete}>
+          <Trash2 className="h-4 w-4 mr-1" />
+          Delete
         </Button>
       </div>
       
@@ -438,35 +331,31 @@ export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanel
       <div className="space-y-4">
         <div>
           <Label>Position</Label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 mt-1">
             <div>
               <Label className="text-xs">X</Label>
-              <Input 
-                type="number" 
-                value={element.position?.x || 0} 
+              <Input
+                type="number"
+                value={element.x}
                 onChange={(e) => {
-                  onUpdate({ 
-                    position: { 
-                      ...element.position, 
-                      x: parseInt(e.target.value) || 0 
-                    } 
+                  onChange({
+                    ...element,
+                    x: Number(e.target.value),
                   });
-                }} 
+                }}
               />
             </div>
             <div>
               <Label className="text-xs">Y</Label>
-              <Input 
-                type="number" 
-                value={element.position?.y || 0} 
+              <Input
+                type="number"
+                value={element.y}
                 onChange={(e) => {
-                  onUpdate({ 
-                    position: { 
-                      ...element.position, 
-                      y: parseInt(e.target.value) || 0 
-                    } 
+                  onChange({
+                    ...element,
+                    y: Number(e.target.value),
                   });
-                }} 
+                }}
               />
             </div>
           </div>
@@ -474,44 +363,106 @@ export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanel
         
         <div>
           <Label>Size</Label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 mt-1">
             <div>
               <Label className="text-xs">Width</Label>
-              <Input 
-                type="number" 
-                value={element.size?.width || 100} 
-                onChange={(e) => {
-                  onUpdate({ 
-                    size: { 
-                      ...element.size, 
-                      width: parseInt(e.target.value) || 100 
-                    } 
-                  });
-                }} 
+              <Input
+                type="number"
+                value={element.width}
+                onChange={(e) => handleSizeChange('width', Number(e.target.value))}
+                min={10}
+                max={800}
               />
             </div>
             <div>
               <Label className="text-xs">Height</Label>
-              <Input 
-                type="number" 
-                value={element.size?.height || 100} 
-                onChange={(e) => {
-                  onUpdate({ 
-                    size: { 
-                      ...element.size, 
-                      height: parseInt(e.target.value) || 100 
-                    } 
-                  });
-                }} 
+              <Input
+                type="number"
+                value={element.height}
+                onChange={(e) => handleSizeChange('height', Number(e.target.value))}
+                min={10}
+                max={1000}
               />
             </div>
           </div>
         </div>
+        
+        {element.type === 'text' || element.type === 'heading' ? (
+          <div className="space-y-3">
+            <div>
+              <Label>Font Style</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Select
+                  defaultValue={element.style?.fontFamily || 'sans-serif'}
+                  onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sans-serif">Sans Serif</SelectItem>
+                    <SelectItem value="serif">Serif</SelectItem>
+                    <SelectItem value="monospace">Monospace</SelectItem>
+                    <SelectItem value="cursive">Cursive</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select
+                  defaultValue={element.style?.fontWeight?.toString() || 'normal'}
+                  onValueChange={(value) => handleStyleChange('fontWeight', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Weight" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="bold">Bold</SelectItem>
+                    <SelectItem value="lighter">Light</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Font Size</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Slider
+                  defaultValue={[parseInt(element.style?.fontSize as string || '16')]}
+                  max={72}
+                  min={8}
+                  step={1}
+                  onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                  className="flex-1"
+                />
+                <span className="min-w-[40px] text-right">
+                  {element.style?.fontSize || '16px'}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Text Color</Label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="color"
+                  value={element.style?.color || '#000000'}
+                  onChange={(e) => handleStyleChange('color', e.target.value)}
+                  className="w-10 h-10 p-1 border rounded"
+                />
+                <Input
+                  value={element.style?.color || '#000000'}
+                  onChange={(e) => handleStyleChange('color', e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+        
+        <Separator />
+        
+        {renderContentEditor()}
       </div>
-      
-      <Separator />
-      
-      {renderElementProperties()}
     </div>
   );
 }

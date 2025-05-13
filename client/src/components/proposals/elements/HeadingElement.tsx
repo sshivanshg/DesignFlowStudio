@@ -11,7 +11,7 @@ interface HeadingElementProps {
 export function HeadingElement({ content, style, isSelected, onChange }: HeadingElementProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(content);
-  const editableRef = useRef<HTMLHeadingElement>(null);
+  const editableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setEditableContent(content);
@@ -48,27 +48,29 @@ export function HeadingElement({ content, style, isSelected, onChange }: Heading
   }, [isEditing]);
 
   const defaultStyles = {
+    fontFamily: 'sans-serif',
+    fontSize: '32px',
     fontWeight: 'bold',
-    fontSize: '24px',
+    lineHeight: '1.2',
     ...style
   };
 
   // If not editing, render regular heading
   if (!isEditing) {
     return (
-      <h2 
+      <div 
         className={cn("w-full h-full p-2 overflow-hidden", isSelected ? "cursor-text" : "cursor-move")}
         onDoubleClick={handleDoubleClick}
         style={defaultStyles}
       >
         {content}
-      </h2>
+      </div>
     );
   }
 
   // If editing, render editable div
   return (
-    <h2
+    <div
       ref={editableRef}
       className="w-full h-full p-2 overflow-auto focus:outline-none"
       contentEditable
@@ -78,6 +80,6 @@ export function HeadingElement({ content, style, isSelected, onChange }: Heading
       suppressContentEditableWarning
     >
       {editableContent}
-    </h2>
+    </div>
   );
 }

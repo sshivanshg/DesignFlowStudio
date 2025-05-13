@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircle2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface ScopeBlockElementProps {
   content: {
@@ -13,30 +13,29 @@ interface ScopeBlockElementProps {
 }
 
 export function ScopeBlockElement({ content, style, isSelected }: ScopeBlockElementProps) {
-  const { title = "Project Scope", items = [] } = content || {};
-
+  const { title, items } = content;
+  
   return (
-    <div
+    <div 
       className={cn(
-        "w-full h-full p-4 overflow-auto bg-white border rounded-md",
-        isSelected ? "cursor-text" : "cursor-move"
+        "w-full h-full p-4 overflow-auto",
+        isSelected ? "cursor-move" : "cursor-pointer"
       )}
       style={style}
     >
-      <h3 className="text-lg font-semibold mb-3">{title}</h3>
-      
-      <ul className="space-y-2">
-        {items.map((item, index) => (
-          <li key={index} className="flex items-start">
-            <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-            <span>{item}</span>
-          </li>
-        ))}
-        
-        {items.length === 0 && (
-          <li className="text-gray-400 italic">No scope items added</li>
-        )}
-      </ul>
+      <div className="border rounded-md p-4 h-full">
+        <h3 className="text-lg font-medium mb-3">{title}</h3>
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div key={index} className="flex items-start">
+              <div className="flex-shrink-0 h-5 w-5 mt-0.5">
+                <Check className="h-5 w-5 text-green-500" />
+              </div>
+              <p className="ml-2 text-gray-700">{item}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

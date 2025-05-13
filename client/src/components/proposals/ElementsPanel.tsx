@@ -10,11 +10,14 @@ import { ElementType } from '@/pages/proposal-editor';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
+// Export element types for DnD
+export const ELEMENT_TYPES = ['text', 'heading', 'image', 'pricingTable', 'scopeBlock'];
+
 interface ElementsPanelProps {
   onAddElement: (type: ElementType) => void;
 }
 
-const ElementsPanel: React.FC<ElementsPanelProps> = ({ onAddElement }) => {
+function ElementsPanel({ onAddElement }: ElementsPanelProps) {
   const elements = [
     {
       type: 'heading' as ElementType,

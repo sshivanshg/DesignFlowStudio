@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 
 // Components
 import { ElementsPanel } from '@/components/proposals/ElementsPanel';
+import { TemplatesPanel } from '@/components/proposals/TemplatesPanel';
+import { EditorCanvas } from '@/components/proposals/EditorCanvas';
+import { PropertiesPanel } from '@/components/proposals/PropertiesPanel';
 
 // Define types for our proposal elements
 export type ElementType = 'text' | 'heading' | 'image' | 'pricingTable' | 'scopeBlock';
@@ -103,8 +106,15 @@ const ProposalEditor: React.FC = () => {
     setSelectedElement(newElement);
   };
   
-  const handleSelectElement = (element: ProposalElement | null) => {
-    setSelectedElement(element);
+  const handleSelectElement = (elementId: string | null) => {
+    if (elementId === null) {
+      setSelectedElement(null);
+    } else {
+      const element = elements.find(el => el.id === elementId);
+      if (element) {
+        setSelectedElement(element);
+      }
+    }
   };
   
   const handleUpdateElement = (updatedElement: ProposalElement) => {
@@ -247,10 +257,10 @@ const ProposalEditor: React.FC = () => {
         <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center">
           <EditorCanvas
             elements={elements}
-            selectedElement={selectedElement}
+            selectedElementId={selectedElement?.id || null}
             onSelectElement={handleSelectElement}
             onUpdateElement={handleUpdateElement}
-            onDeleteElement={handleDeleteElement}
+            onAddElement={handleAddElement}
           />
         </div>
 

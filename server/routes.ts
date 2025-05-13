@@ -158,16 +158,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing Supabase user data" });
       }
       
+      console.log("Supabase auth request:", { supabaseUid, email });
+      
       // Try to find user by Supabase UID
-      let user = await storage.getUserBySupabaseUid(supabaseUid);
+      let user = null;
+      try {
+        user = await storage.getUserBySupabaseUid(supabaseUid);
+        console.log("Supabase user lookup by UID result:", user ? "Found" : "Not found");
+      } catch (error) {
+        console.error("Error looking up user by Supabase UID:", error);
+      }
       
       // If not found, try by email (for users who existed before Supabase integration)
       if (!user) {
-        user = await storage.getUserByEmail(email);
-        
-        // If user exists by email but doesn't have supabaseUid, update it
-        if (user && !user.supabaseUid) {
-          user = await storage.updateUser(user.id, { supabaseUid });
+        try {
+          user = await storage.getUserByEmail(email);
+          console.log("Supabase user lookup by email result:", user ? "Found" : "Not found");
+          
+          // If user exists by email but doesn't have supabaseUid, update it
+          if (user && !user.supabaseUid) {
+            try {
+              user = await storage.updateUser(user.id, { supabaseUid });
+              console.log("Updated existing user with Supabase UID");
+            } catch (error) {
+              console.error("Error updating existing user with Supabase UID:", error);
+            }
+          }
+        } catch (error) {
+          console.error("Error looking up user by email:", error);
         }
       }
       
@@ -177,18 +195,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const displayName = email ? email.split('@')[0] : `User ${Date.now()}`;
         
         // Generate a random secure password (since auth is handled by Supabase)
-        const randomPassword = Array(24)
-          .fill('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*')
-          .map(x => x[Math.floor(Math.random() * x.length)])
-          .join('');
+        const randomPassword = Math.random().toString(36).slice(-8) + 
+                              Math.random().toString(36).slice(-8);
         
         const displayNameValue = displayName || email?.split('@')[0] || `New User`;
+        const usernameValue = email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user_${Date.now()}`;
         
         const userData = {
           name: displayNameValue,
-          username: email?.split('@')[0] || `user_${Date.now()}`,
+          username: usernameValue,
           password: randomPassword,
-          email: email || `user_${Date.now()}@placeholder.com`, // Email is required
+          email,
           fullName: displayNameValue,
           role: "designer" as const, // Default role
           supabaseUid,
@@ -196,7 +213,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: null
         };
         
-        console.log("Creating new Supabase user with data:", userData);
+        console.log("Creating new Supabase user with data:", {
+          ...userData,
+          password: "[REDACTED]" // Don't log the actual password
+        });
+        
         try {
           user = await storage.createUser(userData);
           console.log("Successfully created new Supabase user with ID:", user.id);
@@ -212,8 +233,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log in the user
       req.login(user, (err) => {
         if (err) {
+          console.error("Error during login:", err);
           return res.status(500).json({ message: "Error logging in with Supabase" });
         }
+        console.log("Successfully logged in Supabase user:", user.id);
         return res.json({ user });
       });
     } catch (error) {

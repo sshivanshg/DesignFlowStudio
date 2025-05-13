@@ -166,16 +166,31 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const signInWithGoogle = async () => {
     setIsLoading(true);
     try {
+      console.log("Starting Google Sign In with Supabase...");
+      
+      // Make sure we redirect to the dashboard after successful login
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      console.log("Redirect URL:", redirectUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
+          queryParams: {
+            prompt: 'select_account', // Always show account selection
+          }
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Google Sign In error:", error);
+        throw error;
+      }
+      
+      console.log("Supabase Google Sign In initiated successfully");
       
     } catch (error) {
+      console.error("Failed to initiate Google sign in:", error);
       const authError = error as AuthError;
       toast({
         title: "Google login failed",

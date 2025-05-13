@@ -571,14 +571,21 @@ export class DrizzleStorage implements IStorage {
   
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
     if (!firebaseUid) return undefined;
-    const result = await db.select().from(users).where(eq(users.firebase_uid, firebaseUid));
+    const result = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
     return result[0];
   }
   
   async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
     if (!supabaseUid) return undefined;
-    const result = await db.select().from(users).where(eq(users.supabase_uid, supabaseUid));
-    return result[0];
+    console.log("Looking up user by Supabase UID:", supabaseUid);
+    try {
+      const result = await db.select().from(users).where(eq(users.supabaseUid, supabaseUid));
+      console.log("Supabase UID lookup result:", result);
+      return result[0];
+    } catch (error) {
+      console.error("Error in getUserBySupabaseUid:", error);
+      throw error;
+    }
   }
   
   async getUserByField(field: string, value: string): Promise<User | undefined> {

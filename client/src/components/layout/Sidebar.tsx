@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Logo } from "@/components/ui/logo";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -29,6 +30,7 @@ export default function Sidebar() {
   const [location] = useLocation();
   const { isOpen, close } = useSidebar();
   const { user, logout } = useAuth();
+  const { signOut } = useSupabaseAuth();
   
   // Close sidebar when navigating on mobile
   useEffect(() => {
@@ -96,9 +98,20 @@ export default function Sidebar() {
   
   const handleLogout = async () => {
     try {
+      // Clear server-side session
       await apiRequest("POST", "/api/auth/logout", {});
+      
+      // Clear client-side cache
       queryClient.clear();
+      
+      // Sign out from Supabase
+      await signOut();
+      
+      // Sign out from Firebase (legacy)
       logout();
+      
+      // Force redirect to login page for clean state
+      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed", error);
     }

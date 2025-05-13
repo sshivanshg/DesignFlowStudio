@@ -1467,14 +1467,16 @@ export class DrizzleStorage implements IStorage {
       if (userData.avatar) dataToUpdate.avatar = userData.avatar;
       
       dataToUpdate.updated_at = new Date();
-    
-      const result = await db
-        .update(users)
-        .set(dataToUpdate)
-        .where(eq(users.id, id))
-        .returning();
+      
+      // Use Postgres raw SQL for the update to avoid syntax issues with Drizzle
+      const { rows } = await queryClient`
+        UPDATE users
+        SET ${queryClient(dataToUpdate)}
+        WHERE id = ${id}
+        RETURNING *
+      `;
         
-      return result[0];
+      return rows[0];
     } catch (error) {
       console.error("Error updating user:", error);
       throw error;

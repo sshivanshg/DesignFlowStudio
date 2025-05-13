@@ -21,6 +21,8 @@ import Estimate from "@/pages/estimate";
 import EstimateCreate from "@/pages/estimate-create";
 import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
+import ProjectTracker from "@/pages/project-tracker";
+import ProjectLogs from "@/pages/project-logs";
 
 // Client Portal Pages
 import ClientPortalLogin from "@/pages/client-portal-login";
@@ -219,6 +221,22 @@ function Router() {
         <ProtectedRoute allowedRoles={["admin", "sales"]}>
           <AppLayout>
             <Clients />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/project-tracker">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <AppLayout>
+            <ProjectTracker />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/project-logs">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <AppLayout>
+            <ProjectLogs />
           </AppLayout>
         </ProtectedRoute>
       </Route>

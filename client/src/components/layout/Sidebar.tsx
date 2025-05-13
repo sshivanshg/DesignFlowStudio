@@ -14,7 +14,9 @@ import {
   Palette, 
   UserCircle, 
   Settings, 
-  LogOut 
+  LogOut,
+  ClipboardList,
+  LineChart
 } from "lucide-react";
 
 type NavItem = {
@@ -69,6 +71,16 @@ export default function Sidebar() {
       href: "/moodboard",
       label: "Moodboard",
       icon: <Palette className="h-5 w-5" />,
+    },
+    {
+      href: "/project-tracker",
+      label: "Project Tracker",
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      href: "/project-logs",
+      label: "Project Logs",
+      icon: <LineChart className="h-5 w-5" />,
     },
     {
       href: "/clients",

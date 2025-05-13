@@ -1,275 +1,393 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, FolderOpen, Calendar, CheckSquare, Clock, MoreHorizontal } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
+  Clipboard, 
+  ClipboardList, 
+  Clock, 
+  Layers, 
+  List, 
+  MapPin, 
+  MessageSquare, 
+  Plus, 
+  Search,
+  CheckCircle,
+  AlertTriangle
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 export default function ProjectTracker() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [_, navigate] = useLocation();
-  
-  // Fetch projects
-  const { data: projects, isLoading } = useQuery<any[]>({
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [view, setView] = useState<string>('rooms');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Fetch projects query
+  const { isLoading, error, data: projects } = useQuery({
     queryKey: ['/api/projects'],
+    queryFn: async () => {
+      return fetch('/api/projects').then(res => res.json());
+    },
   });
-  
-  const filteredProjects = projects?.filter(project =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  // Calculate days remaining or overdue
-  const getDaysStatus = (endDate: string | null) => {
-    if (!endDate) return { days: null, isOverdue: false };
-    
-    const end = new Date(endDate);
-    const today = new Date();
-    const diffTime = end.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return {
-      days: Math.abs(diffDays),
-      isOverdue: diffDays < 0
-    };
+
+  // Fetch project details query (including rooms, tasks, etc)
+  const { data: projectDetails } = useQuery({
+    queryKey: ['/api/projects', selectedProject],
+    queryFn: async () => {
+      if (!selectedProject) return null;
+      return fetch(`/api/projects/${selectedProject}`).then(res => res.json());
+    },
+    enabled: !!selectedProject,
+  });
+
+  // Mock data for initial design
+  const mockProjects = [
+    { id: 1, name: "Modern Apartment Redesign", location: "New York, NY", progress: 65, status: "In Progress" },
+    { id: 2, name: "Coastal Beach House", location: "Malibu, CA", progress: 30, status: "In Progress" },
+    { id: 3, name: "Corporate Office Renovation", location: "Chicago, IL", progress: 90, status: "Almost Complete" },
+    { id: 4, name: "Mountain Cabin Remodel", location: "Aspen, CO", progress: 10, status: "Just Started" },
+  ];
+
+  const mockRooms = [
+    { id: 1, name: "Living Room", type: "living", progress: 75, tasks: 12, completedTasks: 9 },
+    { id: 2, name: "Master Bedroom", type: "bedroom", progress: 45, tasks: 8, completedTasks: 4 },
+    { id: 3, name: "Kitchen", type: "kitchen", progress: 60, tasks: 15, completedTasks: 9 },
+    { id: 4, name: "Bathroom", type: "bathroom", progress: 20, tasks: 10, completedTasks: 2 },
+    { id: 5, name: "Home Office", type: "office", progress: 90, tasks: 6, completedTasks: 5 },
+  ];
+
+  const mockTasks = [
+    { id: 1, roomId: 1, name: "Paint walls", status: "completed", dueDate: "2025-05-20", assignedTo: "John Doe" },
+    { id: 2, roomId: 1, name: "Install new flooring", status: "completed", dueDate: "2025-05-15", assignedTo: "Jane Smith" },
+    { id: 3, roomId: 1, name: "Hang curtains", status: "in_progress", dueDate: "2025-05-25", assignedTo: "John Doe" },
+    { id: 4, roomId: 2, name: "Assemble bed frame", status: "in_progress", dueDate: "2025-05-18", assignedTo: "Mark Wilson" },
+    { id: 5, roomId: 2, name: "Install lighting", status: "not_started", dueDate: "2025-05-30", assignedTo: "Jane Smith" },
+    { id: 6, roomId: 3, name: "Replace countertops", status: "in_progress", dueDate: "2025-05-22", assignedTo: "Mark Wilson" },
+    { id: 7, roomId: 3, name: "Install backsplash", status: "delayed", dueDate: "2025-05-10", assignedTo: "John Doe" },
+  ];
+
+  // Helper function to get badge color based on status
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <Badge className="bg-green-100 text-green-800 border-green-300">Completed</Badge>;
+      case "in_progress":
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-300">In Progress</Badge>;
+      case "not_started":
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-300">Not Started</Badge>;
+      case "delayed":
+        return <Badge className="bg-red-100 text-red-800 border-red-300">Delayed</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
-  
-  // Project card component
-  const ProjectCard = ({ project }: { project: any }) => {
-    const daysStatus = getDaysStatus(project.endDate);
+
+  // Filter tasks based on search query and status filter
+  const filteredTasks = mockTasks.filter(task => {
+    const matchesSearch = searchQuery === '' || 
+      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Count tasks by status
-    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.status === "done").length;
-    const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
     
-    // Count rooms
-    const rooms = Array.isArray(project.rooms) ? project.rooms : [];
-    
-    return (
-      <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => navigate(`/project/${project.id}`)}>
-        <CardContent className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="font-semibold text-lg text-gray-900">{project.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {project.client?.name || "No client assigned"}
-              </p>
-            </div>
-            <Badge 
-              className={cn(
-                "capitalize",
-                project.status === "completed" && "bg-green-100 text-green-800",
-                project.status === "in_progress" && "bg-blue-100 text-blue-800",
-                project.status === "planning" && "bg-yellow-100 text-yellow-800",
-                project.status === "on_hold" && "bg-gray-100 text-gray-800",
-              )}
-            >
-              {project.status?.replace("_", " ") || "No status"}
-            </Badge>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm text-gray-500">Progress</span>
-                <span className="text-sm font-medium">{project.progress || 0}%</span>
-              </div>
-              <Progress value={project.progress || 0} className="h-2" />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center">
-                <FolderOpen className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm">{rooms.length} Rooms</span>
-              </div>
-              <div className="flex items-center">
-                <CheckSquare className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm">{completedTasks}/{totalTasks} Tasks</span>
-              </div>
-              {daysStatus.days !== null && (
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className={cn(
-                    "text-sm",
-                    daysStatus.isOverdue ? "text-red-600" : "text-gray-600"
-                  )}>
-                    {daysStatus.isOverdue 
-                      ? `${daysStatus.days} days overdue` 
-                      : `${daysStatus.days} days left`}
-                  </span>
-                </div>
-              )}
-              {project.location && (
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className="text-sm text-gray-600">{project.location}</span>
-                </div>
-              )}
-            </div>
-            
-            {project.description && (
-              <p className="text-sm text-gray-500 line-clamp-2">{project.description}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return matchesSearch && matchesStatus;
+  });
+
+  // Get the room name for a given room ID
+  const getRoomName = (roomId: number) => {
+    const room = mockRooms.find(r => r.id === roomId);
+    return room ? room.name : 'Unknown Room';
   };
-  
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Project Tracker</h1>
-        <p className="text-gray-500">Track project progress, rooms, tasks, and daily logs</p>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Project Tracker</h1>
+          <p className="text-gray-500 mt-1">Track progress by room, manage tasks, and generate reports</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
       </div>
-      
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 justify-between">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search projects..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button onClick={() => navigate("/project/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Project
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Tabs defaultValue="all" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All Projects</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="planning">Planning</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all">
-          {isLoading ? (
-            <div className="p-12 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-            </div>
-          ) : filteredProjects && filteredProjects.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Project List */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Projects</CardTitle>
+            <CardDescription>Select a project to manage</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {mockProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className={`p-3 border rounded-md cursor-pointer transition-colors ${
+                    selectedProject === project.id.toString() 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => setSelectedProject(project.id.toString())}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">{project.name}</h3>
+                      <div className="flex items-center text-xs text-gray-500 mt-1">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {project.location}
+                      </div>
+                    </div>
+                    <Badge variant="outline">{project.status}</Badge>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>Progress</span>
+                      <span>{project.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full"
+                        style={{ width: `${project.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Details */}
+        <div className="lg:col-span-2 space-y-6">
+          {selectedProject ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>
+                        {mockProjects.find(p => p.id.toString() === selectedProject)?.name || 'Project Details'}
+                      </CardTitle>
+                      <CardDescription>
+                        {mockProjects.find(p => p.id.toString() === selectedProject)?.location || 'Location'}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline">
+                      {mockProjects.find(p => p.id.toString() === selectedProject)?.status || 'Status'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex space-x-2 mb-4">
+                    <Button variant="outline" size="sm" className="h-8" onClick={() => setView('rooms')}>
+                      <Layers className="h-4 w-4 mr-2" />
+                      Rooms & Zones
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8" onClick={() => setView('tasks')}>
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Tasks
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8" onClick={() => setView('logs')}>
+                      <List className="h-4 w-4 mr-2" />
+                      Progress Logs
+                    </Button>
+                  </div>
+
+                  <Tabs defaultValue={view} value={view} onValueChange={setView}>
+                    <TabsContent value="rooms" className="pt-4">
+                      <div className="flex justify-between mb-4">
+                        <h3 className="text-lg font-medium">Rooms & Zones</h3>
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Room
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        {mockRooms.map(room => (
+                          <div key={room.id} className="border rounded-md p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-start">
+                                <div className="rounded-full bg-gray-100 p-2 mr-3">
+                                  {room.type === 'living' && <Layers className="h-5 w-5 text-blue-500" />}
+                                  {room.type === 'bedroom' && <Layers className="h-5 w-5 text-purple-500" />}
+                                  {room.type === 'kitchen' && <Layers className="h-5 w-5 text-amber-500" />}
+                                  {room.type === 'bathroom' && <Layers className="h-5 w-5 text-emerald-500" />}
+                                  {room.type === 'office' && <Layers className="h-5 w-5 text-indigo-500" />}
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">{room.name}</h3>
+                                  <div className="flex items-center mt-1">
+                                    <span className="text-xs text-gray-500 mr-3">
+                                      {room.completedTasks} of {room.tasks} tasks completed
+                                    </span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {room.type}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-sm font-medium">{room.progress}%</span>
+                                <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                                  <div
+                                    className="bg-primary h-2 rounded-full"
+                                    style={{ width: `${room.progress}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex mt-3 space-x-2">
+                              <Button variant="outline" size="sm">
+                                <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                                Tasks
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                Add Note
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="tasks" className="pt-4">
+                      <div className="flex justify-between mb-4">
+                        <h3 className="text-lg font-medium">Tasks</h3>
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Task
+                        </Button>
+                      </div>
+                      <div className="flex justify-between items-center mb-4 gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search tasks..."
+                            className="pl-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <Select 
+                          value={statusFilter} 
+                          onValueChange={setStatusFilter}
+                        >
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="not_started">Not Started</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="delayed">Delayed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task</TableHead>
+                            <TableHead>Room</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Assigned To</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredTasks.map(task => (
+                            <TableRow key={task.id}>
+                              <TableCell className="font-medium">{task.name}</TableCell>
+                              <TableCell>{getRoomName(task.roomId)}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-500" />
+                                  {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                </div>
+                              </TableCell>
+                              <TableCell>{getStatusBadge(task.status)}</TableCell>
+                              <TableCell>{task.assignedTo}</TableCell>
+                            </TableRow>
+                          ))}
+                          {filteredTasks.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                                No tasks found. Try adjusting your filters.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TabsContent>
+
+                    <TabsContent value="logs" className="pt-4">
+                      <div className="flex justify-between mb-4">
+                        <h3 className="text-lg font-medium">Progress Logs</h3>
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Log Entry
+                        </Button>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                        <div className="flex items-start">
+                          <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium text-amber-800">Coming Soon</h4>
+                            <p className="text-sm text-amber-700">
+                              Progress logs feature is under development and will be available soon.
+                              This feature will allow you to track daily progress with photos and notes.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </>
           ) : (
-            <Card className="p-12 text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <FolderOpen className="h-6 w-6 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No projects found</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                {searchQuery 
-                  ? `No projects matching "${searchQuery}"` 
-                  : "Create your first project to track progress and tasks."}
-              </p>
-              <Button className="mx-auto" onClick={() => navigate("/project/new")}>
-                <Plus className="mr-2 h-4 w-4" /> Create New Project
-              </Button>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Clipboard className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-700">No Project Selected</h3>
+                <p className="text-gray-500 text-center max-w-md mt-1">
+                  Select a project from the list to see its details, track rooms, manage tasks, and view progress logs.
+                </p>
+              </CardContent>
             </Card>
           )}
-        </TabsContent>
-        
-        <TabsContent value="active">
-          {isLoading ? (
-            <div className="p-12 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-            </div>
-          ) : filteredProjects && filteredProjects.filter(p => p.status === "in_progress").length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProjects
-                .filter(p => p.status === "in_progress")
-                .map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))
-              }
-            </div>
-          ) : (
-            <Card className="p-12 text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <FolderOpen className="h-6 w-6 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No active projects</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                There are no projects currently in progress.
-              </p>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {/* Planning tab */}
-        <TabsContent value="planning">
-          {isLoading ? (
-            <div className="p-12 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-            </div>
-          ) : filteredProjects && filteredProjects.filter(p => p.status === "planning").length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProjects
-                .filter(p => p.status === "planning")
-                .map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))
-              }
-            </div>
-          ) : (
-            <Card className="p-12 text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <FolderOpen className="h-6 w-6 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No planning projects</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                There are no projects currently in the planning phase.
-              </p>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {/* Completed tab */}
-        <TabsContent value="completed">
-          {isLoading ? (
-            <div className="p-12 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-            </div>
-          ) : filteredProjects && filteredProjects.filter(p => p.status === "completed").length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProjects
-                .filter(p => p.status === "completed")
-                .map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))
-              }
-            </div>
-          ) : (
-            <Card className="p-12 text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <FolderOpen className="h-6 w-6 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No completed projects</h3>
-              <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                There are no completed projects yet.
-              </p>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

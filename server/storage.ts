@@ -30,6 +30,14 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   
+  // Lead methods
+  getLeads(userId: number): Promise<Lead[]>;
+  getLeadsByStage(stage: string): Promise<Lead[]>;
+  getLead(id: number): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: number, lead: Partial<Lead>): Promise<Lead | undefined>;
+  deleteLead(id: number): Promise<boolean>;
+  
   // Client methods
   getClients(userId: number): Promise<Client[]>;
   getClient(id: number): Promise<Client | undefined>;
@@ -79,6 +87,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private leads: Map<number, Lead>;
   private clients: Map<number, Client>;
   private projects: Map<number, Project>;
   private proposals: Map<number, Proposal>;
@@ -88,6 +97,7 @@ export class MemStorage implements IStorage {
   private activities: Map<number, Activity>;
   
   private userId: number;
+  private leadId: number;
   private clientId: number;
   private projectId: number;
   private proposalId: number;
@@ -98,6 +108,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.leads = new Map();
     this.clients = new Map();
     this.projects = new Map();
     this.proposals = new Map();
@@ -107,6 +118,7 @@ export class MemStorage implements IStorage {
     this.activities = new Map();
     
     this.userId = 1;
+    this.leadId = 1;
     this.clientId = 1;
     this.projectId = 1;
     this.proposalId = 1;
@@ -164,6 +176,56 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...existingUser, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+
+  // Lead methods
+  async getLeads(userId: number): Promise<Lead[]> {
+    return Array.from(this.leads.values()).filter(
+      (lead) => lead.assignedTo === userId,
+    );
+  }
+
+  async getLeadsByStage(stage: string): Promise<Lead[]> {
+    return Array.from(this.leads.values()).filter(
+      (lead) => lead.stage === stage,
+    );
+  }
+
+  async getLead(id: number): Promise<Lead | undefined> {
+    return this.leads.get(id);
+  }
+
+  async createLead(insertLead: InsertLead): Promise<Lead> {
+    const id = this.leadId++;
+    const now = new Date();
+    const lead: Lead = { 
+      ...insertLead, 
+      id, 
+      createdAt: now,
+      updatedAt: now
+    };
+    this.leads.set(id, lead);
+    return lead;
+  }
+
+  async updateLead(id: number, leadData: Partial<Lead>): Promise<Lead | undefined> {
+    const existingLead = await this.getLead(id);
+    if (!existingLead) return undefined;
+    
+    const updatedLead = { 
+      ...existingLead, 
+      ...leadData,
+      updatedAt: new Date()
+    };
+    this.leads.set(id, updatedLead);
+    return updatedLead;
+  }
+
+  async deleteLead(id: number): Promise<boolean> {
+    const existingLead = await this.getLead(id);
+    if (!existingLead) return false;
+    
+    return this.leads.delete(id);
   }
 
   // Client methods

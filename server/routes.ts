@@ -1011,9 +1011,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create an activity to track this AI interaction
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: req.body.clientId || null,
-        projectId: req.body.projectId || null,
+        user_id: (req.user as any).id,
+        client_id: req.body.client_id || null,
+        project_id: req.body.project_id || null,
         type: "ai_design_insights",
         description: "Generated AI design insights",
         metadata: { query: insightRequest.projectDescription }
@@ -1029,7 +1029,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analyze client feedback
   app.post("/api/ai/analyze-feedback", isAuthenticated, async (req, res) => {
     try {
-      const { feedback, clientId, projectId } = req.body;
+      const { feedback, client_id, project_id } = req.body;
       
       if (!feedback) {
         return res.status(400).json({ message: "Feedback text is required" });
@@ -1039,9 +1039,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create an activity to track this AI interaction
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: clientId || null,
-        projectId: projectId || null,
+        user_id: (req.user as any).id,
+        client_id: client_id || null,
+        project_id: project_id || null,
         type: "ai_feedback_analysis",
         description: "Analyzed client feedback with AI",
         metadata: { feedback: feedback.substring(0, 100) + (feedback.length > 100 ? '...' : '') }
@@ -1057,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate moodboard suggestions
   app.post("/api/ai/moodboard-suggestions", isAuthenticated, async (req, res) => {
     try {
-      const { style, colors, roomType, clientId, projectId } = req.body;
+      const { style, colors, roomType, client_id, project_id } = req.body;
       
       if (!style || !colors || !roomType) {
         return res.status(400).json({ message: "Style, colors, and room type are required" });
@@ -1067,9 +1067,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create an activity to track this AI interaction
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: clientId || null,
-        projectId: projectId || null,
+        user_id: (req.user as any).id,
+        client_id: client_id || null,
+        project_id: project_id || null,
         type: "ai_moodboard_suggestions",
         description: "Generated AI moodboard suggestions",
         metadata: { style, roomType }
@@ -1100,7 +1100,7 @@ async function setupTestData() {
     if (user) {
       // Add some test clients
       const client1 = await storage.createClient({
-        userId: user.id,
+        user_id: user.id,
         name: "Priya Sharma",
         email: "priya@example.com",
         phone: "+91 9876543210",
@@ -1110,7 +1110,7 @@ async function setupTestData() {
       });
       
       const client2 = await storage.createClient({
-        userId: user.id,
+        user_id: user.id,
         name: "Rahul Mehta",
         email: "rahul@example.com",
         phone: "+91 9876543211",
@@ -1120,7 +1120,7 @@ async function setupTestData() {
       });
       
       const client3 = await storage.createClient({
-        userId: user.id,
+        user_id: user.id,
         name: "Vikram Singh",
         email: "vikram@example.com",
         phone: "+91 9876543212",
@@ -1131,8 +1131,8 @@ async function setupTestData() {
       
       // Add some test projects
       const project1 = await storage.createProject({
-        userId: user.id,
-        clientId: client1.id,
+        user_id: user.id,
+        client_id: client1.id,
         name: "Modern Apartment Renovation",
         description: "Complete renovation of a 3BHK apartment with modern design elements",
         location: "Mumbai, Maharashtra",
@@ -1142,8 +1142,8 @@ async function setupTestData() {
       });
       
       const project2 = await storage.createProject({
-        userId: user.id,
-        clientId: client2.id,
+        user_id: user.id,
+        client_id: client2.id,
         name: "Luxury Villa Design",
         description: "Custom design for a new luxury villa with premium materials",
         location: "Bangalore, Karnataka",
@@ -1153,8 +1153,8 @@ async function setupTestData() {
       });
       
       const project3 = await storage.createProject({
-        userId: user.id,
-        clientId: client3.id,
+        user_id: user.id,
+        client_id: client3.id,
         name: "Restaurant Redesign",
         description: "Redesign of an existing restaurant with contemporary theme",
         location: "Delhi, NCR",

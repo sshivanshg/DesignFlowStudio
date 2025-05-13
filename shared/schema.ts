@@ -71,12 +71,14 @@ export const leads = pgTable("leads", {
   tag: text("tag"),
   assignedTo: integer("assigned_to").references(() => users.id),
   notes: text("notes"),
+  followUpDate: timestamp("follow_up_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
   return {
     stageIdx: index("lead_stage_idx").on(table.stage),
     assignedToIdx: index("lead_assigned_to_idx").on(table.assignedTo),
+    followUpIdx: index("lead_follow_up_idx").on(table.followUpDate),
   }
 });
 

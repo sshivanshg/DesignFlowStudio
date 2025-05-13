@@ -132,10 +132,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Firebase authentication route
   app.post("/api/auth/firebase-auth", async (req, res) => {
     try {
-      const { firebaseUid, phone, idToken } = req.body;
+      const { firebaseUid, phone, email, displayName, photoURL, idToken } = req.body;
       
-      if (!firebaseUid || !phone) {
-        return res.status(400).json({ message: "Missing required fields" });
+      if (!firebaseUid) {
+        return res.status(400).json({ message: "Missing Firebase UID" });
       }
       
       // Check if user with this Firebase UID exists
@@ -143,22 +143,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user) {
         // Update existing user if needed
-        if (user.phone !== phone) {
-          user = await storage.updateUser(user.id, { phone });
+        const updates: Partial<User> = {};
+        
+        if (phone && user.phone !== phone) {
+          updates.phone = phone;
+        }
+        
+        if (email && user.email !== email) {
+          updates.email = email;
+        }
+        
+        if (displayName && user.fullName !== displayName) {
+          updates.fullName = displayName;
+        }
+        
+        if (photoURL && user.avatar !== photoURL) {
+          updates.avatar = photoURL;
+        }
+        
+        // Apply updates if any
+        if (Object.keys(updates).length > 0) {
+          user = await storage.updateUser(user.id, updates);
         }
       } else {
         // Create a new user
-        // Generate a username from the phone number
-        const username = `user_${phone.replace(/\D/g, '')}`;
         const randomPassword = Math.random().toString(36).slice(-8);
         
+        // Generate a username
+        let usernameBase = '';
+        if (email) {
+          // Use email prefix
+          usernameBase = `user_${email.split('@')[0]}`;
+        } else if (phone) {
+          // Use phone number
+          usernameBase = `user_${phone.replace(/\D/g, '')}`;
+        } else {
+          // Use random identifier with firebaseUid
+          usernameBase = `user_${firebaseUid.substring(0, 8)}`;
+        }
+        
         // Try to find an available username
-        let availableUsername = username;
+        let availableUsername = usernameBase;
         let counter = 1;
         let existingUser = await storage.getUserByUsername(availableUsername);
         
         while (existingUser) {
-          availableUsername = `${username}_${counter}`;
+          availableUsername = `${usernameBase}_${counter}`;
           counter++;
           existingUser = await storage.getUserByUsername(availableUsername);
         }
@@ -167,10 +197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userData = {
           username: availableUsername,
           password: randomPassword, // This is just for compatibility, they'll use Firebase auth
-          email: `${availableUsername}@example.com`, // Placeholder email
-          fullName: phone, // Use phone as initial fullName
+          email: email || `${availableUsername}@example.com`, // Use provided email or placeholder
+          fullName: displayName || phone || 'New User', // Use displayName, or phone, or default
           role: 'sales' as const,
-          phone,
+          phone: phone || null,
+          avatar: photoURL || null,
           firebaseUid
         };
         

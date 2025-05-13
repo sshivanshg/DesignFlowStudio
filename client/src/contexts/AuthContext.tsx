@@ -189,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: result.user.email,
           displayName: result.user.displayName,
           photoURL: result.user.photoURL,
+          phone: result.user.phoneNumber,
           idToken,
         }),
         credentials: "include",
@@ -209,6 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Reset query cache
       queryClient.clear();
+      
+      // Redirect to dashboard after successful Google login
+      window.location.href = "/dashboard";
       
     } catch (error) {
       toast({

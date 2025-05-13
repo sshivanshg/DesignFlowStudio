@@ -22,6 +22,14 @@ import EstimateCreate from "@/pages/estimate-create";
 import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
 
+// Client Portal Pages
+import ClientPortalLogin from "@/pages/client-portal-login";
+import ClientPortal from "@/pages/client-portal";
+import ClientProjectDetail from "@/pages/client-project-detail";
+import ClientProposalDetail from "@/pages/client-proposal-detail";
+import ClientEstimateDetail from "@/pages/client-estimate-detail";
+import ClientMoodboardDetail from "@/pages/client-moodboard-detail";
+
 import { useAuth } from "@/hooks/use-auth";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 
@@ -89,6 +97,32 @@ function Router() {
         <Login />
       </Route>
       
+      {/* Client Portal Routes - No protection needed as they use their own token auth */}
+      <Route path="/client-portal/login/:token?">
+        <ClientPortalLogin />
+      </Route>
+      
+      <Route path="/client-portal/:clientId">
+        <ClientPortal />
+      </Route>
+      
+      <Route path="/client-portal/:clientId/projects/:projectId">
+        <ClientProjectDetail />
+      </Route>
+      
+      <Route path="/client-portal/:clientId/proposals/:proposalId">
+        <ClientProposalDetail />
+      </Route>
+      
+      <Route path="/client-portal/:clientId/estimates/:estimateId">
+        <ClientEstimateDetail />
+      </Route>
+      
+      <Route path="/client-portal/:clientId/moodboards/:moodboardId">
+        <ClientMoodboardDetail />
+      </Route>
+      
+      {/* Admin/Designer/Sales Routes - Protected */}
       <Route path="/">
         <ProtectedRoute>
           <AppLayout>

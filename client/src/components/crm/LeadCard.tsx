@@ -94,6 +94,8 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
   const [isConvertToProjectOpen, setIsConvertToProjectOpen] = useState(false);
   const [convertingToProject, setConvertingToProject] = useState(false);
   
+  const { toast } = useToast();
+  
   const convertToProject = async () => {
     setConvertingToProject(true);
     try {
@@ -130,7 +132,7 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          stage: LEAD_STAGES.CLOSED
+          stage: "closed" // Using string directly to avoid circular dependency
         })
       });
 
@@ -282,6 +284,78 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
           )}
         </div>
       </CardFooter>
+      
+      {/* Convert to Project Dialog */}
+      <Dialog open={isConvertToProjectOpen} onOpenChange={setIsConvertToProjectOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Convert Lead to Project</DialogTitle>
+            <DialogDescription>
+              This will create a new project based on this lead and mark the lead as closed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Lead Information</h4>
+              <dl className="grid grid-cols-[100px_1fr] gap-1 text-sm">
+                <dt className="text-muted-foreground">Name:</dt>
+                <dd>{lead.name}</dd>
+                
+                {lead.email && (
+                  <>
+                    <dt className="text-muted-foreground">Email:</dt>
+                    <dd>{lead.email}</dd>
+                  </>
+                )}
+                
+                {lead.phone && (
+                  <>
+                    <dt className="text-muted-foreground">Phone:</dt>
+                    <dd>{lead.phone}</dd>
+                  </>
+                )}
+                
+                {lead.source && (
+                  <>
+                    <dt className="text-muted-foreground">Source:</dt>
+                    <dd>{lead.source.replace('-', ' ')}</dd>
+                  </>
+                )}
+              </dl>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium">Project Details</h4>
+              <p className="text-sm text-muted-foreground">
+                A new project will be created with the name "Project for {lead.name}".
+                You can edit the project details after creation.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConvertToProjectOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={convertToProject} 
+              disabled={convertingToProject}
+              className="gap-2"
+            >
+              {convertingToProject ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                  <span>Converting...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>Convert to Project</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

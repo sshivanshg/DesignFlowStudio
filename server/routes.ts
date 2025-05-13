@@ -11,9 +11,11 @@ import {
   insertActivitySchema,
   insertLeadSchema,
   insertSubscriptionSchema,
+  insertEstimateConfigSchema,
   User,
   Lead
 } from "@shared/schema";
+import { Json } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -1558,6 +1560,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   const httpServer = createServer(app);
+  // Add an endpoint to seed estimate configurations
+  app.post("/api/seed/estimate-configs", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can seed the database" });
+      }
+      
+      console.log("Starting to seed estimate configurations...");
+      
+      // Room types configuration
+      const roomTypesConfig = {
+        name: "Room Types",
+        configType: "room_types",
+        description: "Available room types for estimation",
+        isActive: true,
+        config: {
+          options: [
+            { id: "living_room", name: "Living Room", basePrice: 2500 },
+            { id: "bedroom", name: "Bedroom", basePrice: 2000 },
+            { id: "kitchen", name: "Kitchen", basePrice: 3500 },
+            { id: "bathroom", name: "Bathroom", basePrice: 2800 },
+            { id: "dining_room", name: "Dining Room", basePrice: 2200 },
+            { id: "office", name: "Home Office", basePrice: 1800 },
+            { id: "entryway", name: "Entryway/Foyer", basePrice: 1500 },
+            { id: "outdoor", name: "Outdoor Space", basePrice: 3000 }
+          ]
+        }
+      };
+      
+      // Finish levels configuration
+      const finishLevelsConfig = {
+        name: "Finish Levels",
+        configType: "finish_levels",
+        description: "Finish quality levels for estimation",
+        isActive: true,
+        config: {
+          options: [
+            { id: "standard", name: "Standard", multiplier: 1.0 },
+            { id: "premium", name: "Premium", multiplier: 1.5 },
+            { id: "luxury", name: "Luxury", multiplier: 2.0 },
+            { id: "custom", name: "Custom/Bespoke", multiplier: 2.5 }
+          ]
+        }
+      };
+      
+      // Layout complexity configuration
+      const layoutComplexityConfig = {
+        name: "Layout Complexity",
+        configType: "layout_complexity",
+        description: "Layout complexity factors for estimation",
+        isActive: true,
+        config: {
+          options: [
+            { id: "simple", name: "Simple", multiplier: 1.0 },
+            { id: "moderate", name: "Moderate", multiplier: 1.25 },
+            { id: "complex", name: "Complex", multiplier: 1.5 }
+          ]
+        }
+      };
+      
+      // Square footage pricing tiers
+      const sqftPricingConfig = {
+        name: "Square Footage Pricing",
+        configType: "sqft_pricing",
+        description: "Price adjustments based on total square footage",
+        isActive: true,
+        config: {
+          tiers: [
+            { min: 0, max: 500, multiplier: 1.2 },
+            { min: 501, max: 1000, multiplier: 1.1 },
+            { min: 1001, max: 2000, multiplier: 1.0 },
+            { min: 2001, max: 3500, multiplier: 0.9 },
+            { min: 3501, max: 999999, multiplier: 0.8 }
+          ]
+        }
+      };
+      
+      // Tax rates configuration
+      const taxRatesConfig = {
+        name: "Tax Rates",
+        configType: "tax_rates",
+        description: "Tax rates for different regions",
+        isActive: true,
+        config: {
+          default: 0.05, // 5% GST
+          regions: {
+            "AB": 0.05,
+            "BC": 0.12,
+            "MB": 0.12,
+            "NB": 0.15,
+            "NL": 0.15,
+            "NT": 0.05,
+            "NS": 0.15,
+            "NU": 0.05,
+            "ON": 0.13,
+            "PE": 0.15,
+            "QC": 0.14975,
+            "SK": 0.11,
+            "YT": 0.05
+          }
+        }
+      };
+      
+      // Payment schedules configuration
+      const paymentSchedulesConfig = {
+        name: "Payment Schedules",
+        configType: "payment_schedules",
+        description: "Available payment schedules",
+        isActive: true,
+        config: {
+          options: [
+            { 
+              id: "standard",
+              name: "Standard (40-40-20)",
+              schedule: [
+                { milestone: "Contract Signing", percentage: 0.4 },
+                { milestone: "Mid-Project Review", percentage: 0.4 },
+                { milestone: "Project Completion", percentage: 0.2 }
+              ]
+            },
+            { 
+              id: "progressive",
+              name: "Progressive (25-25-25-25)",
+              schedule: [
+                { milestone: "Contract Signing", percentage: 0.25 },
+                { milestone: "Design Approval", percentage: 0.25 },
+                { milestone: "Material Delivery", percentage: 0.25 },
+                { milestone: "Project Completion", percentage: 0.25 }
+              ]
+            },
+            { 
+              id: "custom_large",
+              name: "Custom Large Project (20-20-20-20-20)",
+              schedule: [
+                { milestone: "Contract Signing", percentage: 0.2 },
+                { milestone: "Design Approval", percentage: 0.2 },
+                { milestone: "Material Acquisition", percentage: 0.2 },
+                { milestone: "Implementation Phase", percentage: 0.2 },
+                { milestone: "Project Completion", percentage: 0.2 }
+              ]
+            }
+          ]
+        }
+      };
+      
+      // Create all configurations
+      const configsToCreate = [
+        roomTypesConfig,
+        finishLevelsConfig,
+        layoutComplexityConfig,
+        sqftPricingConfig,
+        taxRatesConfig,
+        paymentSchedulesConfig
+      ];
+      
+      const createdConfigs = [];
+      
+      for (const config of configsToCreate) {
+        // Check if a config with this name already exists
+        const existing = await storage.getEstimateConfigByName(config.name);
+        
+        if (existing) {
+          console.log(`Config "${config.name}" already exists, updating...`);
+          const updated = await storage.updateEstimateConfig(existing.id, config);
+          createdConfigs.push(updated);
+        } else {
+          console.log(`Creating new config "${config.name}"...`);
+          const created = await storage.createEstimateConfig(config);
+          createdConfigs.push(created);
+        }
+      }
+      
+      console.log("Estimate configurations seeding completed successfully");
+      res.status(201).json({ 
+        message: "Estimate configurations seeded successfully", 
+        configs: createdConfigs 
+      });
+    } catch (error) {
+      console.error("Error seeding estimate configurations:", error);
+      res.status(500).json({ message: "Error seeding estimate configurations" });
+    }
+  });
+
   return httpServer;
 }
 

@@ -518,6 +518,12 @@ export class MemStorage implements IStorage {
     return this.estimateConfigs.get(id);
   }
   
+  async getEstimateConfigByName(name: string): Promise<EstimateConfig | undefined> {
+    return Array.from(this.estimateConfigs.values()).find(
+      (config) => config.name === name
+    );
+  }
+  
   async createEstimateConfig(insertConfig: InsertEstimateConfig): Promise<EstimateConfig> {
     const id = this.estimateConfigId++;
     const now = new Date();

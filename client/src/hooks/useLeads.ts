@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@lib/queryClient';
-import { LEAD_STAGES } from '@contexts/CRMContext';
-import { useAuth } from '@contexts/AuthContext';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { LEAD_STAGES } from '@/contexts/CRMContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Lead } from '@shared/schema';
 
 // Lead interface used on the frontend (camelCase)
@@ -25,7 +25,7 @@ export function useLeads() {
 
   // Fetch all leads for the current user
   const {
-    data: leads = [],
+    data: leads = [] as LeadType[],
     isLoading,
     isError,
     error,

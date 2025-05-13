@@ -24,8 +24,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { LEAD_TAGS, LEAD_SOURCES, useCRM } from '@contexts/CRMContext';
-import { cn } from '@lib/utils';
+import { LEAD_TAGS, LEAD_SOURCES, useCRM } from '@/contexts/CRMContext';
+import { cn } from '@/lib/utils';
 
 export function LeadFilters() {
   const { 

@@ -28,9 +28,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { cn } from '@lib/utils';
-import { LEAD_STAGES, LEAD_TAGS, LEAD_SOURCES } from '@contexts/CRMContext';
-import type { LeadType } from '@hooks/useLeads';
+import { cn } from '@/lib/utils';
+import { LEAD_STAGES, LEAD_TAGS, LEAD_SOURCES } from '@/contexts/CRMContext';
+import type { LeadType } from '@/hooks/useLeads';
 
 // Create schema for the form using zod
 const formSchema = z.object({

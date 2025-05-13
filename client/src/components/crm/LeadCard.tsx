@@ -15,7 +15,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import type { LeadType } from '@hooks/useLeads';
+import type { LeadType } from '@/hooks/useLeads';
 
 interface LeadCardProps {
   lead: LeadType;

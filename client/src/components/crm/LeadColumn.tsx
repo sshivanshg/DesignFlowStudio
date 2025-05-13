@@ -3,7 +3,7 @@ import { useDrop } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LeadCard } from './LeadCard';
-import type { LeadType } from '@hooks/useLeads';
+import type { LeadType } from '@/hooks/useLeads';
 
 interface LeadColumnProps {
   title: string;

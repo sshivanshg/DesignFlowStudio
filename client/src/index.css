@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --font-sans: 'Inter', sans-serif;
@@ -120,5 +121,4 @@
   @apply bg-muted-foreground/60;
 }
 
-/* Add boxicons */
-@import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+/* Boxicons already imported at the top */

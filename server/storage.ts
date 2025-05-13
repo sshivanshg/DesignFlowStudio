@@ -57,6 +57,22 @@ export interface IStorage {
   updateProject(id: number, project: Partial<Project>): Promise<Project | undefined>;
   deleteProject(id: number): Promise<boolean>;
   
+  // Project rooms methods
+  addProjectRoom(projectId: number, roomData: {name: string, description?: string}): Promise<Project>;
+  updateProjectRoom(projectId: number, roomId: number, roomData: any): Promise<Project>;
+  deleteProjectRoom(projectId: number, roomId: number): Promise<Project>;
+  
+  // Project tasks methods
+  addProjectRoomTask(projectId: number, roomId: number | null, taskData: any): Promise<Project>;
+  updateProjectTask(projectId: number, taskId: number, taskData: any): Promise<Project>;
+  deleteProjectTask(projectId: number, taskId: number): Promise<Project>;
+  
+  // Project logs methods
+  addProjectLog(projectId: number, logData: any, userId: number): Promise<Project>;
+  
+  // Project reports methods
+  configureProjectReports(projectId: number, reportSettings: any): Promise<Project>;
+  
   // Proposal methods
   getProposals(userId: number): Promise<Proposal[]>;
   getProposal(id: number): Promise<Proposal | undefined>;
@@ -1429,6 +1445,50 @@ export class StorageAdapter implements IStorage {
   
   async deleteProject(id: number): Promise<boolean> {
     return this.drizzleStorage.deleteProject(id);
+  }
+  
+  // Project room methods
+  async addProjectRoom(projectId: number, roomData: {name: string, description?: string}): Promise<Project> {
+    const result = await this.drizzleStorage.addProjectRoom(projectId, roomData);
+    return convertKeysToCamelCase(result);
+  }
+  
+  async updateProjectRoom(projectId: number, roomId: number, roomData: any): Promise<Project> {
+    const result = await this.drizzleStorage.updateProjectRoom(projectId, roomId, roomData);
+    return convertKeysToCamelCase(result);
+  }
+  
+  async deleteProjectRoom(projectId: number, roomId: number): Promise<Project> {
+    const result = await this.drizzleStorage.deleteProjectRoom(projectId, roomId);
+    return convertKeysToCamelCase(result);
+  }
+  
+  // Project task methods
+  async addProjectRoomTask(projectId: number, roomId: number | null, taskData: any): Promise<Project> {
+    const result = await this.drizzleStorage.addProjectRoomTask(projectId, roomId, taskData);
+    return convertKeysToCamelCase(result);
+  }
+  
+  async updateProjectTask(projectId: number, taskId: number, taskData: any): Promise<Project> {
+    const result = await this.drizzleStorage.updateProjectTask(projectId, taskId, taskData);
+    return convertKeysToCamelCase(result);
+  }
+  
+  async deleteProjectTask(projectId: number, taskId: number): Promise<Project> {
+    const result = await this.drizzleStorage.deleteProjectTask(projectId, taskId);
+    return convertKeysToCamelCase(result);
+  }
+  
+  // Project log methods
+  async addProjectLog(projectId: number, logData: any, userId: number): Promise<Project> {
+    const result = await this.drizzleStorage.addProjectLog(projectId, logData, userId);
+    return convertKeysToCamelCase(result);
+  }
+  
+  // Project report methods
+  async configureProjectReports(projectId: number, reportSettings: any): Promise<Project> {
+    const result = await this.drizzleStorage.configureProjectReports(projectId, reportSettings);
+    return convertKeysToCamelCase(result);
   }
   
   // Proposal methods

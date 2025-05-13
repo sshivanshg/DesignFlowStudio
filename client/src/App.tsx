@@ -12,6 +12,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import CRM from "@/pages/crm";
 import Proposals from "@/pages/proposals";
+import ProposalEditor from "@/pages/proposal-editor";
 import Moodboard from "@/pages/moodboard";
 import Estimates from "@/pages/estimates";
 import Clients from "@/pages/clients";
@@ -86,6 +87,12 @@ function Router() {
           <AppLayout>
             <Proposals />
           </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/proposals/new/:leadId*">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <ProposalEditor />
         </ProtectedRoute>
       </Route>
       

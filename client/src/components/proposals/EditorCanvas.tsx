@@ -1,251 +1,264 @@
-import React, { useRef, useState } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Trash2, Move, Copy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
-
-// Element components
-import { TextElement } from './elements/TextElement';
-import { HeadingElement } from './elements/HeadingElement';
-import { ImageElement } from './elements/ImageElement';
-import { PricingTableElement } from './elements/PricingTableElement';
-import { ScopeBlockElement } from './elements/ScopeBlockElement';
+import { ProposalElement } from '@/pages/proposal-editor';
+import { 
+  Trash2, 
+  ChevronsUp, 
+  ChevronsDown,
+  Copy
+} from 'lucide-react';
+import { 
+  TextElement, 
+  HeadingElement,
+  ImageElement,
+  PricingTableElement,
+  ScopeBlockElement
+} from './elements';
 
 interface EditorCanvasProps {
-  sections: any[];
-  selectedElement: any;
-  onElementSelect: (element: any) => void;
-  onElementUpdate: (elementId: string, updates: any) => void;
-  onElementDelete: (elementId: string) => void;
+  elements: ProposalElement[];
+  selectedElement: ProposalElement | null;
+  onSelectElement: (element: ProposalElement | null) => void;
+  onUpdateElement: (element: ProposalElement) => void;
+  onDeleteElement: (id: string) => void;
 }
 
-export function EditorCanvas({ 
-  sections, 
-  selectedElement, 
-  onElementSelect,
-  onElementUpdate,
-  onElementDelete
+export function EditorCanvas({
+  elements,
+  selectedElement,
+  onSelectElement,
+  onUpdateElement,
+  onDeleteElement
 }: EditorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [draggedElement, setDraggedElement] = useState<ProposalElement | null>(null);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
-  const handleElementMove = (elementId: string, position: { x: number, y: number }) => {
-    onElementUpdate(elementId, { position });
+  // Handle mousedown on an element
+  const handleMouseDown = (e: React.MouseEvent, element: ProposalElement) => {
+    if (e.button !== 0) return; // Only left mouse button
+    
+    // Prevent default behavior to avoid text selection
+    e.preventDefault();
+    
+    // Select the element
+    onSelectElement(element);
+    
+    // Start drag
+    setDraggedElement(element);
+    setStartPos({
+      x: e.clientX - element.x,
+      y: e.clientY - element.y
+    });
   };
 
-  const renderElement = (element: any) => {
-    const isSelected = selectedElement && selectedElement.id === element.id;
+  // Handle mousemove while dragging
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggedElement) return;
     
+    // Calculate new position
+    const newX = e.clientX - startPos.x;
+    const newY = e.clientY - startPos.y;
+    
+    // Update element position
+    onUpdateElement({
+      ...draggedElement,
+      x: newX,
+      y: newY
+    });
+  };
+
+  // Handle mouseup to end dragging
+  const handleMouseUp = () => {
+    setDraggedElement(null);
+  };
+
+  // Function to render the correct element based on type
+  const renderElement = (element: ProposalElement) => {
+    const isSelected = selectedElement?.id === element.id;
+    
+    const baseProps = {
+      style: {
+        ...element.style,
+        position: 'absolute' as const,
+        left: `${element.x}px`,
+        top: `${element.y}px`,
+        width: `${element.width}px`,
+        height: `${element.height}px`,
+        zIndex: element.zIndex,
+      }
+    };
+    
+    // Wrapper component with common functionality
+    const ElementWrapper = ({ children }: { children: React.ReactNode }) => (
+      <div
+        className={cn(
+          "bg-white border relative",
+          isSelected ? "border-primary shadow-md" : "border-transparent hover:border-gray-300"
+        )}
+        style={baseProps.style}
+        onMouseDown={(e) => handleMouseDown(e, element)}
+      >
+        {children}
+        
+        {isSelected && (
+          <div className="absolute -right-10 top-0 flex flex-col bg-white border shadow-sm rounded-sm">
+            <button 
+              className="p-1 hover:bg-gray-100" 
+              onClick={() => onDeleteElement(element.id)}
+              title="Delete"
+            >
+              <Trash2 size={14} />
+            </button>
+            <button 
+              className="p-1 hover:bg-gray-100" 
+              onClick={() => {
+                onUpdateElement({
+                  ...element,
+                  zIndex: element.zIndex + 1
+                });
+              }}
+              title="Bring forward"
+            >
+              <ChevronsUp size={14} />
+            </button>
+            <button 
+              className="p-1 hover:bg-gray-100" 
+              onClick={() => {
+                onUpdateElement({
+                  ...element,
+                  zIndex: Math.max(1, element.zIndex - 1)
+                });
+              }}
+              title="Send backward"
+            >
+              <ChevronsDown size={14} />
+            </button>
+            <button 
+              className="p-1 hover:bg-gray-100" 
+              onClick={() => {
+                const newElement = {
+                  ...element,
+                  id: Math.random().toString(36).substr(2, 9),
+                  x: element.x + 20,
+                  y: element.y + 20,
+                  zIndex: Date.now()
+                };
+                onUpdateElement(newElement);
+              }}
+              title="Duplicate"
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+
+    // Render the appropriate element based on type
     switch (element.type) {
-      case 'heading':
-        return (
-          <DraggableElement 
-            key={element.id}
-            element={element}
-            isSelected={isSelected}
-            onSelect={() => onElementSelect(element)}
-            onMove={handleElementMove}
-            onDelete={onElementDelete}
-          >
-            <HeadingElement 
-              content={element.content} 
-              style={element.style} 
-              isSelected={isSelected}
-              onChange={(content) => onElementUpdate(element.id, { content })}
-            />
-          </DraggableElement>
-        );
       case 'text':
         return (
-          <DraggableElement 
-            key={element.id}
-            element={element}
-            isSelected={isSelected}
-            onSelect={() => onElementSelect(element)}
-            onMove={handleElementMove}
-            onDelete={onElementDelete}
-          >
-            <TextElement 
-              content={element.content} 
-              style={element.style} 
+          <ElementWrapper key={element.id}>
+            <TextElement
+              content={element.content}
               isSelected={isSelected}
-              onChange={(content) => onElementUpdate(element.id, { content })}
+              onChange={(content) => {
+                onUpdateElement({
+                  ...element,
+                  content
+                });
+              }}
             />
-          </DraggableElement>
+          </ElementWrapper>
+        );
+      case 'heading':
+        return (
+          <ElementWrapper key={element.id}>
+            <HeadingElement
+              content={element.content}
+              isSelected={isSelected}
+              onChange={(content) => {
+                onUpdateElement({
+                  ...element,
+                  content
+                });
+              }}
+            />
+          </ElementWrapper>
         );
       case 'image':
         return (
-          <DraggableElement 
-            key={element.id}
-            element={element}
-            isSelected={isSelected}
-            onSelect={() => onElementSelect(element)}
-            onMove={handleElementMove}
-            onDelete={onElementDelete}
-          >
-            <ImageElement 
-              content={element.content} 
-              style={element.style} 
+          <ElementWrapper key={element.id}>
+            <ImageElement
+              content={element.content}
               isSelected={isSelected}
-              onChange={(content) => onElementUpdate(element.id, { content })}
+              onChange={(content) => {
+                onUpdateElement({
+                  ...element,
+                  content
+                });
+              }}
             />
-          </DraggableElement>
+          </ElementWrapper>
         );
-      case 'pricing-table':
+      case 'pricingTable':
         return (
-          <DraggableElement 
-            key={element.id}
-            element={element}
-            isSelected={isSelected}
-            onSelect={() => onElementSelect(element)}
-            onMove={handleElementMove}
-            onDelete={onElementDelete}
-          >
-            <PricingTableElement 
-              content={element.content} 
-              style={element.style} 
+          <ElementWrapper key={element.id}>
+            <PricingTableElement
+              content={element.content}
               isSelected={isSelected}
-              onChange={(content) => onElementUpdate(element.id, { content })}
+              onChange={(content) => {
+                onUpdateElement({
+                  ...element,
+                  content
+                });
+              }}
             />
-          </DraggableElement>
+          </ElementWrapper>
         );
-      case 'scope-block':
+      case 'scopeBlock':
         return (
-          <DraggableElement 
-            key={element.id}
-            element={element}
-            isSelected={isSelected}
-            onSelect={() => onElementSelect(element)}
-            onMove={handleElementMove}
-            onDelete={onElementDelete}
-          >
-            <ScopeBlockElement 
-              content={element.content} 
-              style={element.style} 
+          <ElementWrapper key={element.id}>
+            <ScopeBlockElement
+              content={element.content}
               isSelected={isSelected}
-              onChange={(content) => onElementUpdate(element.id, { content })}
+              onChange={(content) => {
+                onUpdateElement({
+                  ...element,
+                  content
+                });
+              }}
             />
-          </DraggableElement>
+          </ElementWrapper>
         );
       default:
         return null;
     }
   };
 
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="relative mx-auto" style={{ width: '816px' }}>
-        {sections.map((section) => (
-          <div 
-            key={section.id} 
-            className="bg-white shadow-sm rounded-lg p-8 mb-8 min-h-[1056px] relative"
-            ref={canvasRef}
-            style={{ width: '816px', height: 'auto' }}
-          >
-            {section.elements.map(renderElement)}
-            
-            {/* Empty state */}
-            {section.elements.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <p className="mb-2">Drag elements here to start designing your proposal</p>
-                <p className="text-sm">or</p>
-                <p className="mt-2">Select a template from the left panel</p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </DndProvider>
-  );
-}
-
-// Draggable Element Wrapper
-interface DraggableElementProps {
-  element: any;
-  children: React.ReactNode;
-  isSelected: boolean;
-  onSelect: () => void;
-  onMove: (elementId: string, position: { x: number, y: number }) => void;
-  onDelete: (elementId: string) => void;
-}
-
-function DraggableElement({ 
-  element, 
-  children, 
-  isSelected, 
-  onSelect, 
-  onMove,
-  onDelete
-}: DraggableElementProps) {
-  const [{ isDragging }, drag, dragPreview] = useDrag(() => ({
-    type: 'ELEMENT',
-    item: { id: element.id },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSelect();
-  };
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    const { clientX, clientY } = e;
-    const containerRect = e.currentTarget.closest('.relative')?.getBoundingClientRect();
-    
-    if (containerRect) {
-      const newX = clientX - containerRect.left;
-      const newY = clientY - containerRect.top;
-      
-      onMove(element.id, { 
-        x: Math.max(0, newX), 
-        y: Math.max(0, newY) 
-      });
+  // Handle background click to deselect
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (e.target === canvasRef.current) {
+      onSelectElement(null);
     }
   };
 
   return (
-    <div
-      ref={dragPreview}
-      className={cn(
-        "absolute cursor-move",
-        isSelected ? "outline outline-2 outline-blue-500" : "",
-        isDragging ? "opacity-50" : ""
-      )}
-      style={{
-        left: `${element.position.x}px`,
-        top: `${element.position.y}px`,
-        width: `${element.size.width}px`,
-        height: `${element.size.height}px`,
+    <div 
+      ref={canvasRef}
+      className="w-full h-full relative bg-white shadow-md overflow-auto"
+      style={{ 
+        width: '794px', // A4 width in pixels at 96 DPI
+        height: '1123px', // A4 height in pixels at 96 DPI
+        margin: '2rem auto' 
       }}
-      onClick={handleMouseDown}
-      draggable
-      onDragEnd={handleDragEnd}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onClick={handleCanvasClick}
     >
-      {children}
-      
-      {isSelected && (
-        <div className="absolute top-0 right-0 -mt-9 flex items-center space-x-1">
-          <Button
-            size="icon"
-            variant="outline"
-            className="h-7 w-7 bg-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(element.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
-          <div
-            ref={drag}
-            className="cursor-move h-7 w-7 flex items-center justify-center rounded-md border bg-white"
-          >
-            <Move className="h-4 w-4" />
-          </div>
-        </div>
-      )}
+      {elements.map(renderElement)}
     </div>
   );
 }

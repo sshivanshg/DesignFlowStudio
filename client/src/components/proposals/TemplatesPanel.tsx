@@ -1,190 +1,159 @@
-import React, { useState } from 'react';
-import { Check, ExternalLink, LayoutTemplate, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 
-// Mock templates data - in a real app this would come from an API
-const MOCK_TEMPLATES = [
-  {
-    id: 1,
-    name: 'Modern Kitchen Design',
-    category: 'Kitchen',
-    thumbnailUrl: 'https://via.placeholder.com/150x200',
-    sections: [
-      {
-        id: 'section-1',
-        type: 'section',
-        elements: [
-          {
-            id: 'element-1',
-            type: 'heading',
-            content: 'Modern Kitchen Design Proposal',
-            position: { x: 50, y: 50 },
-            size: { width: 500, height: 60 },
-            style: { textAlign: 'center', fontSize: '24px' }
-          },
-          {
-            id: 'element-2',
-            type: 'text',
-            content: 'A proposal for redesigning your kitchen with modern elements and functionality.',
-            position: { x: 50, y: 120 },
-            size: { width: 500, height: 100 },
-            style: { textAlign: 'center' }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Minimalist Living Room',
-    category: 'Living',
-    thumbnailUrl: 'https://via.placeholder.com/150x200',
-    sections: [
-      {
-        id: 'section-1',
-        type: 'section',
-        elements: [
-          {
-            id: 'element-1',
-            type: 'heading',
-            content: 'Minimalist Living Room Design',
-            position: { x: 50, y: 50 },
-            size: { width: 500, height: 60 },
-            style: { textAlign: 'center', fontSize: '24px' }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: 'Luxury Bedroom Suite',
-    category: 'Bedroom',
-    thumbnailUrl: 'https://via.placeholder.com/150x200',
-    sections: [
-      {
-        id: 'section-1',
-        type: 'section',
-        elements: [
-          {
-            id: 'element-1',
-            type: 'heading',
-            content: 'Luxury Bedroom Suite Design',
-            position: { x: 50, y: 50 },
-            size: { width: 500, height: 60 },
-            style: { textAlign: 'center', fontSize: '24px' }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 4,
-    name: 'Walk-in Wardrobe',
-    category: 'Wardrobe',
-    thumbnailUrl: 'https://via.placeholder.com/150x200',
-    sections: [
-      {
-        id: 'section-1',
-        type: 'section',
-        elements: []
-      }
-    ]
-  },
-  {
-    id: 5,
-    name: 'Home Office Redesign',
-    category: 'Office',
-    thumbnailUrl: 'https://via.placeholder.com/150x200',
-    sections: [
-      {
-        id: 'section-1',
-        type: 'section',
-        elements: []
-      }
-    ]
-  }
-];
-
-interface TemplatesPanelProps {
-  categories: string[];
-  onSelectTemplate: (template: any) => void;
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: 'interior' | 'consulting' | 'renovation';
+  thumbnail: string;
 }
 
-export function TemplatesPanel({ categories, onSelectTemplate }: TemplatesPanelProps) {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  
-  // Filter templates by category and search query
-  const filteredTemplates = MOCK_TEMPLATES.filter(template => 
-    (activeCategory === 'all' || template.category === activeCategory) &&
-    (searchQuery === '' || template.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+interface TemplatesPanelProps {
+  onSelectTemplate: (template: Template) => void;
+}
+
+export function TemplatesPanel({ onSelectTemplate }: TemplatesPanelProps) {
+  // Mock templates data
+  const templates: Template[] = [
+    {
+      id: 'template-1',
+      name: 'Modern Living Room',
+      description: 'Clean lines and contemporary styling',
+      category: 'interior',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Living+Room+Template',
+    },
+    {
+      id: 'template-2',
+      name: 'Kitchen Renovation',
+      description: 'Complete kitchen redesign template',
+      category: 'renovation',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Kitchen+Template',
+    },
+    {
+      id: 'template-3',
+      name: 'Design Consultation',
+      description: 'Initial design consultation proposal',
+      category: 'consulting',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Consultation+Template',
+    },
+    {
+      id: 'template-4',
+      name: 'Bathroom Update',
+      description: 'Bathroom renovation with pricing',
+      category: 'renovation',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Bathroom+Template',
+    },
+    {
+      id: 'template-5',
+      name: 'Home Office',
+      description: 'Work from home space design',
+      category: 'interior',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Office+Template',
+    },
+    {
+      id: 'template-6',
+      name: 'Design Assessment',
+      description: 'Multi-room assessment proposal',
+      category: 'consulting',
+      thumbnail: 'https://placehold.co/300x200/e5e7eb/a3a3a3?text=Assessment+Template',
+    },
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search templates..."
-          className="pl-8"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+    <div className="p-4">
+      <h2 className="font-semibold text-lg mb-4">Templates</h2>
       
-      <Tabs 
-        defaultValue="all" 
-        value={activeCategory} 
-        onValueChange={setActiveCategory}
-        className="mt-4"
-      >
-        <TabsList className="mb-4 flex flex-wrap h-auto">
-          <TabsTrigger value="all" className="flex-grow">All</TabsTrigger>
-          {categories.map(category => (
-            <TabsTrigger key={category} value={category} className="flex-grow">
-              {category}
-            </TabsTrigger>
-          ))}
+      <Tabs defaultValue="all">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="interior">Interior</TabsTrigger>
+          <TabsTrigger value="renovation">Renovation</TabsTrigger>
+          <TabsTrigger value="consulting">Consulting</TabsTrigger>
         </TabsList>
         
-        <TabsContent value={activeCategory} className="mt-0">
-          <div className="grid grid-cols-2 gap-3">
-            {filteredTemplates.map(template => (
-              <Card 
-                key={template.id} 
-                className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
-                onClick={() => onSelectTemplate(template)}
-              >
-                <CardContent className="p-0">
-                  <div className="aspect-[3/4] bg-gray-100 relative">
-                    <img 
-                      src={template.thumbnailUrl} 
-                      alt={template.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <Badge className="absolute top-2 right-2">{template.category}</Badge>
-                  </div>
-                  <div className="p-2">
-                    <p className="text-xs font-medium truncate">{template.name}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {filteredTemplates.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No templates found for your search.
-            </div>
-          )}
+        <TabsContent value="all" className="space-y-4">
+          {templates.map((template) => (
+            <TemplateCard 
+              key={template.id}
+              template={template}
+              onSelect={() => onSelectTemplate(template)}
+            />
+          ))}
+        </TabsContent>
+        
+        <TabsContent value="interior" className="space-y-4">
+          {templates
+            .filter(t => t.category === 'interior')
+            .map((template) => (
+              <TemplateCard 
+                key={template.id}
+                template={template}
+                onSelect={() => onSelectTemplate(template)}
+              />
+            ))
+          }
+        </TabsContent>
+        
+        <TabsContent value="renovation" className="space-y-4">
+          {templates
+            .filter(t => t.category === 'renovation')
+            .map((template) => (
+              <TemplateCard 
+                key={template.id}
+                template={template}
+                onSelect={() => onSelectTemplate(template)}
+              />
+            ))
+          }
+        </TabsContent>
+        
+        <TabsContent value="consulting" className="space-y-4">
+          {templates
+            .filter(t => t.category === 'consulting')
+            .map((template) => (
+              <TemplateCard 
+                key={template.id}
+                template={template}
+                onSelect={() => onSelectTemplate(template)}
+              />
+            ))
+          }
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+interface TemplateCardProps {
+  template: Template;
+  onSelect: () => void;
+}
+
+function TemplateCard({ template, onSelect }: TemplateCardProps) {
+  return (
+    <Card 
+      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onSelect}
+    >
+      <div className="relative">
+        <img 
+          src={template.thumbnail} 
+          alt={template.name} 
+          className="w-full h-32 object-cover"
+        />
+        <div className="absolute top-2 right-2">
+          <Badge variant="secondary" className="capitalize">
+            {template.category}
+          </Badge>
+        </div>
+      </div>
+      <CardContent className="p-3">
+        <h3 className="font-medium mb-1">{template.name}</h3>
+        <p className="text-sm text-gray-500">{template.description}</p>
+      </CardContent>
+    </Card>
   );
 }

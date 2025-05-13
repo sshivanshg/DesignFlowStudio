@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-interface TextElementProps {
+interface HeadingElementProps {
   content: string;
   style?: React.CSSProperties;
   isSelected: boolean;
   onChange: (content: string) => void;
 }
 
-export function TextElement({ content, style, isSelected, onChange }: TextElementProps) {
+export function HeadingElement({ content, style, isSelected, onChange }: HeadingElementProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(content);
-  const editableRef = useRef<HTMLDivElement>(null);
+  const editableRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     setEditableContent(content);
@@ -48,28 +48,27 @@ export function TextElement({ content, style, isSelected, onChange }: TextElemen
   }, [isEditing]);
 
   const defaultStyles = {
-    fontFamily: 'sans-serif',
-    fontSize: '16px',
-    lineHeight: '1.5',
+    fontWeight: 'bold',
+    fontSize: '24px',
     ...style
   };
 
-  // If not editing, render regular text
+  // If not editing, render regular heading
   if (!isEditing) {
     return (
-      <div 
+      <h2 
         className={cn("w-full h-full p-2 overflow-hidden", isSelected ? "cursor-text" : "cursor-move")}
         onDoubleClick={handleDoubleClick}
         style={defaultStyles}
       >
         {content}
-      </div>
+      </h2>
     );
   }
 
   // If editing, render editable div
   return (
-    <div
+    <h2
       ref={editableRef}
       className="w-full h-full p-2 overflow-auto focus:outline-none"
       contentEditable
@@ -79,6 +78,6 @@ export function TextElement({ content, style, isSelected, onChange }: TextElemen
       suppressContentEditableWarning
     >
       {editableContent}
-    </div>
+    </h2>
   );
 }

@@ -122,16 +122,25 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 export const proposals = pgTable("proposals", {
   id: serial("id").primaryKey(),
   client_id: integer("client_id").references(() => clients.id),
+  lead_id: integer("lead_id").references(() => leads.id),
   created_by: integer("created_by").references(() => users.id),
   dataJSON: jsonb("data_json").default({}),
   pdfURL: text("pdf_url"),
+  sharedLink: text("shared_link"),
+  slug: text("slug"),
   status: text("status").default("draft"),
+  title: text("title").default("Untitled Proposal"),
+  comments: jsonb("comments").default([]),
+  clientApproved: boolean("client_approved").default(false),
+  viewedAt: timestamp("viewed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
   return {
     clientIdx: index("proposal_client_idx").on(table.client_id),
+    leadIdx: index("proposal_lead_idx").on(table.lead_id),
     statusIdx: index("proposal_status_idx").on(table.status),
+    slugIdx: index("proposal_slug_idx").on(table.slug),
   }
 });
 

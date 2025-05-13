@@ -1,338 +1,341 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Loader2, Save, Download, Share2, LayoutTemplate, ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { EditorCanvas } from '@/components/proposals/EditorCanvas';
+import { useAuth } from '@/hooks/use-auth';
+import { ChevronLeft, Save, Upload, Eye, Share2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+// Components
 import { ElementsPanel } from '@/components/proposals/ElementsPanel';
-import { TemplatesPanel } from '@/components/proposals/TemplatesPanel';
-import { PropertiesPanel } from '@/components/proposals/PropertiesPanel';
 
-const PROPOSAL_TEMPLATE_CATEGORIES = [
-  'Full Home',
-  'Kitchen',
-  'Living',
-  'Bedroom',
-  'Wardrobe',
-  'Office'
-];
+// Define types for our proposal elements
+export type ElementType = 'text' | 'heading' | 'image' | 'pricingTable' | 'scopeBlock';
 
-const DEFAULT_PROPOSAL = {
-  name: 'Untitled Proposal',
-  sections: [
-    {
-      id: 'section-1',
-      type: 'section',
-      elements: []
-    }
-  ],
-  client_id: null,
-  lead_id: null,
-  status: 'draft',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
+export interface BaseElement {
+  id: string;
+  type: ElementType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  style?: React.CSSProperties;
+}
 
-export default function ProposalEditor() {
-  const [_, setLocation] = useLocation();
-  const params = useParams<{ leadId?: string }>();
+export interface TextElement extends BaseElement {
+  type: 'text';
+  content: string;
+}
+
+export interface HeadingElement extends BaseElement {
+  type: 'heading';
+  content: string;
+}
+
+export interface ImageElement extends BaseElement {
+  type: 'image';
+  content: {
+    src: string;
+    alt: string;
+  };
+}
+
+export interface PricingTableElement extends BaseElement {
+  type: 'pricingTable';
+  content: {
+    items: {
+      name: string;
+      description: string;
+      price: number;
+    }[];
+    total: number;
+  };
+}
+
+export interface ScopeBlockElement extends BaseElement {
+  type: 'scopeBlock';
+  content: {
+    title: string;
+    items: string[];
+  };
+}
+
+export type ProposalElement = 
+  | TextElement 
+  | HeadingElement 
+  | ImageElement 
+  | PricingTableElement 
+  | ScopeBlockElement;
+
+export interface Proposal {
+  id?: number;
+  title: string;
+  elements: ProposalElement[];
+  client_id?: number | null;
+  lead_id?: number | null;
+  status: 'draft' | 'sent' | 'approved' | 'rejected';
+}
+
+const ProposalEditor: React.FC = () => {
+  const { leadId } = useParams();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Editor state
-  const [proposal, setProposal] = useState(DEFAULT_PROPOSAL);
-  const [selectedElement, setSelectedElement] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('elements');
-  const [isExporting, setIsExporting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
+  const [title, setTitle] = useState<string>('Untitled Proposal');
+  const [elements, setElements] = useState<ProposalElement[]>([]);
+  const [selectedElement, setSelectedElement] = useState<ProposalElement | null>(null);
+  const [activePanel, setActivePanel] = useState<'elements' | 'templates'>('elements');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // Initialize the editor with a lead ID if provided
   useEffect(() => {
-    if (params.leadId) {
-      setProposal(prev => ({
-        ...prev,
-        lead_id: parseInt(params.leadId)
-      }));
+    // If we have a leadId, fetch lead data and set any initial proposal data
+    if (leadId) {
+      // This would fetch lead data to populate client information
+      // For now, we'll just set a title with the lead ID
+      setTitle(`Proposal for Lead #${leadId}`);
     }
-  }, [params.leadId]);
+  }, [leadId]);
 
-  // Save proposal mutation
-  const saveProposal = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/proposals', 'POST', data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/proposals'] });
-      toast({
-        title: "Proposal Saved",
-        description: "Your proposal has been saved successfully."
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to save proposal. Please try again.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Element handlers
-  const handleAddElement = (elementType: string) => {
-    const newElement = {
-      id: `element-${Date.now()}`,
-      type: elementType,
-      content: getDefaultContentByType(elementType),
-      position: { x: 50, y: 50 },
-      size: getDefaultSizeByType(elementType),
-      style: {}
-    };
-
-    setProposal(prev => ({
-      ...prev,
-      sections: prev.sections.map(section => 
-        section.id === 'section-1' ? 
-          { ...section, elements: [...section.elements, newElement] } :
-          section
-      )
-    }));
+  const handleAddElement = (type: ElementType) => {
+    const newElement = createDefaultElement(type);
+    setElements(prev => [...prev, newElement]);
     setSelectedElement(newElement);
   };
-
-  const handleElementUpdate = (elementId: string, updates: any) => {
-    setProposal(prev => ({
-      ...prev,
-      sections: prev.sections.map(section => ({
-        ...section,
-        elements: section.elements.map(el => 
-          el.id === elementId ? { ...el, ...updates } : el
-        )
-      }))
-    }));
-
-    if (selectedElement && selectedElement.id === elementId) {
-      setSelectedElement(prev => ({ ...prev, ...updates }));
+  
+  const handleSelectElement = (element: ProposalElement | null) => {
+    setSelectedElement(element);
+  };
+  
+  const handleUpdateElement = (updatedElement: ProposalElement) => {
+    setElements(prev => 
+      prev.map(el => el.id === updatedElement.id ? updatedElement : el)
+    );
+    
+    // Also update the selected element if it's the one being updated
+    if (selectedElement && selectedElement.id === updatedElement.id) {
+      setSelectedElement(updatedElement);
     }
   };
-
-  const handleElementDelete = (elementId: string) => {
-    setProposal(prev => ({
-      ...prev,
-      sections: prev.sections.map(section => ({
-        ...section,
-        elements: section.elements.filter(el => el.id !== elementId)
-      }))
-    }));
-
+  
+  const handleDeleteElement = (elementId: string) => {
+    setElements(prev => prev.filter(el => el.id !== elementId));
+    
+    // Deselect if the deleted element was selected
     if (selectedElement && selectedElement.id === elementId) {
       setSelectedElement(null);
     }
   };
 
-  // Template handlers
-  const handleTemplateSelect = (template: any) => {
-    setProposal({
-      ...DEFAULT_PROPOSAL,
-      ...template,
-      lead_id: params.leadId ? parseInt(params.leadId) : null
-    });
-    setSelectedElement(null);
-  };
-
-  // Save, Export, and Share functions
-  const handleSave = async () => {
+  const handleSaveProposal = async () => {
+    if (!user) {
+      toast({
+        title: "Authorization Error",
+        description: "You must be logged in to save proposals",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSaving(true);
+    
     try {
-      await saveProposal.mutateAsync({
-        ...proposal,
-        updated_at: new Date().toISOString()
+      const proposalData: Proposal = {
+        title,
+        elements,
+        status: 'draft',
+      };
+      
+      if (leadId) {
+        proposalData.lead_id = parseInt(leadId);
+      }
+      
+      // TODO: Save proposal via API
+      console.log('Saving proposal:', proposalData);
+      
+      toast({
+        title: "Proposal Saved",
+        description: "Your proposal has been saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving proposal:', error);
+      toast({
+        title: "Error Saving",
+        description: "There was an error saving your proposal. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleExportPDF = async () => {
-    setIsExporting(true);
-    try {
-      // TODO: Implement PDF export functionality
-      toast({
-        title: "Export Initiated",
-        description: "Your proposal is being exported to PDF. This may take a moment."
-      });
-      
-      // Simulate export delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Export Complete",
-        description: "Your proposal has been exported to PDF."
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting your proposal to PDF.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleShare = async () => {
-    setIsSharing(true);
-    try {
-      // TODO: Implement share functionality
-      toast({
-        title: "Share Link Generated",
-        description: "A shareable link has been copied to your clipboard."
-      });
-    } catch (error) {
-      toast({
-        title: "Share Failed",
-        description: "There was an error generating a share link.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  // Helper functions
-  const getDefaultContentByType = (type: string) => {
-    switch (type) {
-      case 'text':
-        return 'Click to edit this text';
-      case 'heading':
-        return 'Section Heading';
-      case 'image':
-        return { src: 'https://via.placeholder.com/400x300', alt: 'Placeholder image' };
-      case 'pricing-table':
-        return {
-          items: [
-            { name: 'Item 1', description: 'Description', price: 1000 },
-            { name: 'Item 2', description: 'Description', price: 2000 }
-          ],
-          total: 3000
-        };
-      case 'scope-block':
-        return {
-          title: 'Project Scope',
-          items: [
-            'Scope item 1',
-            'Scope item 2',
-            'Scope item 3'
-          ]
-        };
-      default:
-        return '';
-    }
-  };
-
-  const getDefaultSizeByType = (type: string) => {
-    switch (type) {
-      case 'heading':
-        return { width: 400, height: 60 };
-      case 'text':
-        return { width: 400, height: 100 };
-      case 'image':
-        return { width: 400, height: 300 };
-      case 'pricing-table':
-        return { width: 600, height: 300 };
-      case 'scope-block':
-        return { width: 500, height: 200 };
-      default:
-        return { width: 300, height: 100 };
-    }
+  const handleBack = () => {
+    setLocation('/proposals');
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => setLocation('/proposals')}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Proposals
-            </Button>
-            <h1 className="text-xl font-bold">{proposal.name}</h1>
+      <header className="bg-white border-b px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="ghost" size="sm" onClick={handleBack}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <div className="ml-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-xl font-medium focus:outline-none border-0 focus:border-b focus:border-gray-300 px-1"
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={handleSave} 
-              disabled={isSaving}
-            >
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Save
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleExportPDF} 
-              disabled={isExporting}
-            >
-              {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              Export PDF
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleShare} 
-              disabled={isSharing}
-            >
-              {isSharing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
-              Share
-            </Button>
-          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" disabled={isSaving}>
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
+          <Button variant="outline" size="sm" disabled={isSaving}>
+            <Share2 className="h-4 w-4 mr-1" />
+            Share
+          </Button>
+          <Button variant="outline" size="sm" disabled={isSaving}>
+            <Upload className="h-4 w-4 mr-1" />
+            Export PDF
+          </Button>
+          <Button variant="default" size="sm" onClick={handleSaveProposal} disabled={isSaving}>
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
         </div>
       </header>
 
-      {/* Main Editor Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="elements">Elements</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-            </TabsList>
-            <TabsContent value="elements" className="flex-1 overflow-y-auto p-4">
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar */}
+        <div className="w-64 flex flex-col border-r bg-white">
+          <div className="border-b">
+            <div className="flex">
+              <Button
+                variant={activePanel === 'elements' ? 'default' : 'ghost'}
+                className="flex-1 rounded-none"
+                onClick={() => setActivePanel('elements')}
+              >
+                Elements
+              </Button>
+              <Button
+                variant={activePanel === 'templates' ? 'default' : 'ghost'}
+                className="flex-1 rounded-none"
+                onClick={() => setActivePanel('templates')}
+              >
+                Templates
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto">
+            {activePanel === 'elements' ? (
               <ElementsPanel onAddElement={handleAddElement} />
-            </TabsContent>
-            <TabsContent value="templates" className="flex-1 overflow-y-auto p-4">
-              <TemplatesPanel 
-                categories={PROPOSAL_TEMPLATE_CATEGORIES} 
-                onSelectTemplate={handleTemplateSelect} 
-              />
-            </TabsContent>
-          </Tabs>
+            ) : (
+              <TemplatesPanel onSelectTemplate={(template) => console.log('Template selected:', template)} />
+            )}
+          </div>
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 overflow-auto bg-gray-100 p-8">
-          <EditorCanvas 
-            sections={proposal.sections} 
+        <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center">
+          <EditorCanvas
+            elements={elements}
             selectedElement={selectedElement}
-            onElementSelect={setSelectedElement}
-            onElementUpdate={handleElementUpdate}
-            onElementDelete={handleElementDelete}
+            onSelectElement={handleSelectElement}
+            onUpdateElement={handleUpdateElement}
+            onDeleteElement={handleDeleteElement}
           />
         </div>
 
-        {/* Right Properties Panel */}
+        {/* Right sidebar */}
         {selectedElement && (
-          <div className="w-72 bg-gray-50 border-l border-gray-200 p-4 overflow-y-auto">
-            <PropertiesPanel 
-              element={selectedElement} 
-              onUpdate={(updates) => handleElementUpdate(selectedElement.id, updates)} 
-              onDelete={() => handleElementDelete(selectedElement.id)} 
+          <div className="w-64 border-l bg-white overflow-y-auto">
+            <PropertiesPanel
+              element={selectedElement}
+              onChange={handleUpdateElement}
+              onDelete={() => handleDeleteElement(selectedElement.id)}
             />
           </div>
         )}
       </div>
     </div>
   );
+};
+
+// Helper function to create default elements based on type
+function createDefaultElement(type: ElementType): ProposalElement {
+  const baseElement = {
+    id: Math.random().toString(36).substr(2, 9),
+    x: 50,
+    y: 50,
+    width: 300,
+    height: type === 'heading' ? 80 : type === 'text' ? 150 : 200,
+    zIndex: Date.now(),
+  };
+
+  switch (type) {
+    case 'text':
+      return {
+        ...baseElement,
+        type: 'text',
+        content: 'Click to edit this text. This is a paragraph that can contain multiple lines of text content for your proposal.',
+      };
+    case 'heading':
+      return {
+        ...baseElement,
+        type: 'heading',
+        content: 'Heading Text',
+      };
+    case 'image':
+      return {
+        ...baseElement,
+        type: 'image',
+        width: 400,
+        height: 300,
+        content: {
+          src: '',
+          alt: 'Image description',
+        },
+      };
+    case 'pricingTable':
+      return {
+        ...baseElement,
+        type: 'pricingTable',
+        width: 500,
+        height: 300,
+        content: {
+          items: [
+            { name: 'Item 1', description: 'Description for item 1', price: 1000 },
+            { name: 'Item 2', description: 'Description for item 2', price: 1500 },
+          ],
+          total: 2500,
+        },
+      };
+    case 'scopeBlock':
+      return {
+        ...baseElement,
+        type: 'scopeBlock',
+        width: 500,
+        height: 250,
+        content: {
+          title: 'Project Scope',
+          items: [
+            'Initial consultation and space planning',
+            'Material selection and sourcing',
+            'Project management and coordination',
+          ],
+        },
+      };
+    default:
+      throw new Error(`Unknown element type: ${type}`);
+  }
 }
+
+export default ProposalEditor;

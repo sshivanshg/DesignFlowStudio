@@ -1,82 +1,86 @@
 import React from 'react';
 import { 
   Type, 
-  Heading, 
+  Heading1, 
   Image, 
-  Table, 
-  ListTodo, 
-  Plus,
-  Table2,
-  Text,
-  LayoutList
+  Table2, 
+  ListChecks 
 } from 'lucide-react';
+import { ElementType } from '@/pages/proposal-editor';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 interface ElementsPanelProps {
-  onAddElement: (elementType: string) => void;
+  onAddElement: (type: ElementType) => void;
 }
 
-export function ElementsPanel({ onAddElement }: ElementsPanelProps) {
-  const elementTypes = [
-    { 
-      type: 'heading', 
-      icon: <Heading className="h-5 w-5" />, 
-      label: 'Heading' 
+const ElementsPanel: React.FC<ElementsPanelProps> = ({ onAddElement }) => {
+  const elements = [
+    {
+      type: 'heading' as ElementType,
+      name: 'Heading',
+      description: 'Large title text',
+      icon: <Heading1 className="h-5 w-5 mr-2" />,
     },
-    { 
-      type: 'text', 
-      icon: <Text className="h-5 w-5" />, 
-      label: 'Text Block' 
+    {
+      type: 'text' as ElementType,
+      name: 'Text',
+      description: 'Regular paragraph text',
+      icon: <Type className="h-5 w-5 mr-2" />,
     },
-    { 
-      type: 'image', 
-      icon: <Image className="h-5 w-5" />, 
-      label: 'Image' 
+    {
+      type: 'image' as ElementType,
+      name: 'Image',
+      description: 'Add photos and graphics',
+      icon: <Image className="h-5 w-5 mr-2" />,
     },
-    { 
-      type: 'pricing-table', 
-      icon: <Table2 className="h-5 w-5" />, 
-      label: 'Pricing Table' 
+    {
+      type: 'pricingTable' as ElementType,
+      name: 'Pricing Table',
+      description: 'Show services and prices',
+      icon: <Table2 className="h-5 w-5 mr-2" />,
     },
-    { 
-      type: 'scope-block', 
-      icon: <LayoutList className="h-5 w-5" />, 
-      label: 'Scope Block' 
-    }
+    {
+      type: 'scopeBlock' as ElementType,
+      name: 'Scope Block',
+      description: 'List project deliverables',
+      icon: <ListChecks className="h-5 w-5 mr-2" />,
+    },
   ];
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-medium">Drag & Drop Elements</h3>
-      <Separator />
-      
-      <div className="grid gap-2">
-        {elementTypes.map((element) => (
-          <Button
-            key={element.type}
-            variant="outline"
-            className="justify-start h-auto py-3"
-            onClick={() => onAddElement(element.type)}
-          >
-            <div className="flex items-center w-full">
-              <div className="mr-3 text-primary">{element.icon}</div>
-              <span>{element.label}</span>
-              <div className="ml-auto">
-                <Plus className="h-4 w-4" />
+    <div className="p-4">
+      <h2 className="font-semibold text-lg mb-4">Add Elements</h2>
+      <div className="space-y-3">
+        {elements.map((element, index) => (
+          <React.Fragment key={element.type}>
+            <div
+              className="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => onAddElement(element.type)}
+            >
+              <div className="text-primary">
+                {element.icon}
+              </div>
+              <div>
+                <h3 className="font-medium">{element.name}</h3>
+                <p className="text-sm text-gray-500">{element.description}</p>
               </div>
             </div>
-          </Button>
+            {index < elements.length - 1 && <Separator />}
+          </React.Fragment>
         ))}
       </div>
       
-      <Separator className="mt-6" />
-      
-      <h3 className="text-sm font-medium mt-4">AI Assistant</h3>
-      <Button className="w-full">
-        <Type className="mr-2 h-4 w-4" />
-        Generate Content
-      </Button>
+      <div className="mt-8">
+        <h3 className="font-semibold mb-2">Tips</h3>
+        <ul className="text-sm text-gray-600 space-y-2">
+          <li>• Drag elements to position them</li>
+          <li>• Double-click text to edit</li>
+          <li>• Use the properties panel to style elements</li>
+        </ul>
+      </div>
     </div>
   );
-}
+};
+
+export { ElementsPanel };

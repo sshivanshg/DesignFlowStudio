@@ -201,25 +201,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const displayNameValue = displayName || email?.split('@')[0] || `New User`;
         const usernameValue = email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user_${Date.now()}`;
         
-        const userData = {
+        // Use the correct schema structure - it will be properly mapped in the storage.createUser method
+        const userDataForInsert = {
           name: displayNameValue,
           username: usernameValue,
           password: randomPassword,
           email,
-          fullName: displayNameValue,
-          role: "designer" as const, // Default role
+          fullName: displayNameValue, // Use camelCase for the schema - will be mapped to full_name in DB
+          role: "designer" as const,
           supabaseUid,
           company: null,
           phone: null
         };
         
         console.log("Creating new Supabase user with data:", {
-          ...userData,
+          ...userDataForInsert,
           password: "[REDACTED]" // Don't log the actual password
         });
         
         try {
-          user = await storage.createUser(userData);
+          user = await storage.createUser(userDataForInsert);
           console.log("Successfully created new Supabase user with ID:", user.id);
         } catch (error) {
           console.error("Error creating Supabase user:", error);

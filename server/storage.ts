@@ -603,17 +603,113 @@ export class DrizzleStorage implements IStorage {
   }
   
   async createUser(user: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(user).returning();
-    return result[0];
+    console.log("Creating user with data in storage:", JSON.stringify({
+      ...user,
+      password: "[REDACTED]"
+    }, null, 2));
+    
+    try {
+      // We need to manually map fields because Drizzle has CamelCase in the schema
+      // but snake_case in the database
+      const valuesToInsert: any = {};
+      
+      // Set required fields
+      valuesToInsert.username = user.username;
+      valuesToInsert.password = user.password;
+      valuesToInsert.email = user.email;
+      valuesToInsert.name = user.name;
+      
+      // Set the fullName field using correct database column name (snake_case)
+      if (user.fullName) {
+        valuesToInsert.full_name = user.fullName;
+      }
+      
+      // Set optional fields
+      if (user.phone !== undefined) valuesToInsert.phone = user.phone;
+      if (user.role !== undefined) valuesToInsert.role = user.role;
+      if (user.activePlan !== undefined) valuesToInsert.active_plan = user.activePlan;
+      if (user.firebaseUid !== undefined) valuesToInsert.firebase_uid = user.firebaseUid;
+      if (user.supabaseUid !== undefined) valuesToInsert.supabase_uid = user.supabaseUid;
+      if (user.company !== undefined) valuesToInsert.company = user.company;
+      if (user.avatar !== undefined) valuesToInsert.avatar = user.avatar;
+      
+      // Execute a raw SQL query to avoid the mapping issues with Drizzle
+      const query = `
+        INSERT INTO users (
+          username, password, email, name, full_name, 
+          phone, role, active_plan, firebase_uid, supabase_uid, 
+          company, avatar
+        ) 
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+        )
+        RETURNING *
+      `;
+      
+      const result = await db.execute(query, [
+        valuesToInsert.username,
+        valuesToInsert.password,
+        valuesToInsert.email,
+        valuesToInsert.name,
+        valuesToInsert.full_name,
+        valuesToInsert.phone,
+        valuesToInsert.role || 'designer',
+        valuesToInsert.active_plan || 'free',
+        valuesToInsert.firebase_uid,
+        valuesToInsert.supabase_uid,
+        valuesToInsert.company,
+        valuesToInsert.avatar
+      ]);
+      
+      if (result && result.length > 0) {
+        console.log("User created successfully:", result[0].id);
+        return result[0] as User;
+      } else {
+        throw new Error("Failed to create user, no result returned");
+      }
+    } catch (error) {
+      console.error("Database error in createUser:", error);
+      throw error;
+    }
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const result = await db
-      .update(users)
-      .set(userData)
-      .where(eq(users.id, id))
-      .returning();
-    return result[0];
+    console.log("Updating user with data:", {
+      ...userData,
+      password: userData.password ? "[REDACTED]" : undefined
+    });
+    
+    try {
+      // Create a new object with snake_case keys
+      const dataToUpdate: Record<string, any> = {};
+      
+      // Map the camelCase properties to snake_case for the database
+      if (userData.username) dataToUpdate.username = userData.username;
+      if (userData.password) dataToUpdate.password = userData.password;
+      if (userData.email) dataToUpdate.email = userData.email;
+      if (userData.fullName) dataToUpdate.full_name = userData.fullName;
+      if (userData.name) dataToUpdate.name = userData.name;
+      if (userData.phone) dataToUpdate.phone = userData.phone;
+      if (userData.role) dataToUpdate.role = userData.role;
+      if (userData.activePlan) dataToUpdate.active_plan = userData.activePlan;
+      if (userData.firebaseUid) dataToUpdate.firebase_uid = userData.firebaseUid;
+      if (userData.supabaseUid) dataToUpdate.supabase_uid = userData.supabaseUid;
+      if (userData.company) dataToUpdate.company = userData.company;
+      if (userData.avatar) dataToUpdate.avatar = userData.avatar;
+      
+      dataToUpdate.updated_at = new Date();
+    
+      const result = await db
+        .update(users)
+        .set(dataToUpdate)
+        .where(eq(users.id, id))
+        .returning();
+        
+      return result[0];
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
   }
   
   // Lead methods

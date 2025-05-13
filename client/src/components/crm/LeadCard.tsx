@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'wouter';
 import { 
   Card, 
   CardContent, 
@@ -8,13 +9,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
-import { Phone, Mail, AlertCircle, Calendar, MoreHorizontal, Tag } from 'lucide-react';
+import { Phone, Mail, AlertCircle, Calendar, MoreHorizontal, Tag, Calculator, FileText } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { LeadType } from '@/hooks/useLeads';
 
 interface LeadCardProps {
@@ -50,9 +57,14 @@ const getSourceIcon = (source: string | null) => {
 };
 
 export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
+  const [_, navigate] = useLocation();
   const hasFollowUp = !!lead.followUpDate;
   const followUpDate = lead.followUpDate ? new Date(lead.followUpDate) : null;
   const isFollowUpOverdue = followUpDate && followUpDate < new Date();
+  
+  const navigateToEstimate = () => {
+    navigate(`/estimate/${lead.id}`);
+  };
   
   return (
     <Card className="w-full shadow-sm hover:shadow-md transition-shadow duration-200 cursor-move">
@@ -66,22 +78,41 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
             </span>
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(lead)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-destructive focus:text-destructive" 
-              onClick={() => onDelete(lead.id)}
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center space-x-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navigateToEstimate}>
+                  <Calculator className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Create Estimate</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(lead)}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={navigateToEstimate}>
+                <Calculator className="h-4 w-4 mr-2" />
+                Create Estimate
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive" 
+                onClick={() => onDelete(lead.id)}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </CardHeader>
       
       <CardContent className="p-3 pt-2">

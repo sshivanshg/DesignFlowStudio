@@ -1,223 +1,325 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Estimate } from "@shared/schema";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from 'react';
+import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { apiRequest } from '@/lib/queryClient';
+import { format } from 'date-fns';
+import { 
+  FilePlus, 
+  Calendar, 
   Search, 
-  Plus, 
-  Calculator, 
-  Edit, 
-  Eye, 
   Download, 
-  ChevronRight, 
-  Clock,
-  Check,
-  AlertTriangle,
-  FileText
-} from "lucide-react";
-import { format } from "date-fns";
+  FileText, 
+  Filter, 
+  ArrowUpDown, 
+  Eye, 
+  Loader2,
+  Calculator,
+  Share,
+  Trash 
+} from 'lucide-react';
 
-export default function Estimates() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  
-  const { data: estimates, isLoading } = useQuery<Estimate[]>({
-    queryKey: ['/api/estimates'],
+// Status badge colors
+const statusColors = {
+  draft: 'bg-yellow-100 text-yellow-800',
+  sent: 'bg-blue-100 text-blue-800',
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800',
+  template: 'bg-purple-100 text-purple-800',
+};
+
+export default function EstimatesPage() {
+  const [_, navigate] = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({
+    key: 'createdAt',
+    direction: 'desc'
   });
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "draft":
-        return (
-          <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200 flex items-center gap-1">
-            <Clock className="h-3 w-3" /> Draft
-          </Badge>
-        );
-      case "sent":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 flex items-center gap-1">
-            <FileText className="h-3 w-3" /> Sent
-          </Badge>
-        );
-      case "approved":
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
-            <Check className="h-3 w-3" /> Approved
-          </Badge>
-        );
-      case "rejected":
-        return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-200 flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> Rejected
-          </Badge>
-        );
-      default:
-        return <Badge>{status}</Badge>;
-    }
+
+  // Fetch estimates
+  const { data: estimates, isLoading, isError } = useQuery({
+    queryKey: ['/api/estimates'],
+    queryFn: () => apiRequest('/api/estimates')
+  });
+
+  // Handle sort
+  const handleSort = (key: string) => {
+    setSortConfig({
+      key,
+      direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+    });
   };
-  
-  const getFilteredEstimates = () => {
-    if (!estimates) return [];
-    
-    let filtered = estimates;
-    
+
+  // Filter and sort estimates
+  const getFilteredAndSortedEstimates = () => {
+    if (!estimates || !Array.isArray(estimates)) {
+      return [];
+    }
+
+    // Filter by status
+    let filteredEstimates = estimates;
+    if (statusFilter !== 'all') {
+      filteredEstimates = estimates.filter((estimate) => estimate.status === statusFilter);
+    }
+
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(estimate => 
-        estimate.title.toLowerCase().includes(searchQuery.toLowerCase())
+      const searchLower = searchQuery.toLowerCase();
+      filteredEstimates = filteredEstimates.filter(
+        (estimate) => 
+          (estimate.title && estimate.title.toLowerCase().includes(searchLower)) ||
+          (estimate.lead_id && estimate.lead_id.toString().includes(searchLower)) ||
+          (estimate.client_id && estimate.client_id.toString().includes(searchLower))
       );
     }
-    
-    // Filter by status
-    if (activeTab !== "all") {
-      filtered = filtered.filter(estimate => estimate.status === activeTab);
-    }
-    
-    return filtered;
+
+    // Sort estimates
+    const sortedEstimates = [...filteredEstimates].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      
+      if (typeof aValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue) 
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (aValue instanceof Date) {
+        return sortConfig.direction === 'asc' 
+          ? new Date(aValue).getTime() - new Date(bValue).getTime() 
+          : new Date(bValue).getTime() - new Date(aValue).getTime();
+      }
+      
+      return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+
+    return sortedEstimates;
   };
+
+  const filteredEstimates = getFilteredAndSortedEstimates();
   
-  const filteredEstimates = getFilteredEstimates();
-  
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-  
-  return (
-    <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Estimates</h1>
-        <p className="text-gray-500">Create and manage cost estimates for your design projects</p>
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading estimates...</span>
       </div>
-      
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="bg-red-50 text-red-700 p-4 rounded-md">
+          Error loading estimates. Please try again.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Estimates</h1>
+          <p className="text-muted-foreground">Manage and track all your project estimates</p>
+        </div>
+        <Button onClick={() => navigate('/crm')}>
+          <Calculator className="mr-2 h-4 w-4" />
+          Create Estimate
+        </Button>
+      </div>
+
       <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 justify-between">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search estimates..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Create Estimate
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="px-6 py-4">
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="sent">Sent</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <CardHeader className="pb-3">
+          <CardTitle>Estimate Templates</CardTitle>
+          <CardDescription>
+            Use templates to quickly create common estimate types
+          </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 flex justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Estimate</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Client</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Date</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500 text-sm">Amount</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500 text-sm">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEstimates.length > 0 ? (
-                    filteredEstimates.map((estimate) => (
-                      <tr key={estimate.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center">
-                            <div className="bg-primary-100 text-primary-600 rounded-lg h-8 w-8 flex items-center justify-center mr-3">
-                              <Calculator className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{estimate.title}</div>
-                              <div className="text-xs text-gray-500">
-                                Project {estimate.projectId}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-sm text-gray-900">Client {estimate.clientId}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {getStatusBadge(estimate.status || 'draft')}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-500">
-                          {estimate.createdAt 
-                            ? format(new Date(estimate.createdAt), 'MMM d, yyyy') 
-                            : 'No date'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-medium">
-                          {estimate.total ? formatCurrency(estimate.total) : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex justify-end space-x-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center">
-                        <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                          <Calculator className="h-6 w-6 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">No estimates found</h3>
-                        <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                          {searchQuery 
-                            ? `No estimates matching "${searchQuery}"` 
-                            : "Create your first estimate to provide accurate cost breakdowns to clients."}
-                        </p>
-                        <Button className="mx-auto">
-                          <Plus className="mr-2 h-4 w-4" /> Create New Estimate
-                        </Button>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {filteredEstimates
+            .filter(estimate => estimate.isTemplate)
+            .slice(0, 3)
+            .map(template => (
+              <Card key={template.id} className="bg-muted/30">
+                <CardHeader className="py-3">
+                  <CardTitle className="text-base">{template.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="py-2">
+                  <div className="flex justify-between items-center">
+                    <Badge 
+                      variant="outline" 
+                      className={`${statusColors.template}`}
+                    >
+                      Template
+                    </Badge>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/estimate-template/${template.id}`)}>
+                      Use Template
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+          {filteredEstimates.filter(e => e.isTemplate).length === 0 && (
+            <div className="col-span-3 flex items-center justify-center h-24 border border-dashed rounded-md">
+              <p className="text-muted-foreground">No templates available. Save an estimate as a template to get started.</p>
             </div>
           )}
         </CardContent>
       </Card>
-    </>
+
+      <div className="bg-white rounded-md shadow">
+        <div className="p-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search estimates..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="template">Templates</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSort('title')}
+                  >
+                    Estimate Title
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </div>
+                </TableHead>
+                <TableHead>
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Date
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </div>
+                </TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSort('total')}
+                  >
+                    Amount
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </div>
+                </TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEstimates
+                .filter(estimate => !estimate.isTemplate)
+                .map((estimate) => (
+                <TableRow key={estimate.id}>
+                  <TableCell className="font-medium">{estimate.title}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {estimate.createdAt 
+                        ? format(new Date(estimate.createdAt), 'MMM d, yyyy') 
+                        : 'N/A'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={`${estimate.status && statusColors[estimate.status as keyof typeof statusColors]}`}
+                    >
+                      {estimate.status 
+                        ? estimate.status.charAt(0).toUpperCase() + estimate.status.slice(1) 
+                        : 'Draft'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    ${estimate.total 
+                      ? estimate.total.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }) 
+                      : '0.00'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => navigate(`/estimates/${estimate.id}`)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => window.open(estimate.pdfURL || '#', '_blank')}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <Share className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+
+              {filteredEstimates.filter(e => !e.isTemplate).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No estimates found. 
+                    <Button variant="link" onClick={() => navigate('/crm')}>
+                      Create your first estimate
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
   );
 }

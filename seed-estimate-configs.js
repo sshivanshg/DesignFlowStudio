@@ -1,10 +1,10 @@
 // Seed script for estimate configuration
 // Run with: node seed-estimate-configs.js
 
-import { DrizzleStorage } from "./server/storage.js";
-import * as schema from "./shared/schema.js";
-import pg from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+const { DrizzleStorage } = require("./server/storage");
+const schema = require("./shared/schema");
+const pg = require("pg");
+const { drizzle } = require("drizzle-orm/node-postgres");
 
 const storage = new DrizzleStorage();
 
@@ -354,3 +354,5 @@ seedDatabase().then(() => {
   console.error("Seed script failed:", error);
   process.exit(1);
 });
+
+module.exports = { seedDatabase };

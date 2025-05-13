@@ -304,13 +304,7 @@ export default function Login() {
                       type="button" 
                       variant="outline" 
                       className="w-full" 
-                      onClick={() => {
-                        toast({
-                          title: "Social login unavailable",
-                          description: "Google login is not configured yet. Please use email/password.",
-                          variant: "default"
-                        });
-                      }}
+                      onClick={() => loginWithGoogle()}
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? (
@@ -568,13 +562,7 @@ export default function Login() {
                       type="button" 
                       variant="outline" 
                       className="w-full" 
-                      onClick={() => {
-                        toast({
-                          title: "Social registration unavailable",
-                          description: "Google registration is not configured yet. Please use email/password.",
-                          variant: "default"
-                        });
-                      }}
+                      onClick={() => loginWithGoogle()}
                       disabled={isSubmitting}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24">

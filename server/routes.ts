@@ -9,7 +9,8 @@ import {
   insertMoodboardSchema,
   insertEstimateSchema,
   insertTaskSchema,
-  insertActivitySchema 
+  insertActivitySchema,
+  User
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -143,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user) {
         // Update existing user if needed
-        const updates: Partial<User> = {};
+        const updates: any = {};
         
         if (phone && user.phone !== phone) {
           updates.phone = phone;

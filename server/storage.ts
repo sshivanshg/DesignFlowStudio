@@ -706,37 +706,96 @@ export class DrizzleStorage implements IStorage {
 // Choose which implementation to use
 // export const storage = new MemStorage();
 // This adapter class helps to bridge the casing differences between our API (camelCase)
+// Helper functions to convert between camelCase and snake_case
+function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (match, group) => group.toUpperCase());
+}
+
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+// Recursively convert object keys from camelCase to snake_case
+function convertKeysToSnakeCase(obj: any): any {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj;
+  }
+
+  const result: any = {};
+  Object.keys(obj).forEach(key => {
+    // Skip undefined values
+    if (obj[key] === undefined) return;
+    
+    // Convert the key to snake_case
+    const snakeKey = toSnakeCase(key);
+    
+    // Recursively convert nested objects
+    result[snakeKey] = typeof obj[key] === 'object' && obj[key] !== null 
+      ? convertKeysToSnakeCase(obj[key]) 
+      : obj[key];
+  });
+  
+  return result;
+}
+
+// Recursively convert object keys from snake_case to camelCase
+function convertKeysToCamelCase(obj: any): any {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj;
+  }
+
+  const result: any = {};
+  Object.keys(obj).forEach(key => {
+    // Convert the key to camelCase
+    const camelKey = toCamelCase(key);
+    
+    // Recursively convert nested objects (including arrays)
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
+      result[camelKey] = Array.isArray(obj[key])
+        ? obj[key].map((item: any) => 
+            typeof item === 'object' && item !== null 
+              ? convertKeysToCamelCase(item) 
+              : item
+          )
+        : convertKeysToCamelCase(obj[key]);
+    } else {
+      result[camelKey] = obj[key];
+    }
+  });
+  
+  return result;
+}
+
+// Adapter to handle conversion between our API naming convention (camelCase)
 // and our database schema (snake_case)
 export class StorageAdapter implements IStorage {
   private drizzleStorage = new DrizzleStorage();
   
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.drizzleStorage.getUser(id);
+    const user = await this.drizzleStorage.getUser(id);
+    return user ? convertKeysToCamelCase(user) : undefined;
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return this.drizzleStorage.getUserByUsername(username);
+    const user = await this.drizzleStorage.getUserByUsername(username);
+    return user ? convertKeysToCamelCase(user) : undefined;
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return this.drizzleStorage.getUserByEmail(email);
+    const user = await this.drizzleStorage.getUserByEmail(email);
+    return user ? convertKeysToCamelCase(user) : undefined;
   }
   
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    return this.drizzleStorage.getUserByFirebaseUid(firebaseUid);
+    const user = await this.drizzleStorage.getUserByFirebaseUid(firebaseUid);
+    return user ? convertKeysToCamelCase(user) : undefined;
   }
   
   async createUser(user: InsertUser): Promise<User> {
-    // Convert camelCase to snake_case for the database
-    const dbUser = {
-      ...user,
-      firebase_uid: user.firebaseUid,
-      full_name: user.fullName,
-      active_plan: user.activePlan
-    };
-    
-    return this.drizzleStorage.createUser(dbUser as any);
+    const snakeCaseUser = convertKeysToSnakeCase(user);
+    const createdUser = await this.drizzleStorage.createUser(snakeCaseUser);
+    return convertKeysToCamelCase(createdUser);
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {

@@ -77,6 +77,7 @@ export interface Proposal {
   client_id?: number | null;
   lead_id?: number | null;
   status: 'draft' | 'sent' | 'approved' | 'rejected';
+  dataJSON?: string; // JSON string to store all the proposal data in the database
 }
 
 const ProposalEditor: React.FC = () => {
@@ -154,19 +155,42 @@ const ProposalEditor: React.FC = () => {
         title,
         elements,
         status: 'draft',
+        // Store all element data in dataJSON field as that's what the database expects
+        dataJSON: JSON.stringify({
+          elements,
+          version: '1.0'
+        })
       };
       
       if (leadId) {
         proposalData.lead_id = parseInt(leadId);
       }
       
-      // TODO: Save proposal via API
-      console.log('Saving proposal:', proposalData);
+      // Make the actual API call to save the proposal
+      const response = await fetch('/api/proposals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(proposalData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
+      
+      const savedProposal = await response.json();
+      console.log('Proposal saved successfully:', savedProposal);
       
       toast({
         title: "Proposal Saved",
         description: "Your proposal has been saved successfully",
       });
+      
+      // Redirect to the proposals list after successful save
+      setTimeout(() => {
+        setLocation('/proposals');
+      }, 1500);
     } catch (error) {
       console.error('Error saving proposal:', error);
       toast({

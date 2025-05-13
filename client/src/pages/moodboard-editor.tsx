@@ -328,14 +328,14 @@ export default function MoodboardEditor() {
                 <div>
                   <Label htmlFor="client">Client</Label>
                   <Select
-                    value={clientId ? String(clientId) : ""}
-                    onValueChange={(value) => setClientId(value ? Number(value) : null)}
+                    value={clientId ? String(clientId) : "0"}
+                    onValueChange={(value) => setClientId(value && value !== "0" ? Number(value) : null)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a client" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Client (Template)</SelectItem>
+                      <SelectItem value="0">No Client (Template)</SelectItem>
                       {clients?.map((client) => (
                         <SelectItem key={client.id} value={String(client.id)}>
                           {client.name}

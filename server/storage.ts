@@ -833,37 +833,30 @@ export class StorageAdapter implements IStorage {
   
   // Project methods
   async getProjects(userId: number): Promise<Project[]> {
-    return this.drizzleStorage.getProjects(userId);
+    const projects = await this.drizzleStorage.getProjects(userId);
+    return projects.map(project => convertKeysToCamelCase(project));
   }
   
   async getProject(id: number): Promise<Project | undefined> {
-    return this.drizzleStorage.getProject(id);
+    const project = await this.drizzleStorage.getProject(id);
+    return project ? convertKeysToCamelCase(project) : undefined;
   }
   
   async getProjectsByClientId(clientId: number): Promise<Project[]> {
-    return this.drizzleStorage.getProjectsByClientId(clientId);
+    const projects = await this.drizzleStorage.getProjectsByClientId(clientId);
+    return projects.map(project => convertKeysToCamelCase(project));
   }
   
   async createProject(project: InsertProject): Promise<Project> {
-    const dbProject: any = { ...project };
-    
-    // Convert camelCase to snake_case fields
-    if (project.clientId) dbProject.client_id = project.clientId;
-    if (project.startDate) dbProject.start_date = project.startDate;
-    if (project.endDate) dbProject.end_date = project.endDate;
-    
-    return this.drizzleStorage.createProject(dbProject);
+    const snakeCaseProject = convertKeysToSnakeCase(project);
+    const createdProject = await this.drizzleStorage.createProject(snakeCaseProject);
+    return convertKeysToCamelCase(createdProject);
   }
   
   async updateProject(id: number, project: Partial<Project>): Promise<Project | undefined> {
-    const dbProject: any = { ...project };
-    
-    // Convert camelCase to snake_case fields
-    if (project.clientId) dbProject.client_id = project.clientId;
-    if (project.startDate) dbProject.start_date = project.startDate;
-    if (project.endDate) dbProject.end_date = project.endDate;
-    
-    return this.drizzleStorage.updateProject(id, dbProject);
+    const snakeCaseProject = convertKeysToSnakeCase(project);
+    const updatedProject = await this.drizzleStorage.updateProject(id, snakeCaseProject);
+    return updatedProject ? convertKeysToCamelCase(updatedProject) : undefined;
   }
   
   async deleteProject(id: number): Promise<boolean> {
@@ -872,39 +865,30 @@ export class StorageAdapter implements IStorage {
   
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
-    return this.drizzleStorage.getProposals(userId);
+    const proposals = await this.drizzleStorage.getProposals(userId);
+    return proposals.map(proposal => convertKeysToCamelCase(proposal));
   }
   
   async getProposal(id: number): Promise<Proposal | undefined> {
-    return this.drizzleStorage.getProposal(id);
+    const proposal = await this.drizzleStorage.getProposal(id);
+    return proposal ? convertKeysToCamelCase(proposal) : undefined;
   }
   
   async getProposalsByProjectId(projectId: number): Promise<Proposal[]> {
-    return this.drizzleStorage.getProposalsByProjectId(projectId);
+    const proposals = await this.drizzleStorage.getProposalsByProjectId(projectId);
+    return proposals.map(proposal => convertKeysToCamelCase(proposal));
   }
   
   async createProposal(proposal: InsertProposal): Promise<Proposal> {
-    const dbProposal: any = { ...proposal };
-    
-    // Convert camelCase to snake_case fields
-    if (proposal.clientId) dbProposal.client_id = proposal.clientId;
-    if (proposal.createdBy) dbProposal.created_by = proposal.createdBy;
-    if (proposal.dataJSON) dbProposal.data_json = proposal.dataJSON;
-    if (proposal.pdfURL) dbProposal.pdf_url = proposal.pdfURL;
-    
-    return this.drizzleStorage.createProposal(dbProposal);
+    const snakeCaseProposal = convertKeysToSnakeCase(proposal);
+    const createdProposal = await this.drizzleStorage.createProposal(snakeCaseProposal);
+    return convertKeysToCamelCase(createdProposal);
   }
   
   async updateProposal(id: number, proposal: Partial<Proposal>): Promise<Proposal | undefined> {
-    const dbProposal: any = { ...proposal };
-    
-    // Convert camelCase to snake_case fields
-    if (proposal.clientId) dbProposal.client_id = proposal.clientId;
-    if (proposal.createdBy) dbProposal.created_by = proposal.createdBy;
-    if (proposal.dataJSON) dbProposal.data_json = proposal.dataJSON;
-    if (proposal.pdfURL) dbProposal.pdf_url = proposal.pdfURL;
-    
-    return this.drizzleStorage.updateProposal(id, dbProposal);
+    const snakeCaseProposal = convertKeysToSnakeCase(proposal);
+    const updatedProposal = await this.drizzleStorage.updateProposal(id, snakeCaseProposal);
+    return updatedProposal ? convertKeysToCamelCase(updatedProposal) : undefined;
   }
   
   async deleteProposal(id: number): Promise<boolean> {

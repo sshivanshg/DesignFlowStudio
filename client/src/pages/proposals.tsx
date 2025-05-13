@@ -22,7 +22,7 @@ export default function Proposals() {
     queryKey: ['/api/clients'],
   });
   
-  const getClientName = (clientId?: number) => {
+  const getClientName = (clientId?: number | null) => {
     if (!clientId || !clients) return "Unknown Client";
     const client = clients.find(c => c.id === clientId);
     return client ? client.name : "Unknown Client";
@@ -123,7 +123,7 @@ export default function Proposals() {
                           <div>
                             <h3 className="font-medium text-gray-900 line-clamp-1">{proposal.title}</h3>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
-                              <span className="font-medium">{getClientName(proposal.clientId)}</span>
+                              <span className="font-medium">{getClientName(proposal.client_id)}</span>
                               <span className="mx-1">•</span>
                               <span>
                                 {proposal.createdAt 
@@ -137,10 +137,10 @@ export default function Proposals() {
                           {getStatusBadge(proposal.status || 'draft')}
                         </div>
                       </div>
-                      {proposal.amount && (
+                      {proposal.dataJSON && typeof proposal.dataJSON === 'object' && (proposal.dataJSON as any).amount && (
                         <div className="mt-3 text-sm">
                           <span className="text-gray-500">Amount:</span>
-                          <span className="ml-1 font-medium">₹{proposal.amount.toLocaleString()}</span>
+                          <span className="ml-1 font-medium">₹{(proposal.dataJSON as any).amount.toLocaleString()}</span>
                         </div>
                       )}
                     </div>
@@ -148,10 +148,10 @@ export default function Proposals() {
                       <div className="flex items-center space-x-2">
                         <Avatar className="h-7 w-7">
                           <AvatarFallback className="text-xs bg-primary text-white">
-                            {getClientName(proposal.clientId).split(" ").map(n => n[0]).join("")}
+                            {getClientName(proposal.client_id).split(" ").map(n => n[0]).join("")}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-gray-500">Project {proposal.projectId}</span>
+                        <span className="text-xs text-gray-500">Project {proposal.lead_id ? `#${proposal.lead_id}` : ''}</span>
                       </div>
                       <div className="flex space-x-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7">

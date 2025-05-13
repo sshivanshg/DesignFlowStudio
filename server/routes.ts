@@ -860,9 +860,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create activity for new task
       if (project) {
         await storage.createActivity({
-          userId,
-          clientId: project.clientId,
-          projectId: task.projectId,
+          user_id: userId,
+          client_id: project.client_id,
+          project_id: task.project_id,
           type: "task_created",
           description: `Created new task: ${task.title}`,
           metadata: {}
@@ -899,9 +899,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : `Updated task: ${updatedTask.title}`;
         
         await storage.createActivity({
-          userId: (req.user as any).id,
-          clientId: project.clientId,
-          projectId: updatedTask.projectId,
+          user_id: (req.user as any).id,
+          client_id: project.client_id,
+          project_id: updatedTask.project_id,
           type: activityType,
           description: activityDesc,
           metadata: {}
@@ -932,9 +932,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create activity for deleted task
         if (project) {
           await storage.createActivity({
-            userId: (req.user as any).id,
-            clientId: project.clientId,
-            projectId: task.projectId,
+            user_id: (req.user as any).id,
+            client_id: project.client_id,
+            project_id: task.project_id,
             type: "task_deleted",
             description: `Deleted task: ${task.title}`,
             metadata: {}
@@ -984,8 +984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/activities", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
-      const activityData = insertActivitySchema.parse({ ...req.body, userId });
+      const user_id = (req.user as any).id;
+      const activityData = insertActivitySchema.parse({ ...req.body, user_id });
       const activity = await storage.createActivity(activityData);
       res.status(201).json(activity);
     } catch (error) {

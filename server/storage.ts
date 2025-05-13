@@ -1044,6 +1044,11 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
   
+  async getEstimateConfigByName(name: string): Promise<EstimateConfig | undefined> {
+    const result = await db.select().from(estimateConfigs).where(eq(estimateConfigs.name, name));
+    return result[0];
+  }
+  
   async createEstimateConfig(config: InsertEstimateConfig): Promise<EstimateConfig> {
     const result = await db.insert(estimateConfigs).values(config).returning();
     return result[0];

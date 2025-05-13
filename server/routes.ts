@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: randomPassword,
           email,
           fullName: displayNameValue, // Use camelCase for the schema - will be mapped to full_name in DB
-          role: "designer" as const,
+          role: "admin" as const, // Default to admin role so new users have full access
           supabaseUid,
           company: null,
           phone: null

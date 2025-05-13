@@ -58,7 +58,10 @@ export default function EstimatesPage() {
   // Fetch estimates
   const { data: estimates, isLoading, isError } = useQuery({
     queryKey: ['/api/estimates'],
-    // Use the default QueryFn that's set up in queryClient.ts
+    queryFn: async () => {
+      const result = await apiRequest('GET', '/api/estimates');
+      return result;
+    }
   });
 
   // Handle sort

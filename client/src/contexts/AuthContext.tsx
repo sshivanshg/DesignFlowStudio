@@ -5,14 +5,17 @@ import { queryClient } from "@/lib/queryClient";
 import { 
   auth, 
   setupRecaptcha, 
-  signOut as firebaseSignOut 
+  signOut as firebaseSignOut,
+  signInWithGoogle
 } from "@/lib/firebase";
 import { 
   User as FirebaseUser, 
   ConfirmationResult,
   signInWithCredential, 
   PhoneAuthProvider,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  UserCredential
 } from "firebase/auth";
 
 interface AuthContextType {
@@ -21,6 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   confirmationResult: ConfirmationResult | null;
   login: (username: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   loginWithPhone: (phoneNumber: string, recaptchaContainerId: string) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
   register: (userData: {
@@ -41,6 +45,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   confirmationResult: null,
   login: async () => {},
+  loginWithGoogle: async () => {},
   loginWithPhone: async () => {},
   verifyOtp: async () => {},
   register: async () => {},
@@ -153,6 +158,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       toast({
         title: "Login failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Google login function
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      // Sign in with Google popup
+      const result = await signInWithGoogle();
+      setFirebaseUser(result.user);
+      
+      // Get ID token
+      const idToken = await result.user.getIdToken();
+      
+      // Send to our backend to create/update user
+      const response = await fetch("/api/auth/firebase-auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firebaseUid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+          idToken,
+        }),
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to authenticate with server");
+      }
+      
+      const data = await response.json();
+      setUser(data.user);
+      
+      toast({
+        title: "Logged in successfully",
+        description: `Welcome${data.user?.fullName ? ', ' + data.user.fullName : ''}!`,
+      });
+      
+      // Reset query cache
+      queryClient.clear();
+      
+    } catch (error) {
+      toast({
+        title: "Google login failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
@@ -334,6 +394,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading, 
       confirmationResult,
       login, 
+      loginWithGoogle,
       loginWithPhone,
       verifyOtp,
       register, 

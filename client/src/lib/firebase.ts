@@ -4,7 +4,11 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   PhoneAuthProvider,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from "firebase/auth";
 
 // Firebase configuration
@@ -41,6 +45,34 @@ export const setupRecaptcha = (phoneNumber: string, containerID: string) => {
   (window as any).recaptchaVerifier = recaptchaVerifier;
 
   return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+};
+
+// Google authentication provider
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Sign in with Google Popup
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result;
+  } catch (error) {
+    console.error("Error signing in with Google:", error);
+    throw error;
+  }
+};
+
+// Handle Google redirect auth
+export const handleGoogleRedirect = async () => {
+  try {
+    const result = await getRedirectResult(auth);
+    return result;
+  } catch (error) {
+    console.error("Error handling Google redirect:", error);
+    throw error;
+  }
 };
 
 // Sign out function

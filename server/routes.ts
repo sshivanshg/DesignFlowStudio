@@ -822,14 +822,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/proposals", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const proposalData = insertProposalSchema.parse({ ...req.body, userId });
-      const proposal = await storage.createProposal(proposalData);
+      
+      // Use snake_case field names for the database
+      const proposalData = {
+        ...req.body,
+        created_by: userId
+      };
+      
+      // Parse with schema
+      const validatedData = insertProposalSchema.parse(proposalData);
+      const proposal = await storage.createProposal(validatedData);
       
       // Create activity for new proposal
       await storage.createActivity({
         user_id: userId,
         client_id: proposal.client_id,
-        project_id: proposal.project_id,
+        project_id: proposal.lead_id, // Use lead_id instead of project_id
         type: "proposal_created",
         description: `Created new proposal: ${proposal.title || 'Untitled'}`,
         metadata: {}
@@ -837,6 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(proposal);
     } catch (error) {
+      console.error("Error creating proposal:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors });
       }

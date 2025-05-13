@@ -338,8 +338,9 @@ export class MemStorage implements IStorage {
 
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
+    // In Postgres storage, proposals have created_by field instead of userId
     return Array.from(this.proposals.values()).filter(
-      (proposal) => proposal.userId === userId,
+      (proposal) => proposal.created_by === userId,
     );
   }
 
@@ -348,8 +349,9 @@ export class MemStorage implements IStorage {
   }
 
   async getProposalsByProjectId(projectId: number): Promise<Proposal[]> {
+    // In Postgres storage, proposals have lead_id field instead of projectId
     return Array.from(this.proposals.values()).filter(
-      (proposal) => proposal.projectId === projectId,
+      (proposal) => proposal.lead_id === projectId,
     );
   }
 
@@ -802,7 +804,13 @@ export class DrizzleStorage implements IStorage {
   
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
-    return db.select().from(proposals);
+    try {
+      // Filter proposals by created_by = userId
+      return db.select().from(proposals).where(eq(proposals.created_by, userId));
+    } catch (error) {
+      console.error("Error fetching proposals:", error);
+      return []; // Return empty array instead of letting the error propagate
+    }
   }
   
   async getProposal(id: number): Promise<Proposal | undefined> {

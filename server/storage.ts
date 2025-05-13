@@ -1910,6 +1910,77 @@ export class DrizzleStorage implements IStorage {
     const result = await db.insert(activities).values(activity).returning();
     return result[0];
   }
+  
+  // WhatsApp message methods
+  async getWhatsAppMessages(): Promise<WhatsappMessage[]> {
+    return await db
+      .select()
+      .from(whatsappMessages)
+      .orderBy(desc(whatsappMessages.sentAt));
+  }
+  
+  async getWhatsAppMessagesByLeadId(leadId: number): Promise<WhatsappMessage[]> {
+    return await db
+      .select()
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.leadId, leadId))
+      .orderBy(desc(whatsappMessages.sentAt));
+  }
+  
+  async getWhatsAppMessagesByClientId(clientId: number): Promise<WhatsappMessage[]> {
+    return await db
+      .select()
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.clientId, clientId))
+      .orderBy(desc(whatsappMessages.sentAt));
+  }
+  
+  async getWhatsAppMessageById(messageId: string): Promise<WhatsappMessage | undefined> {
+    const result = await db
+      .select()
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.id, messageId));
+    return result[0];
+  }
+  
+  async getWhatsAppFailedMessages(maxRetries: number): Promise<WhatsappMessage[]> {
+    return await db
+      .select()
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.status, 'failed'),
+          drizzleSql`${whatsappMessages.retryCount} < ${maxRetries}`
+        )
+      )
+      .orderBy(whatsappMessages.sentAt);
+  }
+  
+  async createWhatsAppMessageLog(message: Omit<WhatsappMessage, 'createdAt' | 'updatedAt'>): Promise<WhatsappMessage> {
+    const result = await db
+      .insert(whatsappMessages)
+      .values(message)
+      .returning();
+    return result[0];
+  }
+  
+  async updateWhatsAppMessageStatus(messageId: string, statusUpdate: Partial<WhatsappMessage>): Promise<WhatsappMessage | undefined> {
+    const result = await db
+      .update(whatsappMessages)
+      .set(statusUpdate)
+      .where(eq(whatsappMessages.id, messageId))
+      .returning();
+    return result[0];
+  }
+  
+  async updateWhatsAppMessageRetryCount(messageId: string, retryCount: number): Promise<WhatsappMessage | undefined> {
+    const result = await db
+      .update(whatsappMessages)
+      .set({ retryCount })
+      .where(eq(whatsappMessages.id, messageId))
+      .returning();
+    return result[0];
+  }
 }
 
 // Choose which implementation to use
@@ -2290,6 +2361,49 @@ export class StorageAdapter implements IStorage {
     const snakeCaseActivity = convertKeysToSnakeCase(activity);
     const createdActivity = await this.drizzleStorage.createActivity(snakeCaseActivity);
     return convertKeysToCamelCase(createdActivity);
+  }
+  
+  // WhatsApp message methods
+  async getWhatsAppMessages(): Promise<WhatsappMessage[]> {
+    const messages = await this.drizzleStorage.getWhatsAppMessages();
+    return messages.map(message => convertKeysToCamelCase(message));
+  }
+  
+  async getWhatsAppMessagesByLeadId(leadId: number): Promise<WhatsappMessage[]> {
+    const messages = await this.drizzleStorage.getWhatsAppMessagesByLeadId(leadId);
+    return messages.map(message => convertKeysToCamelCase(message));
+  }
+  
+  async getWhatsAppMessagesByClientId(clientId: number): Promise<WhatsappMessage[]> {
+    const messages = await this.drizzleStorage.getWhatsAppMessagesByClientId(clientId);
+    return messages.map(message => convertKeysToCamelCase(message));
+  }
+  
+  async getWhatsAppMessageById(messageId: string): Promise<WhatsappMessage | undefined> {
+    const message = await this.drizzleStorage.getWhatsAppMessageById(messageId);
+    return message ? convertKeysToCamelCase(message) : undefined;
+  }
+  
+  async getWhatsAppFailedMessages(maxRetries: number): Promise<WhatsappMessage[]> {
+    const messages = await this.drizzleStorage.getWhatsAppFailedMessages(maxRetries);
+    return messages.map(message => convertKeysToCamelCase(message));
+  }
+  
+  async createWhatsAppMessageLog(message: Omit<WhatsappMessage, 'createdAt' | 'updatedAt'>): Promise<WhatsappMessage> {
+    const snakeCaseMessage = convertKeysToSnakeCase(message);
+    const createdMessage = await this.drizzleStorage.createWhatsAppMessageLog(snakeCaseMessage);
+    return convertKeysToCamelCase(createdMessage);
+  }
+  
+  async updateWhatsAppMessageStatus(messageId: string, statusUpdate: Partial<WhatsappMessage>): Promise<WhatsappMessage | undefined> {
+    const snakeCaseUpdate = convertKeysToSnakeCase(statusUpdate);
+    const updatedMessage = await this.drizzleStorage.updateWhatsAppMessageStatus(messageId, snakeCaseUpdate);
+    return updatedMessage ? convertKeysToCamelCase(updatedMessage) : undefined;
+  }
+  
+  async updateWhatsAppMessageRetryCount(messageId: string, retryCount: number): Promise<WhatsappMessage | undefined> {
+    const updatedMessage = await this.drizzleStorage.updateWhatsAppMessageRetryCount(messageId, retryCount);
+    return updatedMessage ? convertKeysToCamelCase(updatedMessage) : undefined;
   }
 }
 

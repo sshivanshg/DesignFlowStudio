@@ -41,6 +41,31 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
+
+  // Seed estimate config mutation
+  const seedEstimateConfigMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/seed/estimate-configs", {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Database seeded successfully",
+        description: "Estimate configurations have been added to the database",
+      });
+      // Invalidate any queries that might use the estimate configs
+      queryClient.invalidateQueries({ queryKey: ["/api/estimate-configs"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Seeding failed",
+        description: error instanceof Error ? error.message : "Failed to seed the database",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -209,6 +234,15 @@ export default function Settings() {
                 <Shield className="mr-2 h-4 w-4" />
                 Security
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger 
+                  value="developer" 
+                  className="justify-start px-3 py-2 h-auto data-[state=active]:bg-muted"
+                >
+                  <Terminal className="mr-2 h-4 w-4" />
+                  Developer
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         </div>
@@ -495,6 +529,47 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Developer Tab */}
+          {isAdmin && (
+            <TabsContent value="developer" className="m-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Developer Tools</CardTitle>
+                  <CardDescription>Advanced options for system administrators</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Database Section */}
+                  <div>
+                    <h3 className="font-medium text-lg mb-3">Database Management</h3>
+                    
+                    <Alert className="mb-4">
+                      <Database className="h-4 w-4" />
+                      <AlertTitle>Database Operations</AlertTitle>
+                      <AlertDescription>
+                        These operations affect database data and should be used with caution.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="grid gap-4">
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <h4 className="font-medium mb-2">Estimate Configurations</h4>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Seed the database with predefined estimate configurations for pricing calculations.
+                        </p>
+                        <Button 
+                          onClick={() => seedEstimateConfigMutation.mutate()}
+                          disabled={seedEstimateConfigMutation.isPending}
+                        >
+                          {seedEstimateConfigMutation.isPending ? "Seeding..." : "Seed Estimate Configs"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </div>
       </div>
     </>

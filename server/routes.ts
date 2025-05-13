@@ -283,8 +283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for updated client
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId,
+        user_id: (req.user as any).id,
+        client_id: clientId,
         type: "client_updated",
         description: `Updated client information for ${updatedClient.name}`,
         metadata: {}
@@ -310,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (deleted) {
         // Create activity for deleted client
         await storage.createActivity({
-          userId: (req.user as any).id,
+          user_id: (req.user as any).id,
           type: "client_deleted",
           description: `Removed client ${client.name}`,
           metadata: {}
@@ -366,9 +366,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for new project
       await storage.createActivity({
-        userId,
-        clientId: project.clientId,
-        projectId: project.id,
+        user_id: userId,
+        client_id: project.client_id,
+        project_id: project.id,
         type: "project_created",
         description: `Created new project: ${project.name}`,
         metadata: {}
@@ -395,9 +395,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for updated project
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: updatedProject.clientId,
-        projectId,
+        user_id: (req.user as any).id,
+        client_id: updatedProject.client_id,
+        project_id: projectId,
         type: "project_updated",
         description: `Updated project: ${updatedProject.name}`,
         metadata: {}
@@ -423,8 +423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (deleted) {
         // Create activity for deleted project
         await storage.createActivity({
-          userId: (req.user as any).id,
-          clientId: project.clientId,
+          user_id: (req.user as any).id,
+          client_id: project.client_id,
           type: "project_deleted",
           description: `Deleted project: ${project.name}`,
           metadata: {}

@@ -1008,6 +1008,55 @@ export class DrizzleStorage implements IStorage {
     return result.length > 0;
   }
   
+  async getEstimatesByLeadId(leadId: number): Promise<Estimate[]> {
+    return db.select().from(estimates).where(eq(estimates.lead_id, leadId));
+  }
+  
+  async getEstimatesByClientId(clientId: number): Promise<Estimate[]> {
+    return db.select().from(estimates).where(eq(estimates.client_id, clientId));
+  }
+  
+  async getEstimateTemplates(): Promise<Estimate[]> {
+    return db.select().from(estimates).where(eq(estimates.isTemplate, true));
+  }
+  
+  // EstimateConfig methods
+  async getEstimateConfigs(): Promise<EstimateConfig[]> {
+    return db.select().from(estimateConfigs);
+  }
+  
+  async getActiveEstimateConfigs(): Promise<EstimateConfig[]> {
+    return db.select().from(estimateConfigs).where(eq(estimateConfigs.isActive, true));
+  }
+  
+  async getEstimateConfigsByType(configType: string): Promise<EstimateConfig[]> {
+    return db.select().from(estimateConfigs).where(eq(estimateConfigs.configType, configType));
+  }
+  
+  async getEstimateConfig(id: number): Promise<EstimateConfig | undefined> {
+    const result = await db.select().from(estimateConfigs).where(eq(estimateConfigs.id, id));
+    return result[0];
+  }
+  
+  async createEstimateConfig(config: InsertEstimateConfig): Promise<EstimateConfig> {
+    const result = await db.insert(estimateConfigs).values(config).returning();
+    return result[0];
+  }
+  
+  async updateEstimateConfig(id: number, configData: Partial<EstimateConfig>): Promise<EstimateConfig | undefined> {
+    const result = await db
+      .update(estimateConfigs)
+      .set(configData)
+      .where(eq(estimateConfigs.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async deleteEstimateConfig(id: number): Promise<boolean> {
+    const result = await db.delete(estimateConfigs).where(eq(estimateConfigs.id, id)).returning();
+    return result.length > 0;
+  }
+  
   // Activity methods
   async getActivities(userId: number, limit?: number): Promise<Activity[]> {
     const query = db

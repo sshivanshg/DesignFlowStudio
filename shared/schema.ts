@@ -173,19 +173,51 @@ export const insertMoodboardSchema = createInsertSchema(moodboards).omit({
   updatedAt: true,
 });
 
+// Pricing configurations for estimates
+export const estimateConfigs = pgTable("estimate_configs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  configType: text("config_type").notNull(), // base_price, layout_price, finish_price, room_price
+  config: jsonb("config").default({}),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    configTypeIdx: index("config_type_idx").on(table.configType),
+  }
+});
+
+export const insertEstimateConfigSchema = createInsertSchema(estimateConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Estimate schema
 export const estimates = pgTable("estimates", {
   id: serial("id").primaryKey(),
   client_id: integer("client_id").references(() => clients.id),
+  lead_id: integer("lead_id").references(() => leads.id),
+  title: text("title").default("New Estimate"),
   configJSON: jsonb("config_json").default({}),
-  total: integer("total").default(0),
+  subtotal: integer("subtotal").default(0),
   gst: integer("gst").default(0),
+  total: integer("total").default(0),
+  status: text("status").default("draft"),
+  isTemplate: boolean("is_template").default(false),
+  templateName: text("template_name"),
+  milestoneBreakdown: jsonb("milestone_breakdown").default([]),
   pdfURL: text("pdf_url"),
+  sharedLink: text("shared_link"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
   return {
     clientIdx: index("estimate_client_idx").on(table.client_id),
+    leadIdx: index("estimate_lead_idx").on(table.lead_id),
+    statusIdx: index("estimate_status_idx").on(table.status),
   }
 });
 
@@ -263,6 +295,9 @@ export type InsertProposal = z.infer<typeof insertProposalSchema>;
 
 export type Moodboard = typeof moodboards.$inferSelect;
 export type InsertMoodboard = z.infer<typeof insertMoodboardSchema>;
+
+export type EstimateConfig = typeof estimateConfigs.$inferSelect;
+export type InsertEstimateConfig = z.infer<typeof insertEstimateConfigSchema>;
 
 export type Estimate = typeof estimates.$inferSelect;
 export type InsertEstimate = z.infer<typeof insertEstimateSchema>;

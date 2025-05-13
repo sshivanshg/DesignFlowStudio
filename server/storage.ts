@@ -6,6 +6,7 @@ import {
   proposals, Proposal, InsertProposal,
   moodboards, Moodboard, InsertMoodboard,
   estimates, Estimate, InsertEstimate,
+  estimateConfigs, EstimateConfig, InsertEstimateConfig,
   activities, Activity, InsertActivity
 } from "@shared/schema";
 import { eq, and, desc, sql as drizzleSql } from "drizzle-orm";
@@ -72,10 +73,20 @@ export interface IStorage {
   updateMoodboard(id: number, moodboard: Partial<Moodboard>): Promise<Moodboard | undefined>;
   deleteMoodboard(id: number): Promise<boolean>;
   
+  // EstimateConfig methods
+  getEstimateConfigs(): Promise<EstimateConfig[]>;
+  getActiveEstimateConfigs(): Promise<EstimateConfig[]>;
+  getEstimateConfigsByType(configType: string): Promise<EstimateConfig[]>;
+  getEstimateConfig(id: number): Promise<EstimateConfig | undefined>;
+  createEstimateConfig(config: InsertEstimateConfig): Promise<EstimateConfig>;
+  updateEstimateConfig(id: number, config: Partial<EstimateConfig>): Promise<EstimateConfig | undefined>;
+  deleteEstimateConfig(id: number): Promise<boolean>;
+  
   // Estimate methods
-  getEstimates(userId: number): Promise<Estimate[]>;
   getEstimate(id: number): Promise<Estimate | undefined>;
-  getEstimatesByProjectId(projectId: number): Promise<Estimate[]>;
+  getEstimatesByClientId(clientId: number): Promise<Estimate[]>;
+  getEstimatesByLeadId(leadId: number): Promise<Estimate[]>;
+  getEstimateTemplates(): Promise<Estimate[]>;
   createEstimate(estimate: InsertEstimate): Promise<Estimate>;
   updateEstimate(id: number, estimate: Partial<Estimate>): Promise<Estimate | undefined>;
   deleteEstimate(id: number): Promise<boolean>;
@@ -109,6 +120,10 @@ export class MemStorage implements IStorage {
   private taskId: number;
   private activityId: number;
 
+  // Add estimateConfig map
+  private estimateConfigs = new Map<number, EstimateConfig>();
+  private estimateConfigId = 1;
+
   constructor() {
     this.users = new Map();
     this.leads = new Map();
@@ -117,6 +132,7 @@ export class MemStorage implements IStorage {
     this.proposals = new Map();
     this.moodboards = new Map();
     this.estimates = new Map();
+    this.estimateConfigs = new Map();
     this.tasks = new Map();
     this.activities = new Map();
     
@@ -127,6 +143,7 @@ export class MemStorage implements IStorage {
     this.proposalId = 1;
     this.moodboardId = 1;
     this.estimateId = 1;
+    this.estimateConfigId = 1;
     this.taskId = 1;
     this.activityId = 1;
     

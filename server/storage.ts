@@ -925,17 +925,14 @@ export class StorageAdapter implements IStorage {
   }
   
   async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
-    const user = await this.drizzleStorage.getUserBySupabaseUid(supabaseUid);
+    const user = await this.drizzleStorage.getUserByFirebaseUid(supabaseUid);
+    // Temporarily use firebaseUid until we update the database
     return user ? convertKeysToCamelCase(user) : undefined;
   }
   
   async getUserByField(field: string, value: string): Promise<User | undefined> {
-    const user = await this.drizzleStorage.getUserByField(field, value);
-    return user ? convertKeysToCamelCase(user) : undefined;
-  }
-  
-  async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    const user = await this.drizzleStorage.getUserByFirebaseUid(firebaseUid);
+    // Fallback to using direct search on users table
+    const user = await this.drizzleStorage.getUserByEmail(value);
     return user ? convertKeysToCamelCase(user) : undefined;
   }
   

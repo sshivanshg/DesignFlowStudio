@@ -364,7 +364,7 @@ export interface DesignInsightResponse {
 
 export const generateDesignInsights = async (data: DesignInsightRequest): Promise<DesignInsightResponse> => {
   const response = await apiRequest("POST", "/api/ai/design-insights", data);
-  return response as DesignInsightResponse;
+  return response as unknown as DesignInsightResponse;
 };
 
 export interface FeedbackAnalysisRequest {
@@ -381,7 +381,7 @@ export interface FeedbackAnalysisResponse {
 
 export const analyzeClientFeedback = async (data: FeedbackAnalysisRequest): Promise<FeedbackAnalysisResponse> => {
   const response = await apiRequest("POST", "/api/ai/analyze-feedback", data);
-  return response as FeedbackAnalysisResponse;
+  return response as unknown as FeedbackAnalysisResponse;
 };
 
 export interface MoodboardSuggestionRequest {
@@ -399,5 +399,5 @@ export interface MoodboardSuggestionResponse {
 
 export const generateMoodboardSuggestions = async (data: MoodboardSuggestionRequest): Promise<MoodboardSuggestionResponse> => {
   const response = await apiRequest("POST", "/api/ai/moodboard-suggestions", data);
-  return response as MoodboardSuggestionResponse;
+  return response as unknown as MoodboardSuggestionResponse;
 };

@@ -206,15 +206,139 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Phone OTP login function
+  const loginWithPhone = async (phoneNumber: string, recaptchaContainerId: string) => {
+    setIsLoading(true);
+    try {
+      // Setup reCAPTCHA and send OTP
+      const confirmation = await setupRecaptcha(phoneNumber, recaptchaContainerId);
+      setConfirmationResult(confirmation);
+      
+      toast({
+        title: "Verification code sent",
+        description: "Please enter the code sent to your phone",
+      });
+      
+      return confirmation;
+    } catch (error) {
+      toast({
+        title: "Failed to send verification code",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Verify OTP function
+  const verifyOtp = async (otp: string) => {
+    setIsLoading(true);
+    try {
+      if (!confirmationResult) {
+        throw new Error("No confirmation result found. Please send the verification code again.");
+      }
+      
+      // Confirm the OTP
+      const result = await confirmationResult.confirm(otp);
+      setFirebaseUser(result.user);
+      
+      // Get ID token
+      const idToken = await result.user.getIdToken();
+      
+      // Send to our backend to create/update user
+      const response = await fetch("/api/auth/firebase-auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firebaseUid: result.user.uid,
+          phone: result.user.phoneNumber,
+          idToken,
+        }),
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to authenticate with server");
+      }
+      
+      const data = await response.json();
+      setUser(data.user);
+      
+      toast({
+        title: "Logged in successfully",
+        description: `Welcome${data.user?.fullName ? ', ' + data.user.fullName : ''}!`,
+      });
+      
+      // Reset query cache
+      queryClient.clear();
+      
+      // Redirect to dashboard
+      window.location.href = "/dashboard";
+      
+    } catch (error) {
+      toast({
+        title: "Verification failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Logout function
-  const logout = () => {
-    setUser(null);
-    // Not calling the API here since it's handled in the Sidebar component
-    window.location.href = "/login";
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      // Sign out from Firebase
+      if (firebaseUser) {
+        await firebaseSignOut();
+      }
+      
+      // Sign out from our backend
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      
+      setUser(null);
+      setFirebaseUser(null);
+      
+      toast({
+        title: "Logged out successfully",
+      });
+      
+      // Reset query cache
+      queryClient.clear();
+      
+      // Redirect to login
+      window.location.href = "/login";
+      
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      firebaseUser,
+      isLoading, 
+      confirmationResult,
+      login, 
+      loginWithPhone,
+      verifyOtp,
+      register, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

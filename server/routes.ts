@@ -128,6 +128,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", isAuthenticated, (req, res) => {
     res.json({ user: req.user });
   });
+  
+  // Firebase authentication route
+  app.post("/api/auth/firebase-auth", async (req, res) => {
+    try {
+      const { firebaseUid, phone, idToken } = req.body;
+      
+      if (!firebaseUid || !phone) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if user with this Firebase UID exists
+      let user = await storage.getUserByFirebaseUid(firebaseUid);
+      
+      if (user) {
+        // Update existing user if needed
+        if (user.phone !== phone) {
+          user = await storage.updateUser(user.id, { phone });
+        }
+      } else {
+        // Create a new user
+        // Generate a username from the phone number
+        const username = `user_${phone.replace(/\D/g, '')}`;
+        const randomPassword = Math.random().toString(36).slice(-8);
+        
+        // Try to find an available username
+        let availableUsername = username;
+        let counter = 1;
+        let existingUser = await storage.getUserByUsername(availableUsername);
+        
+        while (existingUser) {
+          availableUsername = `${username}_${counter}`;
+          counter++;
+          existingUser = await storage.getUserByUsername(availableUsername);
+        }
+        
+        // Create the user with default role 'sales'
+        const userData = {
+          username: availableUsername,
+          password: randomPassword, // This is just for compatibility, they'll use Firebase auth
+          email: `${availableUsername}@example.com`, // Placeholder email
+          fullName: phone, // Use phone as initial fullName
+          role: 'sales' as const,
+          phone,
+          firebaseUid
+        };
+        
+        user = await storage.createUser(userData);
+      }
+      
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Error logging in with Firebase" });
+        }
+        return res.json({ user });
+      });
+      
+    } catch (error) {
+      console.error("Firebase auth error:", error);
+      res.status(500).json({ message: "Error authenticating with Firebase" });
+    }
+  });
 
   // Client routes
   app.get("/api/clients", isAuthenticated, async (req, res) => {

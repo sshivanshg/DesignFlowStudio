@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, uuid, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -323,3 +323,36 @@ export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+// WhatsApp message logs
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: varchar("id", { length: 50 }).primaryKey(), // Custom message ID
+  to: varchar("to", { length: 20 }).notNull(), // Phone number
+  leadId: integer("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  clientId: integer("client_id").references(() => clients.id, { onDelete: "set null" }),
+  messageType: varchar("message_type", { length: 50 }).notNull(), // Template name
+  status: varchar("status", { length: 20 }).notNull().default("sent"), // sent, delivered, read, failed
+  content: text("content").notNull(), // Message content
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+  readAt: timestamp("read_at"),
+  metadata: jsonb("metadata").default({}), // Additional data like variables used
+  retryCount: integer("retry_count").default(0), // For tracking retries
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    statusIdx: index("whatsapp_status_idx").on(table.status),
+    leadIdx: index("whatsapp_lead_idx").on(table.leadId),
+    clientIdx: index("whatsapp_client_idx").on(table.clientId),
+  }
+});
+
+export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;

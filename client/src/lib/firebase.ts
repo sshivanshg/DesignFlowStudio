@@ -75,7 +75,7 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing in with Google:", error);
     
     // Provide more user-friendly error messages
@@ -94,7 +94,7 @@ export const handleGoogleRedirect = async () => {
   try {
     const result = await getRedirectResult(auth);
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error handling Google redirect:", error);
     throw error;
   }

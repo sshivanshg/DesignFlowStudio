@@ -198,9 +198,8 @@ export default function Login() {
             className="w-full"
           >
             <div className="px-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Username</TabsTrigger>
-                <TabsTrigger value="phone">Phone</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
             </div>

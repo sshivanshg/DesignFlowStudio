@@ -8,8 +8,9 @@ import {
   insertProposalSchema,
   insertMoodboardSchema,
   insertEstimateSchema,
-  insertTaskSchema,
   insertActivitySchema,
+  insertLeadSchema,
+  insertSubscriptionSchema,
   User
 } from "@shared/schema";
 import { z } from "zod";
@@ -799,12 +800,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task routes
+  // Note: Tasks are now stored in the projects table as an array
   app.get("/api/tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const tasks = await storage.getTasks(userId);
-      res.json(tasks);
+      // Get all projects and extract their tasks
+      const projects = await storage.getProjects(userId);
+      const allTasks = [];
+      
+      for (const project of projects) {
+        if (project.tasks && Array.isArray(project.tasks)) {
+          const projectTasks = project.tasks.map(task => ({
+            ...task,
+            projectId: project.id,
+            projectName: project.name
+          }));
+          allTasks.push(...projectTasks);
+        }
+      }
+      
+      res.json(allTasks);
     } catch (error) {
+      console.error("Error fetching tasks:", error);
       res.status(500).json({ message: "Error fetching tasks" });
     }
   });

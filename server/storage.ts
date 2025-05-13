@@ -2749,6 +2749,93 @@ export class StorageAdapter implements IStorage {
     const updatedMessage = await this.drizzleStorage.updateWhatsAppMessageRetryCount(messageId, retryCount);
     return updatedMessage ? convertKeysToCamelCase(updatedMessage) : undefined;
   }
+  
+  // Company settings methods
+  async getCompanySettings(): Promise<CompanySettings | undefined> {
+    const settings = await this.drizzleStorage.getCompanySettings();
+    return settings ? convertKeysToCamelCase(settings) : undefined;
+  }
+  
+  async updateCompanySettings(settings: Partial<CompanySettings>): Promise<CompanySettings | undefined> {
+    const snakeCaseSettings = convertKeysToSnakeCase(settings);
+    const updatedSettings = await this.drizzleStorage.updateCompanySettings(snakeCaseSettings);
+    return updatedSettings ? convertKeysToCamelCase(updatedSettings) : undefined;
+  }
+  
+  // Template category methods
+  async getTemplateCategories(type?: string): Promise<TemplateCategory[]> {
+    const categories = await this.drizzleStorage.getTemplateCategories(type);
+    return categories.map(category => convertKeysToCamelCase(category));
+  }
+  
+  async getTemplateCategory(id: number): Promise<TemplateCategory | undefined> {
+    const category = await this.drizzleStorage.getTemplateCategory(id);
+    return category ? convertKeysToCamelCase(category) : undefined;
+  }
+  
+  async createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory> {
+    const snakeCaseCategory = convertKeysToSnakeCase(category);
+    const createdCategory = await this.drizzleStorage.createTemplateCategory(snakeCaseCategory);
+    return convertKeysToCamelCase(createdCategory);
+  }
+  
+  async updateTemplateCategory(id: number, category: Partial<TemplateCategory>): Promise<TemplateCategory | undefined> {
+    const snakeCaseCategory = convertKeysToSnakeCase(category);
+    const updatedCategory = await this.drizzleStorage.updateTemplateCategory(id, snakeCaseCategory);
+    return updatedCategory ? convertKeysToCamelCase(updatedCategory) : undefined;
+  }
+  
+  async deleteTemplateCategory(id: number): Promise<boolean> {
+    return await this.drizzleStorage.deleteTemplateCategory(id);
+  }
+  
+  // Template methods
+  async getTemplates(type?: string, categoryId?: number): Promise<Template[]> {
+    const templates = await this.drizzleStorage.getTemplates(type, categoryId);
+    return templates.map(template => convertKeysToCamelCase(template));
+  }
+  
+  async getTemplate(id: number): Promise<Template | undefined> {
+    const template = await this.drizzleStorage.getTemplate(id);
+    return template ? convertKeysToCamelCase(template) : undefined;
+  }
+  
+  async getDefaultTemplate(type: string): Promise<Template | undefined> {
+    const template = await this.drizzleStorage.getDefaultTemplate(type);
+    return template ? convertKeysToCamelCase(template) : undefined;
+  }
+  
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const snakeCaseTemplate = convertKeysToSnakeCase(template);
+    const createdTemplate = await this.drizzleStorage.createTemplate(snakeCaseTemplate);
+    return convertKeysToCamelCase(createdTemplate);
+  }
+  
+  async updateTemplate(id: number, template: Partial<Template>): Promise<Template | undefined> {
+    const snakeCaseTemplate = convertKeysToSnakeCase(template);
+    const updatedTemplate = await this.drizzleStorage.updateTemplate(id, snakeCaseTemplate);
+    return updatedTemplate ? convertKeysToCamelCase(updatedTemplate) : undefined;
+  }
+  
+  async deleteTemplate(id: number): Promise<boolean> {
+    return await this.drizzleStorage.deleteTemplate(id);
+  }
+  
+  async setDefaultTemplate(id: number, type: string): Promise<boolean> {
+    return await this.drizzleStorage.setDefaultTemplate(id, type);
+  }
+  
+  // Analytics methods
+  async getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]> {
+    const analyticsData = await this.drizzleStorage.getAnalytics(metric, startDate, endDate);
+    return analyticsData.map(entry => convertKeysToCamelCase(entry));
+  }
+  
+  async createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics> {
+    const snakeCaseEntry = convertKeysToSnakeCase(entry);
+    const createdEntry = await this.drizzleStorage.createAnalyticsEntry(snakeCaseEntry);
+    return convertKeysToCamelCase(createdEntry);
+  }
 }
 
 export const storage = new StorageAdapter();

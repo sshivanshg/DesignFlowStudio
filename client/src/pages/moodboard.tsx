@@ -17,7 +17,7 @@ export default function MoodboardPage() {
   });
   
   const filteredMoodboards = moodboards?.filter(moodboard =>
-    moodboard.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (moodboard.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   // In a real app, we would fetch this data from the API

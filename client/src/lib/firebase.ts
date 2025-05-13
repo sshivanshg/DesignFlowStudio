@@ -73,13 +73,24 @@ googleProvider.setCustomParameters({
 // Sign in with Google Popup
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result;
+    console.log("Attempting to sign in with Google using Firebase");
+    console.log("Firebase config:", {
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+      hasAppId: !!import.meta.env.VITE_FIREBASE_APP_ID,
+      authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+    });
+    
+    // Use signInWithRedirect instead of popup as it's more reliable in iframe environments
+    await signInWithRedirect(auth, googleProvider);
+    return null; // We'll handle the redirect result on page load
   } catch (error: any) {
     console.error("Error signing in with Google:", error);
     
     // Provide more user-friendly error messages
-    if (error.code === 'auth/unauthorized-domain') {
+    if (error.code === 'auth/configuration-not-found') {
+      throw new Error('Google authentication is not properly configured. Please check that your Firebase project has Google sign-in enabled and is properly set up.');
+    } else if (error.code === 'auth/unauthorized-domain') {
       throw new Error('This domain is not authorized for authentication. Please add your domain in the Firebase console under Authentication > Settings > Authorized domains.');
     } else if (error.code?.includes('permission-denied') || error.code?.includes('api-key')) {
       throw new Error('The Firebase API key has been suspended or is incorrectly configured. Please check your Firebase project configuration and billing status.');

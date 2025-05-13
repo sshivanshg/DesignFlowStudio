@@ -11,7 +11,8 @@ import {
   insertActivitySchema,
   insertLeadSchema,
   insertSubscriptionSchema,
-  User
+  User,
+  Lead
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";

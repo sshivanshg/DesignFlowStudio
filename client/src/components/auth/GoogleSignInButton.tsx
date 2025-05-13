@@ -1,19 +1,24 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export function GoogleSignInButton() {
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithGoogle } = useAuth();
+  const { signInWithGoogle: supabaseSignInWithGoogle } = useSupabaseAuth();
   const { toast } = useToast();
   
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      console.log("Attempting Google sign-in with Firebase");
-      await loginWithGoogle();
-      // Success will be handled by the redirect flow in AuthContext/useAuth
+      console.log("Attempting Google sign-in with Supabase");
+      
+      // Use Supabase's Google Auth
+      await supabaseSignInWithGoogle();
+      
+      // Success will be handled by the redirect flow
       toast({
         title: "Redirecting",
         description: "Please wait while we redirect you to Google for authentication",
@@ -24,18 +29,7 @@ export function GoogleSignInButton() {
       // Extract meaningful error message
       let errorMessage = "Failed to sign in with Google";
       if (error instanceof Error) {
-        // Handle specific Firebase auth errors
-        if (error.message.includes("auth/popup-closed-by-user")) {
-          errorMessage = "Sign-in popup was closed. Please try again.";
-        } else if (error.message.includes("auth/cancelled-popup-request")) {
-          errorMessage = "Multiple popup requests were made. Please try again.";
-        } else if (error.message.includes("auth/popup-blocked")) {
-          errorMessage = "Sign-in popup was blocked by your browser. Please enable popups for this site.";
-        } else if (error.message.includes("auth/network-request-failed")) {
-          errorMessage = "Network error. Please check your internet connection and try again.";
-        } else {
-          errorMessage = error.message;
-        }
+        errorMessage = error.message;
       }
       
       toast({

@@ -118,6 +118,18 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      <Route path="/proposal-editor">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <ProposalEditor />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/proposal-editor/:id">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <ProposalEditor />
+        </ProtectedRoute>
+      </Route>
+      
       <Route path="/proposals/new/:leadId*">
         <ProtectedRoute allowedRoles={["admin", "designer"]}>
           <ProposalEditor />

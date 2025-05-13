@@ -4,6 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { ChevronLeft, Save, Upload, Eye, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 // Components
 import { ElementsPanel } from '@/components/proposals/ElementsPanel';
@@ -208,8 +210,9 @@ const ProposalEditor: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* Header */}
       <header className="bg-white border-b px-4 py-2 flex items-center justify-between">
         <div className="flex items-center">
           <Button variant="ghost" size="sm" onClick={handleBack}>
@@ -303,6 +306,7 @@ const ProposalEditor: React.FC = () => {
         )}
       </div>
     </div>
+    </DndProvider>
   );
 };
 

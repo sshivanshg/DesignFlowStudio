@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
+  ElementType,
   ProposalElement, 
   TextElement as TextElementType,
   HeadingElement as HeadingElementType,

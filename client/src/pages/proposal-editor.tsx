@@ -260,7 +260,10 @@ const ProposalEditor: React.FC = () => {
             selectedElementId={selectedElement?.id || null}
             onSelectElement={handleSelectElement}
             onUpdateElement={handleUpdateElement}
-            onAddElement={handleAddElement}
+            onAddElement={(element) => {
+              setElements(prev => [...prev, element]);
+              setSelectedElement(element);
+            }}
           />
         </div>
 

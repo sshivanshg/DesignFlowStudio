@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 
 import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
@@ -139,12 +140,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <SidebarProvider>
-            <Toaster />
-            <Router />
-          </SidebarProvider>
-        </AuthProvider>
+        <SupabaseAuthProvider>
+          <AuthProvider>
+            <SidebarProvider>
+              <Toaster />
+              <Router />
+            </SidebarProvider>
+          </AuthProvider>
+        </SupabaseAuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhoneIcon, KeyIcon, UserIcon, MailIcon } from "lucide-react";
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -69,6 +70,7 @@ export default function Login() {
   }, [activeTab]);
   
   const { login, register, loginWithPhone, loginWithGoogle, verifyOtp } = useAuth();
+  const { signInWithEmail, signInWithGoogle: supabaseSignInWithGoogle, signUp, signOut } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -76,7 +78,7 @@ export default function Login() {
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -112,10 +114,19 @@ export default function Login() {
   const onLoginSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     try {
-      await login(data.username, data.password);
+      await signInWithEmail(data.email, data.password);
+      toast({
+        title: "Login successful",
+        description: "You have been successfully logged in",
+      });
       setLocation("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Failed to login with email and password",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

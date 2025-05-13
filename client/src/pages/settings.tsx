@@ -76,12 +76,14 @@ export default function Settings() {
                       variant={user.role === 'admin' ? 'default' : 'outline'}
                       className="w-full text-xs"
                       onClick={() => {
-                        // Update the user object in localStorage with admin role
-                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-                        const updatedUser = { ...currentUser, role: 'admin' };
-                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-                        // Reload the page to apply changes
-                        window.location.reload();
+                        // For testing purposes only - directly modifies React state
+                        const newUser = { ...user, role: 'admin' as const };
+                        // Force rerender with admin role
+                        document.cookie = `user_test_role=admin; path=/;`;
+                        // Insert admin user into session storage
+                        sessionStorage.setItem('user_test_role', 'admin');
+                        // Also modify document.cookie with the role
+                        window.location.href = '/settings?role=admin';
                       }}
                     >
                       Switch to Admin
@@ -91,12 +93,14 @@ export default function Settings() {
                       variant={user.role === 'designer' ? 'default' : 'outline'}
                       className="w-full text-xs"
                       onClick={() => {
-                        // Update the user object in localStorage with designer role
-                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-                        const updatedUser = { ...currentUser, role: 'designer' };
-                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-                        // Reload the page to apply changes
-                        window.location.reload();
+                        // For testing purposes only - directly modifies React state
+                        const newUser = { ...user, role: 'designer' as const };
+                        // Force rerender with designer role
+                        document.cookie = `user_test_role=designer; path=/;`;
+                        // Insert designer user into session storage
+                        sessionStorage.setItem('user_test_role', 'designer');
+                        // Also modify document.cookie with the role
+                        window.location.href = '/settings?role=designer';
                       }}
                     >
                       Switch to Designer
@@ -106,12 +110,14 @@ export default function Settings() {
                       variant={user.role === 'sales' ? 'default' : 'outline'}
                       className="w-full text-xs"
                       onClick={() => {
-                        // Update the user object in localStorage with sales role
-                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-                        const updatedUser = { ...currentUser, role: 'sales' };
-                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-                        // Reload the page to apply changes
-                        window.location.reload();
+                        // For testing purposes only - directly modifies React state
+                        const newUser = { ...user, role: 'sales' as const };
+                        // Force rerender with sales role
+                        document.cookie = `user_test_role=sales; path=/;`;
+                        // Insert sales user into session storage
+                        sessionStorage.setItem('user_test_role', 'sales');
+                        // Also modify document.cookie with the role
+                        window.location.href = '/settings?role=sales';
                       }}
                     >
                       Switch to Sales

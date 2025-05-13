@@ -1047,8 +1047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const estimates = await storage.getEstimates(userId);
-      res.json(estimates);
+      console.log("Fetched estimates:", estimates);
+      res.json(estimates || []);  // Ensure we always return an array even if undefined
     } catch (error) {
+      console.error("Error fetching estimates:", error);
       res.status(500).json({ message: "Error fetching estimates" });
     }
   });

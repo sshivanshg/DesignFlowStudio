@@ -59,8 +59,17 @@ export default function EstimatesPage() {
   const { data: estimates, isLoading, isError } = useQuery({
     queryKey: ['/api/estimates'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/estimates');
-      return response.json();
+      try {
+        const response = await apiRequest('GET', '/api/estimates');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error fetching estimates:", error);
+        throw error;
+      }
     }
   });
 

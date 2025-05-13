@@ -661,16 +661,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (deleted) {
         // Get project to get client ID
-        const project = await storage.getProject(moodboard.projectId);
+        const project = await storage.getProject(moodboard.project_id);
         
         // Create activity for deleted moodboard
         if (project) {
           await storage.createActivity({
-            userId: (req.user as any).id,
-            clientId: project.clientId,
-            projectId: moodboard.projectId,
+            user_id: (req.user as any).id,
+            client_id: project.client_id,
+            project_id: moodboard.project_id,
             type: "moodboard_deleted",
-            description: `Deleted moodboard: ${moodboard.name}`,
+            description: `Deleted moodboard: ${moodboard.name || 'Untitled'}`,
             metadata: {}
           });
         }
@@ -725,11 +725,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for new estimate
       await storage.createActivity({
-        userId,
-        clientId: estimate.clientId,
-        projectId: estimate.projectId,
+        user_id: userId,
+        client_id: estimate.client_id,
+        project_id: estimate.project_id,
         type: "estimate_created",
-        description: `Created new estimate: ${estimate.title}`,
+        description: `Created new estimate`,
         metadata: {}
       });
       
@@ -754,11 +754,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for updated estimate
       await storage.createActivity({
-        userId: (req.user as any).id,
-        clientId: updatedEstimate.clientId,
-        projectId: updatedEstimate.projectId,
+        user_id: (req.user as any).id,
+        client_id: updatedEstimate.client_id,
+        project_id: updatedEstimate.project_id,
         type: "estimate_updated",
-        description: `Updated estimate: ${updatedEstimate.title}`,
+        description: `Updated estimate`,
         metadata: {}
       });
       
@@ -782,11 +782,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (deleted) {
         // Create activity for deleted estimate
         await storage.createActivity({
-          userId: (req.user as any).id,
-          clientId: estimate.clientId,
-          projectId: estimate.projectId,
+          user_id: (req.user as any).id,
+          client_id: estimate.client_id,
+          project_id: estimate.project_id,
           type: "estimate_deleted",
-          description: `Deleted estimate: ${estimate.title}`,
+          description: `Deleted estimate`,
           metadata: {}
         });
         

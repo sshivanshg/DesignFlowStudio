@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { 
   Card, 
@@ -9,7 +9,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
-import { Phone, Mail, AlertCircle, Calendar, MoreHorizontal, Tag, Calculator, FileText } from 'lucide-react';
+import { 
+  Phone, 
+  Mail, 
+  AlertCircle, 
+  Calendar, 
+  MoreHorizontal, 
+  Tag, 
+  Calculator, 
+  FileText, 
+  FolderPlus,
+  Check
+} from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -22,6 +33,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from '@/hooks/use-toast';
+import { LEAD_STAGES } from '@/contexts/CRMContext';
 import type { LeadType } from '@/hooks/useLeads';
 
 interface LeadCardProps {
@@ -66,6 +87,73 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
     navigate(`/estimate/${lead.id}`);
   };
   
+  const navigateToProposalEditor = () => {
+    navigate(`/proposal-editor?leadId=${lead.id}`);
+  };
+
+  const [isConvertToProjectOpen, setIsConvertToProjectOpen] = useState(false);
+  const [convertingToProject, setConvertingToProject] = useState(false);
+  
+  const convertToProject = async () => {
+    setConvertingToProject(true);
+    try {
+      // Get client info from lead if available
+      const clientData = {
+        name: lead.name,
+        email: lead.email || "",
+        phone: lead.phone || "",
+        notes: lead.notes || ""
+      };
+
+      // Create project API call
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: `Project for ${lead.name}`,
+          description: lead.notes || "",
+          lead_id: lead.id,
+          status: "active"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create project");
+      }
+
+      // Update lead stage to CLOSED
+      await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          stage: LEAD_STAGES.CLOSED
+        })
+      });
+
+      toast({
+        title: "Project Created",
+        description: "Lead has been converted to a project successfully",
+      });
+
+      // Close dialog and redirect to projects page
+      setIsConvertToProjectOpen(false);
+      navigate("/projects");
+    } catch (error) {
+      console.error("Error converting lead to project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to convert lead to project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConvertingToProject(false);
+    }
+  };
+  
   return (
     <Card className="w-full shadow-sm hover:shadow-md transition-shadow duration-200 cursor-move">
       <CardHeader className="p-3 pb-0 flex flex-row justify-between items-start">
@@ -88,6 +176,37 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
               </TooltipTrigger>
               <TooltipContent>
                 <p>Create Estimate</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navigateToProposalEditor}>
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Create Proposal</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7" 
+                  onClick={() => setIsConvertToProjectOpen(true)}
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Convert to Project</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

@@ -1,0 +1,125 @@
+🔍 Objective:
+Audit the Interior Design Business Suite built so far. Ensure the platform is:
+
+* Fully modular
+* Seamlessly stitched across all flows
+* Production-grade in terms of performance, UX, and reliability
+
+---
+
+---
+
+🔗 FLOW STITCHING TO VERIFY:
+
+1. Login → Route to correct dashboard by role
+2. CRM → Lead → Create Proposal → View in Client Portal
+3. CRM → Lead → Create Estimate → Shared Estimate + Edit flow
+4. CRM → Lead → Start Project → Show in /projects → Sync status to /client-portal
+5. Proposal → Approved → Update status + notify via WhatsApp
+6. Billing Plan → Update plan in Supabase → Feature gate access
+7. Moodboard → Shared → View-only in client portal with feedback
+8. Logs from projects → Auto-export to weekly PDF or email
+
+---
+
+🔧 PLATFORM COMPLETION REQUEST:
+Do the following tasks in modular prompt sequences:
+
+---
+
+1️⃣ Refactor UI for consistency across:
+
+* Button styles, spacing, text size, toast notifications
+* Unify sidebar/menu across all dashboard modules
+* Add loading states and success/failure handlers
+
+---
+
+2️⃣ Finalize CRM Integration:
+
+* Ensure status update via drag/drop → reflects in DB immediately
+* Add “last contacted” tracker
+* Enable assigning to team members with real-time filter
+
+---
+
+3️⃣ Proposal Builder Enhancements:
+
+* Add version control (Proposal v1, v2...)
+* Allow inline editing in preview mode
+* Add “Client Approved” tag when shared proposal accepted
+
+---
+
+4️⃣ Estimate Generator Completion:
+
+* Lock estimate once sent (immutable mode)
+* Add “Duplicate Estimate” button for quick reuse
+* Preload 10 templates in JSON for: 2BHK, Modular Kitchen, Living Room, etc.
+
+---
+
+5️⃣ Moodboard UX Polish:
+
+* Improve drag/drop UX with hover shadows
+* Add zoom control
+* Enable reorder sections
+* Generate sharable moodboard URL with expiry token
+
+---
+
+6️⃣ WhatsApp Automation Testing:
+
+* Confirm trigger fires only once per lead stage
+* Add message template preview inside dashboard
+* Log all sends with timestamp + delivery status
+
+---
+
+7️⃣ Client Portal Final Flow:
+
+* Login/Access by unique secure token or OTP
+* Display Proposal, Estimate, Moodboard, Project Tracker in tabs
+* Client reply/comments should sync back to respective module
+
+---
+
+8️⃣ Project Tracker Finalization:
+
+* Add default task templates by room type
+* Show timeline view (Gantt or progress bar)
+* Auto-update “Site Ready” tag when all tasks = complete
+
+---
+
+---
+
+🔐 Security Checks:
+
+* Auth guards for all private routes
+* Input validation on all forms
+* Prevent unauthorized lead/proposal/estimate access
+
+---
+
+🧪 QA & Test Environment:
+
+* Seed with 3 fake clients, 2 test team members
+* Simulate full flow: Create Lead → Proposal → Client Approves → Start Project
+* Use logs to ensure all connections between modules work end-to-end
+
+---
+
+🎨 Bonus Polish:
+
+* Add brand logo & favicon
+* Add animated dashboard intro (Framer Motion)
+* Add CTA for feedback / request feature inside dashboard
+
+---
+
+Deliver all output as:
+
+* Updated Replit code (no overwrites, use modular commits)
+* Organized by component/page/feature
+* Include comments in all code blocks for future updates

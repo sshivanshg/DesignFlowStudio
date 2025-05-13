@@ -19,7 +19,13 @@ import Settings from "@/pages/settings";
 
 import { useAuth } from "@/hooks/use-auth";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ 
+  children, 
+  allowedRoles = ["admin", "designer", "sales"] 
+}: { 
+  children: React.ReactNode; 
+  allowedRoles?: Array<"admin" | "designer" | "sales">;
+}) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -32,6 +38,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     window.location.href = "/login";
+    return null;
+  }
+  
+  // Check if user has the required role to access this route
+  if (!allowedRoles.includes(user.role)) {
+    window.location.href = "/dashboard";
     return null;
   }
 

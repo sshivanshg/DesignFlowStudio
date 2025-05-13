@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Get environment variables for Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -18,7 +18,8 @@ const supabaseOptions = {
   }
 };
 
-let supabase;
+// Define a type for our supabase instance, which could be a real client or a mock
+let supabase: SupabaseClient;
 
 try {
   // Only initialize if we have both required values

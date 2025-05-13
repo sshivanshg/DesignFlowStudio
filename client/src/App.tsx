@@ -10,6 +10,7 @@ import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
+import ClearAuth from "@/pages/clear-auth";
 import Dashboard from "@/pages/dashboard";
 import CRM from "@/pages/crm";
 import Proposals from "@/pages/proposals";
@@ -115,6 +116,10 @@ function Router() {
       
       <Route path="/login">
         <Login />
+      </Route>
+      
+      <Route path="/clear-auth">
+        <ClearAuth />
       </Route>
       
       {/* Client Portal Routes - No protection needed as they use their own token auth */}

@@ -182,17 +182,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(x => x[Math.floor(Math.random() * x.length)])
           .join('');
         
+        const displayNameValue = displayName || email?.split('@')[0] || `New User`;
+        
         const userData = {
-          name: displayName,
+          name: displayNameValue,
           username: email?.split('@')[0] || `user_${Date.now()}`,
           password: randomPassword,
-          email: email || null,
-          fullName: displayName,
+          email: email || `user_${Date.now()}@placeholder.com`, // Email is required
+          fullName: displayNameValue,
           role: "designer" as const, // Default role
-          supabaseUid
+          supabaseUid,
+          company: null,
+          phone: null
         };
         
-        user = await storage.createUser(userData);
+        console.log("Creating new Supabase user with data:", userData);
+        try {
+          user = await storage.createUser(userData);
+          console.log("Successfully created new Supabase user with ID:", user.id);
+        } catch (error) {
+          console.error("Error creating Supabase user:", error);
+          return res.status(500).json({
+            message: "Failed to create user account", 
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
       }
       
       // Log in the user
@@ -332,19 +346,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const dummyEmail = `${availableUsername}@example.com`;
         
         // Create the user with default role 'designer'
+        const displayNameValue = displayName || phone || 'New User';
+        
         const userData = {
           username: availableUsername,
           password: randomPassword,
           email: dummyEmail,
-          fullName: displayName || phone || 'New User',
+          fullName: displayNameValue,
+          name: displayNameValue, // Add name field to match schema
           role: 'designer' as const,
           phone: phone || null,
           avatar: photoURL || null,
-          firebaseUid
+          firebaseUid,
+          company: null
         };
         
         console.log("Creating user with data:", userData);
-        user = await storage.createUser(userData);
+        try {
+          user = await storage.createUser(userData);
+          console.log("Successfully created new phone-based user with ID:", user.id);
+        } catch (error) {
+          console.error("Error creating phone-based user:", error);
+          return res.status(500).json({
+            message: "Failed to create user account",
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
       }
       
       // Log the user in

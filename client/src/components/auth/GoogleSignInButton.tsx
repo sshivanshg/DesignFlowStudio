@@ -13,12 +13,34 @@ export function GoogleSignInButton() {
     try {
       console.log("Attempting Google sign-in with Firebase");
       await loginWithGoogle();
-      // Success will be handled by the redirect flow
+      // Success will be handled by the redirect flow in AuthContext/useAuth
+      toast({
+        title: "Redirecting",
+        description: "Please wait while we redirect you to Google for authentication",
+      });
     } catch (error) {
       console.error("Google sign-in error:", error);
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to sign in with Google";
+      if (error instanceof Error) {
+        // Handle specific Firebase auth errors
+        if (error.message.includes("auth/popup-closed-by-user")) {
+          errorMessage = "Sign-in popup was closed. Please try again.";
+        } else if (error.message.includes("auth/cancelled-popup-request")) {
+          errorMessage = "Multiple popup requests were made. Please try again.";
+        } else if (error.message.includes("auth/popup-blocked")) {
+          errorMessage = "Sign-in popup was blocked by your browser. Please enable popups for this site.";
+        } else if (error.message.includes("auth/network-request-failed")) {
+          errorMessage = "Network error. Please check your internet connection and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Google Sign-In Failed",
-        description: error instanceof Error ? error.message : "Failed to sign in with Google",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

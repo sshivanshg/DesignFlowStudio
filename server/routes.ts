@@ -117,6 +117,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("Registration attempt with data:", {
+        ...req.body,
+        password: req.body.password ? "[REDACTED]" : undefined
+      });
+      
       // If missing a required field, the insertUserSchema validation will catch it
       // but let's manually ensure name is set from fullName if not present
       let userData = req.body;
@@ -124,33 +129,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userData.name = userData.fullName;
       }
 
-      // Now parse with our schema
-      userData = insertUserSchema.parse(userData);
-      
-      // Check if user with the same username or email already exists
-      const existingUserByUsername = await storage.getUserByUsername(userData.username);
-      if (existingUserByUsername) {
-        return res.status(400).json({ message: "Username already exists" });
+      try {
+        // Now parse with our schema
+        userData = insertUserSchema.parse(userData);
+      } catch (zodError) {
+        console.error("Validation error:", zodError);
+        if (zodError instanceof z.ZodError) {
+          return res.status(400).json({ message: "Validation error", errors: zodError.errors });
+        }
+        throw zodError;
       }
       
-      const existingUserByEmail = await storage.getUserByEmail(userData.email);
-      if (existingUserByEmail) {
-        return res.status(400).json({ message: "Email already exists" });
+      // Check if user with the same username or email already exists
+      try {
+        const existingUserByUsername = await storage.getUserByUsername(userData.username);
+        if (existingUserByUsername) {
+          return res.status(400).json({ message: "Username already exists" });
+        }
+      } catch (err) {
+        console.error("Error checking existing username:", err);
+      }
+      
+      try {
+        const existingUserByEmail = await storage.getUserByEmail(userData.email);
+        if (existingUserByEmail) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
+      } catch (err) {
+        console.error("Error checking existing email:", err);
       }
       
       // Check if user with this supabaseUid already exists
       if (userData.supabaseUid) {
-        const existingUserBySupabaseUid = await storage.getUserBySupabaseUid(userData.supabaseUid);
-        if (existingUserBySupabaseUid) {
-          return res.status(400).json({ message: "User with this Supabase ID already exists" });
+        try {
+          const existingUserBySupabaseUid = await storage.getUserBySupabaseUid(userData.supabaseUid);
+          if (existingUserBySupabaseUid) {
+            return res.status(400).json({ message: "User with this Supabase ID already exists" });
+          }
+        } catch (err) {
+          console.error("Error checking existing Supabase UID:", err);
         }
       }
       
-      const user = await storage.createUser(userData);
+      // Create the user
+      let user;
+      try {
+        user = await storage.createUser(userData);
+        console.log("User created successfully:", user.id);
+      } catch (creationError) {
+        console.error("Error creating user in storage:", creationError);
+        return res.status(500).json({ message: "Failed to create user account" });
+      }
       
       // Automatically log in the user after registration
       req.login(user, (err) => {
         if (err) {
+          console.error("Error logging in after registration:", err);
           return res.status(500).json({ message: "Error logging in after registration" });
         }
         return res.status(201).json({ user });
@@ -158,9 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Registration error:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors });
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
-      res.status(500).json({ message: "Error creating user" });
+      return res.status(500).json({ message: "Error creating user. Please try again later." });
     }
   });
 

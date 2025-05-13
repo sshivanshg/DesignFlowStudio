@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
@@ -67,16 +67,28 @@ export default function Settings() {
     }
   });
 
-  // Profile form
+  // Profile form with proper initialization
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       fullName: user?.fullName || "",
       email: user?.email || "",
       company: user?.company || "",
-      role: user?.role || "user"
+      role: (user?.role as "admin" | "designer" | "sales") || "designer"
     },
   });
+  
+  // Update form values when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        fullName: user.fullName || "",
+        email: user.email || "",
+        company: user.company || "",
+        role: (user.role as "admin" | "designer" | "sales") || "designer"
+      });
+    }
+  }, [user, profileForm]);
 
   // Password form
   const passwordForm = useForm<PasswordFormValues>({

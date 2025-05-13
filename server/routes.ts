@@ -92,7 +92,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      // If missing a required field, the insertUserSchema validation will catch it
+      // but let's manually ensure name is set from fullName if not present
+      let userData = req.body;
+      if (!userData.name && userData.fullName) {
+        userData.name = userData.fullName;
+      }
+
+      // Now parse with our schema
+      userData = insertUserSchema.parse(userData);
       
       // Check if user with the same username or email already exists
       const existingUserByUsername = await storage.getUserByUsername(userData.username);
@@ -105,6 +113,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
       
+      // Check if user with this supabaseUid already exists
+      if (userData.supabaseUid) {
+        const existingUserBySupabaseUid = await storage.getUserBySupabaseUid(userData.supabaseUid);
+        if (existingUserBySupabaseUid) {
+          return res.status(400).json({ message: "User with this Supabase ID already exists" });
+        }
+      }
+      
       const user = await storage.createUser(userData);
       
       // Automatically log in the user after registration
@@ -115,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(201).json({ user });
       });
     } catch (error) {
+      console.error("Registration error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors });
       }
@@ -132,18 +149,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: req.user });
   });
   
-  // Supabase Authentication
+  // New route for Supabase authentication
   app.post("/api/auth/supabase-auth", async (req, res) => {
     try {
-      const { supabaseUid, email, session } = req.body;
+      const { supabaseUid, email } = req.body;
       
-      if (!supabaseUid) {
-        return res.status(400).json({ message: "Supabase UID is required" });
+      if (!supabaseUid || !email) {
+        return res.status(400).json({ message: "Missing Supabase user data" });
       }
       
-      // Check if user exists with this supabaseUid
-      let user = await storage.getUserByEmail(email);
+      // Try to find user by Supabase UID
+      let user = await storage.getUserBySupabaseUid(supabaseUid);
       
+      // If not found, try by email (for users who existed before Supabase integration)
+      if (!user) {
+        user = await storage.getUserByEmail(email);
+        
+        // If user exists by email but doesn't have supabaseUid, update it
+        if (user && !user.supabaseUid) {
+          user = await storage.updateUser(user.id, { supabaseUid });
+        }
+      }
+      
+      // If user still not found, create a new one
       if (!user) {
         // Create a new user
         const displayName = email ? email.split('@')[0] : `User ${Date.now()}`;
@@ -165,21 +193,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         user = await storage.createUser(userData);
-      } else {
-        // Update the supabaseUid if it's not set
-        if (!user.supabaseUid) {
-          user = await storage.updateUser(user.id, { supabaseUid });
-        }
       }
       
-      // Log the user in
+      // Log in the user
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({ message: "Error logging in with Supabase" });
         }
         return res.json({ user });
       });
-      
     } catch (error) {
       console.error("Supabase auth error:", error);
       res.status(500).json({ message: "Error authenticating with Supabase" });

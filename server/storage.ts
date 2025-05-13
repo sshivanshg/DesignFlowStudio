@@ -370,6 +370,270 @@ export class MemStorage implements IStorage {
   async deleteProject(id: number): Promise<boolean> {
     return this.projects.delete(id);
   }
+  
+  // Project room methods
+  async addProjectRoom(projectId: number, roomData: {name: string, description?: string}): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const rooms = Array.isArray(project.rooms) ? project.rooms : [];
+    const roomId = rooms.length > 0 ? Math.max(...rooms.map((r: any) => r.id)) + 1 : 1;
+    
+    const newRoom = {
+      id: roomId,
+      name: roomData.name,
+      description: roomData.description || null,
+      createdAt: new Date()
+    };
+    
+    const updatedRooms = [...rooms, newRoom];
+    
+    const updatedProject = {
+      ...project,
+      rooms: updatedRooms,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  async updateProjectRoom(projectId: number, roomId: number, roomData: any): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const rooms = Array.isArray(project.rooms) ? project.rooms : [];
+    const roomIndex = rooms.findIndex((r: any) => r.id === roomId);
+    
+    if (roomIndex === -1) {
+      throw new Error(`Room with ID ${roomId} not found in project ${projectId}`);
+    }
+    
+    const updatedRooms = [...rooms];
+    updatedRooms[roomIndex] = {
+      ...updatedRooms[roomIndex],
+      ...roomData,
+      id: roomId
+    };
+    
+    const updatedProject = {
+      ...project,
+      rooms: updatedRooms,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  async deleteProjectRoom(projectId: number, roomId: number): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const rooms = Array.isArray(project.rooms) ? project.rooms : [];
+    const updatedRooms = rooms.filter((r: any) => r.id !== roomId);
+    
+    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+    const updatedTasks = tasks.filter((t: any) => t.roomId !== roomId);
+    
+    const updatedProject = {
+      ...project,
+      rooms: updatedRooms,
+      tasks: updatedTasks,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  // Project task methods
+  async addProjectRoomTask(projectId: number, roomId: number | null, taskData: any): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    if (roomId !== null) {
+      const rooms = Array.isArray(project.rooms) ? project.rooms : [];
+      const roomExists = rooms.some((r: any) => r.id === roomId);
+      
+      if (!roomExists) {
+        throw new Error(`Room with ID ${roomId} not found in project ${projectId}`);
+      }
+    }
+    
+    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+    const taskId = tasks.length > 0 ? Math.max(...tasks.map((t: any) => t.id)) + 1 : 1;
+    
+    const newTask = {
+      id: taskId,
+      name: taskData.name,
+      description: taskData.description || null,
+      status: taskData.status || "not_started",
+      roomId: roomId,
+      dueDate: taskData.dueDate || null,
+      assignedTo: taskData.assignedTo || null,
+      createdAt: new Date()
+    };
+    
+    const updatedTasks = [...tasks, newTask];
+    
+    let progress = 0;
+    if (updatedTasks.length > 0) {
+      const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+      progress = Math.round((completedTasks / updatedTasks.length) * 100);
+    }
+    
+    const updatedProject = {
+      ...project,
+      tasks: updatedTasks,
+      progress,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  async updateProjectTask(projectId: number, taskId: number, taskData: any): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+    const taskIndex = tasks.findIndex((t: any) => t.id === taskId);
+    
+    if (taskIndex === -1) {
+      throw new Error(`Task with ID ${taskId} not found in project ${projectId}`);
+    }
+    
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = {
+      ...updatedTasks[taskIndex],
+      ...taskData,
+      id: taskId
+    };
+    
+    let progress = 0;
+    if (updatedTasks.length > 0) {
+      const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+      progress = Math.round((completedTasks / updatedTasks.length) * 100);
+    }
+    
+    const updatedProject = {
+      ...project,
+      tasks: updatedTasks,
+      progress,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  async deleteProjectTask(projectId: number, taskId: number): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+    const updatedTasks = tasks.filter((t: any) => t.id !== taskId);
+    
+    let progress = 0;
+    if (updatedTasks.length > 0) {
+      const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+      progress = Math.round((completedTasks / updatedTasks.length) * 100);
+    }
+    
+    const updatedProject = {
+      ...project,
+      tasks: updatedTasks,
+      progress,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  // Project log methods
+  async addProjectLog(projectId: number, logData: any, userId: number): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const logs = Array.isArray(project.logs) ? project.logs : [];
+    const logId = logs.length > 0 ? Math.max(...logs.map((l: any) => l.id)) + 1 : 1;
+    
+    const newLog = {
+      id: logId,
+      text: logData.text,
+      roomId: logData.roomId || null,
+      photoUrl: logData.photoUrl || null,
+      photoCaption: logData.photoCaption || null,
+      createdAt: new Date(),
+      createdBy: { id: userId }
+    };
+    
+    const updatedLogs = [newLog, ...logs];
+    
+    let updatedPhotos = project.photos || [];
+    if (logData.photoUrl) {
+      const photoId = updatedPhotos.length > 0 
+        ? Math.max(...updatedPhotos.map((p: any) => p.id)) + 1 
+        : 1;
+        
+      const newPhoto = {
+        id: photoId,
+        url: logData.photoUrl,
+        caption: logData.photoCaption || null,
+        roomId: logData.roomId || null,
+        logId: logId,
+        createdAt: new Date(),
+        createdBy: { id: userId }
+      };
+      
+      updatedPhotos = [newPhoto, ...updatedPhotos];
+    }
+    
+    const updatedProject = {
+      ...project,
+      logs: updatedLogs,
+      photos: updatedPhotos,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
+  
+  // Project report methods
+  async configureProjectReports(projectId: number, reportSettings: any): Promise<Project> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+    
+    const updatedProject = {
+      ...project,
+      reportSettings,
+      lastReportDate: reportSettings.generateNow ? new Date() : project.lastReportDate,
+      updatedAt: new Date()
+    };
+    
+    this.projects.set(projectId, updatedProject);
+    return updatedProject;
+  }
 
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
@@ -978,6 +1242,399 @@ export class DrizzleStorage implements IStorage {
   async deleteProject(id: number): Promise<boolean> {
     const result = await db.delete(projects).where(eq(projects.id, id)).returning();
     return result.length > 0;
+  }
+  
+  // Project room methods
+  async addProjectRoom(projectId: number, roomData: {name: string, description?: string}): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current rooms array or initialize if not exists
+      const currentRooms = Array.isArray(project.rooms) ? project.rooms : [];
+      
+      // Generate a new room ID
+      const roomId = currentRooms.length > 0 
+        ? Math.max(...currentRooms.map((r: any) => r.id)) + 1 
+        : 1;
+      
+      // Create the new room object
+      const newRoom = {
+        id: roomId,
+        name: roomData.name,
+        description: roomData.description || null,
+        createdAt: new Date(),
+      };
+      
+      // Add to rooms array
+      const updatedRooms = [...currentRooms, newRoom];
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          rooms: updatedRooms as any,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error adding room to project:", error);
+      throw error;
+    }
+  }
+  
+  async updateProjectRoom(projectId: number, roomId: number, roomData: any): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current rooms array
+      const currentRooms = Array.isArray(project.rooms) ? project.rooms : [];
+      
+      // Find the room to update
+      const roomIndex = currentRooms.findIndex((r: any) => r.id === roomId);
+      
+      if (roomIndex === -1) {
+        throw new Error(`Room with ID ${roomId} not found in project ${projectId}`);
+      }
+      
+      // Update the room
+      const updatedRooms = [...currentRooms];
+      updatedRooms[roomIndex] = {
+        ...updatedRooms[roomIndex],
+        ...roomData,
+        id: roomId // Ensure ID doesn't change
+      };
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          rooms: updatedRooms as any,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error updating room in project:", error);
+      throw error;
+    }
+  }
+  
+  async deleteProjectRoom(projectId: number, roomId: number): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current rooms array
+      const currentRooms = Array.isArray(project.rooms) ? project.rooms : [];
+      
+      // Filter out the room to delete
+      const updatedRooms = currentRooms.filter((r: any) => r.id !== roomId);
+      
+      // Also update tasks to remove those associated with this room
+      const currentTasks = Array.isArray(project.tasks) ? project.tasks : [];
+      const updatedTasks = currentTasks.filter((t: any) => t.roomId !== roomId);
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          rooms: updatedRooms as any,
+          tasks: updatedTasks as any,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error deleting room from project:", error);
+      throw error;
+    }
+  }
+  
+  // Project task methods
+  async addProjectRoomTask(projectId: number, roomId: number | null, taskData: any): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // If roomId is provided, verify it exists in the project
+      if (roomId !== null) {
+        const rooms = Array.isArray(project.rooms) ? project.rooms : [];
+        const roomExists = rooms.some((r: any) => r.id === roomId);
+        
+        if (!roomExists) {
+          throw new Error(`Room with ID ${roomId} not found in project ${projectId}`);
+        }
+      }
+      
+      // Get current tasks array
+      const currentTasks = Array.isArray(project.tasks) ? project.tasks : [];
+      
+      // Generate a new task ID
+      const taskId = currentTasks.length > 0 
+        ? Math.max(...currentTasks.map((t: any) => t.id)) + 1 
+        : 1;
+      
+      // Create the new task object
+      const newTask = {
+        id: taskId,
+        name: taskData.name,
+        description: taskData.description || null,
+        status: taskData.status || "not_started",
+        roomId: roomId,
+        dueDate: taskData.dueDate || null,
+        assignedTo: taskData.assignedTo || null,
+        createdAt: new Date(),
+      };
+      
+      // Add to tasks array
+      const updatedTasks = [...currentTasks, newTask];
+      
+      // Calculate progress based on task completion
+      let progress = 0;
+      if (updatedTasks.length > 0) {
+        const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+        progress = Math.round((completedTasks / updatedTasks.length) * 100);
+      }
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          tasks: updatedTasks as any,
+          progress,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error adding task to project:", error);
+      throw error;
+    }
+  }
+  
+  async updateProjectTask(projectId: number, taskId: number, taskData: any): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current tasks array
+      const currentTasks = Array.isArray(project.tasks) ? project.tasks : [];
+      
+      // Find the task to update
+      const taskIndex = currentTasks.findIndex((t: any) => t.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error(`Task with ID ${taskId} not found in project ${projectId}`);
+      }
+      
+      // Update the task
+      const updatedTasks = [...currentTasks];
+      updatedTasks[taskIndex] = {
+        ...updatedTasks[taskIndex],
+        ...taskData,
+        id: taskId // Ensure ID doesn't change
+      };
+      
+      // Calculate progress based on task completion
+      let progress = 0;
+      if (updatedTasks.length > 0) {
+        const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+        progress = Math.round((completedTasks / updatedTasks.length) * 100);
+      }
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          tasks: updatedTasks as any,
+          progress,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error updating task in project:", error);
+      throw error;
+    }
+  }
+  
+  async deleteProjectTask(projectId: number, taskId: number): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current tasks array
+      const currentTasks = Array.isArray(project.tasks) ? project.tasks : [];
+      
+      // Filter out the task to delete
+      const updatedTasks = currentTasks.filter((t: any) => t.id !== taskId);
+      
+      // Calculate progress based on task completion
+      let progress = 0;
+      if (updatedTasks.length > 0) {
+        const completedTasks = updatedTasks.filter((t: any) => t.status === "done").length;
+        progress = Math.round((completedTasks / updatedTasks.length) * 100);
+      }
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          tasks: updatedTasks as any,
+          progress,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error deleting task from project:", error);
+      throw error;
+    }
+  }
+  
+  // Project log methods
+  async addProjectLog(projectId: number, logData: any, userId: number): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Get current logs array
+      const currentLogs = Array.isArray(project.logs) ? project.logs : [];
+      
+      // Generate a new log ID
+      const logId = currentLogs.length > 0 
+        ? Math.max(...currentLogs.map((l: any) => l.id)) + 1 
+        : 1;
+      
+      // Create the new log object
+      const newLog = {
+        id: logId,
+        text: logData.text,
+        roomId: logData.roomId || null,
+        photoUrl: logData.photoUrl || null,
+        photoCaption: logData.photoCaption || null,
+        createdAt: new Date(),
+        createdBy: { id: userId }
+      };
+      
+      // Add to logs array
+      const updatedLogs = [newLog, ...currentLogs];
+      
+      // If it has a photo, also add to photos array
+      let updatedPhotos = project.photos || [];
+      if (logData.photoUrl) {
+        const photoId = updatedPhotos.length > 0 
+          ? Math.max(...updatedPhotos.map((p: any) => p.id)) + 1 
+          : 1;
+          
+        const newPhoto = {
+          id: photoId,
+          url: logData.photoUrl,
+          caption: logData.photoCaption || null,
+          roomId: logData.roomId || null,
+          logId: logId,
+          createdAt: new Date(),
+          createdBy: { id: userId }
+        };
+        
+        updatedPhotos = [newPhoto, ...updatedPhotos];
+      }
+      
+      // Update the project
+      const result = await db
+        .update(projects)
+        .set({ 
+          logs: updatedLogs as any,
+          photos: updatedPhotos as any,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error adding log to project:", error);
+      throw error;
+    }
+  }
+  
+  // Project report methods
+  async configureProjectReports(projectId: number, reportSettings: any): Promise<Project> {
+    try {
+      // First, get the current project
+      const projectResult = await db.select().from(projects).where(eq(projects.id, projectId));
+      const project = projectResult[0];
+      
+      if (!project) {
+        throw new Error(`Project with ID ${projectId} not found`);
+      }
+      
+      // Update the project report settings
+      const result = await db
+        .update(projects)
+        .set({ 
+          reportSettings: reportSettings as any,
+          lastReportDate: reportSettings.generateNow ? new Date() : project.lastReportDate,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error configuring project reports:", error);
+      throw error;
+    }
   }
   
   // Proposal methods

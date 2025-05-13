@@ -103,7 +103,7 @@ function Router() {
       </Route>
       
       <Route path="/crm">
-        <ProtectedRoute allowedRoles={["admin", "sales"]}>
+        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
           <AppLayout>
             <CRM />
           </AppLayout>

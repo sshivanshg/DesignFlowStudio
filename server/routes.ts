@@ -132,6 +132,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: req.user });
   });
   
+  // Supabase Authentication
+  app.post("/api/auth/supabase-auth", async (req, res) => {
+    try {
+      const { supabaseUid, email, session } = req.body;
+      
+      if (!supabaseUid) {
+        return res.status(400).json({ message: "Supabase UID is required" });
+      }
+      
+      // Check if user exists by supabaseUid
+      let user = await storage.getUserByField('supabaseUid', supabaseUid);
+      
+      if (!user) {
+        // Create a new user
+        const displayName = email ? email.split('@')[0] : `User ${Date.now()}`;
+        const userData = {
+          name: displayName,
+          username: email?.split('@')[0] || `user_${Date.now()}`,
+          password: crypto.randomBytes(16).toString('hex'), // Random password since auth is handled by Supabase
+          email: email || null,
+          fullName: displayName,
+          role: "designer", // Default role
+          supabaseUid
+        };
+        
+        user = await storage.createUser(userData);
+      }
+      
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Error logging in with Supabase" });
+        }
+        return res.json({ user });
+      });
+      
+    } catch (error) {
+      console.error("Supabase auth error:", error);
+      res.status(500).json({ message: "Error authenticating with Supabase" });
+    }
+  });
+  
   // Firebase authentication route
   app.post("/api/auth/firebase-auth", async (req, res) => {
     try {

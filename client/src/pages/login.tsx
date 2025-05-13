@@ -135,10 +135,26 @@ export default function Login() {
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
-      await register(data);
+      await signUp(data.email, data.password, {
+        username: data.username,
+        fullName: data.fullName,
+        company: data.company || undefined,
+        role: 'designer' // Default role
+      });
+      
+      toast({
+        title: "Registration successful",
+        description: "Your account has been created successfully",
+      });
+      
       setLocation("/dashboard");
     } catch (error) {
       console.error("Registration failed:", error);
+      toast({
+        title: "Registration failed",
+        description: error instanceof Error ? error.message : "Failed to create an account",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -210,7 +226,7 @@ export default function Login() {
           >
             <div className="px-6">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Username</TabsTrigger>
+                <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
             </div>
@@ -221,15 +237,16 @@ export default function Login() {
                   <CardContent className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
-                              placeholder="Enter your username" 
-                              autoComplete="username"
+                              placeholder="Enter your email" 
+                              autoComplete="email"
+                              type="email"
                             />
                           </FormControl>
                           <FormMessage />
@@ -287,7 +304,7 @@ export default function Login() {
                       type="button" 
                       variant="outline" 
                       className="w-full" 
-                      onClick={() => loginWithGoogle()}
+                      onClick={() => supabaseSignInWithGoogle()}
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? (

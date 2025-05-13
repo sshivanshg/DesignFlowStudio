@@ -139,8 +139,8 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
-  clientId: integer("client_id").references(() => clients.id),
-  projectId: integer("project_id").references(() => projects.id),
+  clientId: integer("client_id").references(() => clients.id, { onDelete: "set null" }),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "set null" }),
   type: text("type").notNull(),
   description: text("description").notNull(),
   metadata: jsonb("metadata").default({}),

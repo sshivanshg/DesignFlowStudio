@@ -336,3 +336,68 @@ export const getProjectActivities = async (projectId: number) => {
 export const createActivity = async (data: any) => {
   return apiRequest("POST", "/api/activities", data);
 };
+
+// AI Assistant API
+export interface DesignInsightRequest {
+  projectDescription: string;
+  clientPreferences?: string;
+  budget?: string;
+  roomType?: string;
+  stylePreferences?: string;
+  clientId?: number;
+  projectId?: number;
+}
+
+export interface DesignInsightResponse {
+  suggestions: string[];
+  colorPalette: string[];
+  materialSuggestions: string[];
+  estimatedTimeframe: string;
+  budgetBreakdown?: {
+    furniture: number;
+    materials: number;
+    labor: number;
+    accessories: number;
+    total: number;
+  };
+}
+
+export const generateDesignInsights = async (data: DesignInsightRequest): Promise<DesignInsightResponse> => {
+  const response = await apiRequest("POST", "/api/ai/design-insights", data);
+  return response as DesignInsightResponse;
+};
+
+export interface FeedbackAnalysisRequest {
+  feedback: string;
+  clientId?: number;
+  projectId?: number;
+}
+
+export interface FeedbackAnalysisResponse {
+  sentimentScore: number; 
+  keyPoints: string[];
+  suggestedResponse: string;
+}
+
+export const analyzeClientFeedback = async (data: FeedbackAnalysisRequest): Promise<FeedbackAnalysisResponse> => {
+  const response = await apiRequest("POST", "/api/ai/analyze-feedback", data);
+  return response as FeedbackAnalysisResponse;
+};
+
+export interface MoodboardSuggestionRequest {
+  style: string;
+  colors: string[];
+  roomType: string;
+  clientId?: number;
+  projectId?: number;
+}
+
+export interface MoodboardSuggestionResponse {
+  imagePrompts: string[];
+  textSuggestions: string[];
+}
+
+export const generateMoodboardSuggestions = async (data: MoodboardSuggestionRequest): Promise<MoodboardSuggestionResponse> => {
+  const response = await apiRequest("POST", "/api/ai/moodboard-suggestions", data);
+  return response as MoodboardSuggestionResponse;
+};

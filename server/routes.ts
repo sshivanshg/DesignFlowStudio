@@ -141,23 +141,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Supabase UID is required" });
       }
       
-      // Check if user exists by supabaseUid
-      let user = await storage.getUserByField('supabaseUid', supabaseUid);
+      // Check if user exists with this supabaseUid
+      let user = await storage.getUserByEmail(email);
       
       if (!user) {
         // Create a new user
         const displayName = email ? email.split('@')[0] : `User ${Date.now()}`;
+        
+        // Generate a random secure password (since auth is handled by Supabase)
+        const randomPassword = Array(24)
+          .fill('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*')
+          .map(x => x[Math.floor(Math.random() * x.length)])
+          .join('');
+        
         const userData = {
           name: displayName,
           username: email?.split('@')[0] || `user_${Date.now()}`,
-          password: crypto.randomBytes(16).toString('hex'), // Random password since auth is handled by Supabase
+          password: randomPassword,
           email: email || null,
           fullName: displayName,
-          role: "designer", // Default role
+          role: "designer" as const, // Default role
           supabaseUid
         };
         
         user = await storage.createUser(userData);
+      } else {
+        // Update the supabaseUid if it's not set
+        if (!user.supabaseUid) {
+          user = await storage.updateUser(user.id, { supabaseUid });
+        }
       }
       
       // Log the user in

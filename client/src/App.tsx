@@ -20,6 +20,7 @@ import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 
 function ProtectedRoute({ 
   children, 
@@ -29,6 +30,7 @@ function ProtectedRoute({
   allowedRoles?: Array<"admin" | "designer" | "sales">;
 }) {
   const { user, isLoading } = useAuth();
+  // const { user, isLoading } = useSupabaseAuth(); // TODO: Switch to this once migration is complete
 
   if (isLoading) {
     return (

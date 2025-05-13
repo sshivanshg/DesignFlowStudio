@@ -39,7 +39,16 @@ function CRMDashboard() {
     updateLead,
     deleteLead,
     updateLeadStage,
-  } = useLeads();
+  } = useLeads() as {
+    leads: LeadType[];
+    leadsByStage: Record<string, LeadType[]>;
+    isLoading: boolean;
+    isError: boolean;
+    createLead: any;
+    updateLead: any;
+    deleteLead: any;
+    updateLeadStage: (leadId: number, newStage: string) => Promise<any>;
+  };
 
   // If loading or error
   if (isLoading) {
@@ -84,7 +93,7 @@ function CRMDashboard() {
       
       // Filter each stage
       Object.keys(filtered).forEach(stage => {
-        filtered[stage] = filtered[stage].filter(lead => 
+        filtered[stage] = filtered[stage].filter((lead: LeadType) => 
           lead.name.toLowerCase().includes(searchLowerCase) ||
           (lead.email && lead.email.toLowerCase().includes(searchLowerCase)) ||
           (lead.phone && lead.phone.toLowerCase().includes(searchLowerCase)) ||
@@ -96,7 +105,7 @@ function CRMDashboard() {
     // Apply tag filter
     if (activeFilters.tags.length > 0) {
       Object.keys(filtered).forEach(stage => {
-        filtered[stage] = filtered[stage].filter(lead => 
+        filtered[stage] = filtered[stage].filter((lead: LeadType) => 
           lead.tag && activeFilters.tags.includes(lead.tag)
         );
       });
@@ -105,7 +114,7 @@ function CRMDashboard() {
     // Apply source filter
     if (activeFilters.sources.length > 0) {
       Object.keys(filtered).forEach(stage => {
-        filtered[stage] = filtered[stage].filter(lead => 
+        filtered[stage] = filtered[stage].filter((lead: LeadType) => 
           lead.source && activeFilters.sources.includes(lead.source)
         );
       });
@@ -114,7 +123,7 @@ function CRMDashboard() {
     // Apply date range filter
     if (activeFilters.dateFrom || activeFilters.dateTo) {
       Object.keys(filtered).forEach(stage => {
-        filtered[stage] = filtered[stage].filter(lead => {
+        filtered[stage] = filtered[stage].filter((lead: LeadType) => {
           const leadDate = lead.createdAt ? new Date(lead.createdAt) : null;
           if (!leadDate) return false;
           
@@ -180,7 +189,7 @@ function CRMDashboard() {
   };
 
   // Handle adding a new lead
-  const handleAddLead = async (data: any) => {
+  const handleAddLead = async (data: Partial<LeadType>) => {
     try {
       await createLead.mutateAsync(data);
       setIsAddLeadOpen(false);
@@ -198,7 +207,7 @@ function CRMDashboard() {
   };
 
   // Handle updating a lead
-  const handleUpdateLead = async (data: any) => {
+  const handleUpdateLead = async (data: Partial<LeadType>) => {
     if (!selectedLead) return;
     
     try {

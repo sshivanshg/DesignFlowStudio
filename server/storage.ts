@@ -175,6 +175,10 @@ export class MemStorage implements IStorage {
   private estimateId: number;
   private taskId: number;
   private activityId: number;
+  private templateCategoryId: number;
+  private templateId: number;
+  private analyticsId: number;
+  private whatsappMessages: Map<string, WhatsappMessage>;
 
   // Add estimateConfig map
   private estimateConfigs = new Map<number, EstimateConfig>();
@@ -192,12 +196,60 @@ export class MemStorage implements IStorage {
     this.tasks = new Map();
     this.activities = new Map();
     this.whatsappMessages = new Map();
+    this.templateCategories = new Map();
+    this.templates = new Map();
+    this.analytics = new Map();
+    
+    // Initialize company settings with defaults
+    this.companySettings = {
+      id: 1,
+      name: "Design Studio",
+      logo: null,
+      primaryColor: "#6366f1",
+      secondaryColor: "#8b5cf6",
+      enabledFeatures: {
+        crm: true,
+        proposals: true,
+        moodboards: true,
+        estimates: true,
+        whatsapp: true,
+        tasks: true
+      },
+      planLimits: {
+        free: {
+          maxUsers: 2,
+          maxClients: 10,
+          maxProjects: 5,
+          maxProposals: 10,
+          maxStorage: 100, // MB
+        },
+        pro: {
+          maxUsers: 5,
+          maxClients: 50,
+          maxProjects: 20,
+          maxProposals: 100,
+          maxStorage: 1000, // MB
+        },
+        enterprise: {
+          maxUsers: -1, // unlimited
+          maxClients: -1, // unlimited
+          maxProjects: -1, // unlimited
+          maxProposals: -1, // unlimited
+          maxStorage: 10000, // MB
+        }
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     
     this.userId = 1;
     this.leadId = 1;
     this.clientId = 1;
     this.projectId = 1;
     this.proposalId = 1;
+    this.templateCategoryId = 1;
+    this.templateId = 1;
+    this.analyticsId = 1;
     this.moodboardId = 1;
     this.estimateId = 1;
     this.estimateConfigId = 1;
@@ -1122,6 +1174,179 @@ export class MemStorage implements IStorage {
     
     this.whatsappMessages.set(messageId, updatedMessage);
     return updatedMessage;
+  }
+  
+  // Company settings methods
+  async getCompanySettings(): Promise<CompanySettings | undefined> {
+    return this.companySettings;
+  }
+  
+  async updateCompanySettings(settings: Partial<CompanySettings>): Promise<CompanySettings | undefined> {
+    if (!this.companySettings) {
+      return undefined;
+    }
+    
+    this.companySettings = {
+      ...this.companySettings,
+      ...settings,
+      updatedAt: new Date()
+    };
+    
+    return this.companySettings;
+  }
+  
+  // Template category methods
+  async getTemplateCategories(type?: string): Promise<TemplateCategory[]> {
+    const categories = [...this.templateCategories.values()];
+    
+    if (type) {
+      return categories.filter(category => category.type === type);
+    }
+    
+    return categories;
+  }
+  
+  async getTemplateCategory(id: number): Promise<TemplateCategory | undefined> {
+    return this.templateCategories.get(id);
+  }
+  
+  async createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory> {
+    const newCategory: TemplateCategory = {
+      id: this.templateCategoryId++,
+      ...category,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.templateCategories.set(newCategory.id, newCategory);
+    return newCategory;
+  }
+  
+  async updateTemplateCategory(id: number, category: Partial<TemplateCategory>): Promise<TemplateCategory | undefined> {
+    const existingCategory = this.templateCategories.get(id);
+    
+    if (!existingCategory) {
+      return undefined;
+    }
+    
+    const updatedCategory: TemplateCategory = {
+      ...existingCategory,
+      ...category,
+      updatedAt: new Date()
+    };
+    
+    this.templateCategories.set(id, updatedCategory);
+    return updatedCategory;
+  }
+  
+  async deleteTemplateCategory(id: number): Promise<boolean> {
+    return this.templateCategories.delete(id);
+  }
+  
+  // Template methods
+  async getTemplates(type?: string, categoryId?: number): Promise<Template[]> {
+    const templates = [...this.templates.values()];
+    
+    if (type && categoryId) {
+      return templates.filter(template => template.type === type && template.categoryId === categoryId);
+    } else if (type) {
+      return templates.filter(template => template.type === type);
+    } else if (categoryId) {
+      return templates.filter(template => template.categoryId === categoryId);
+    }
+    
+    return templates;
+  }
+  
+  async getTemplate(id: number): Promise<Template | undefined> {
+    return this.templates.get(id);
+  }
+  
+  async getDefaultTemplate(type: string): Promise<Template | undefined> {
+    const templates = [...this.templates.values()];
+    return templates.find(template => template.type === type && template.isDefault);
+  }
+  
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const newTemplate: Template = {
+      id: this.templateId++,
+      ...template,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.templates.set(newTemplate.id, newTemplate);
+    return newTemplate;
+  }
+  
+  async updateTemplate(id: number, template: Partial<Template>): Promise<Template | undefined> {
+    const existingTemplate = this.templates.get(id);
+    
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    const updatedTemplate: Template = {
+      ...existingTemplate,
+      ...template,
+      updatedAt: new Date()
+    };
+    
+    this.templates.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+  
+  async deleteTemplate(id: number): Promise<boolean> {
+    return this.templates.delete(id);
+  }
+  
+  async setDefaultTemplate(id: number, type: string): Promise<boolean> {
+    // First, unset any existing default templates for this type
+    const templates = [...this.templates.values()];
+    const defaultTemplates = templates.filter(template => template.type === type && template.isDefault);
+    
+    for (const defaultTemplate of defaultTemplates) {
+      await this.updateTemplate(defaultTemplate.id, { isDefault: false });
+    }
+    
+    // Then set the new default template
+    const template = this.templates.get(id);
+    if (!template || template.type !== type) {
+      return false;
+    }
+    
+    await this.updateTemplate(id, { isDefault: true });
+    return true;
+  }
+  
+  // Analytics methods
+  async getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]> {
+    let analytics = [...this.analytics.values()];
+    
+    if (metric) {
+      analytics = analytics.filter(entry => entry.metric === metric);
+    }
+    
+    if (startDate) {
+      analytics = analytics.filter(entry => entry.date >= startDate);
+    }
+    
+    if (endDate) {
+      analytics = analytics.filter(entry => entry.date <= endDate);
+    }
+    
+    return analytics;
+  }
+  
+  async createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics> {
+    const newEntry: Analytics = {
+      id: this.analyticsId++,
+      ...entry,
+      createdAt: new Date()
+    };
+    
+    this.analytics.set(newEntry.id, newEntry);
+    return newEntry;
   }
 }
 

@@ -74,7 +74,7 @@ function Router() {
       </Route>
       
       <Route path="/crm">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin", "sales"]}>
           <AppLayout>
             <CRM />
           </AppLayout>
@@ -82,7 +82,7 @@ function Router() {
       </Route>
       
       <Route path="/proposals">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
           <AppLayout>
             <Proposals />
           </AppLayout>
@@ -90,7 +90,7 @@ function Router() {
       </Route>
       
       <Route path="/moodboard">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
           <AppLayout>
             <Moodboard />
           </AppLayout>
@@ -98,7 +98,7 @@ function Router() {
       </Route>
       
       <Route path="/estimates">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin"]}>
           <AppLayout>
             <Estimates />
           </AppLayout>
@@ -106,7 +106,7 @@ function Router() {
       </Route>
       
       <Route path="/clients">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin", "sales"]}>
           <AppLayout>
             <Clients />
           </AppLayout>
@@ -114,7 +114,7 @@ function Router() {
       </Route>
       
       <Route path="/settings">
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin"]}>
           <AppLayout>
             <Settings />
           </AppLayout>

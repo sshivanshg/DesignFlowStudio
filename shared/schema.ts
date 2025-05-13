@@ -155,10 +155,17 @@ export const insertProposalSchema = createInsertSchema(proposals).omit({
 export const moodboards = pgTable("moodboards", {
   id: serial("id").primaryKey(),
   client_id: integer("client_id").references(() => clients.id),
+  name: text("name").default("Untitled Moodboard"),
+  description: text("description"),
   theme: text("theme"),
+  // Sections: color palette, furniture, layout, lighting, theme inspiration
+  sections: jsonb("sections").default({}),
+  // All media items grouped by section
   media: jsonb("media").default([]),
   comments: jsonb("comments").default([]),
   sharedLink: text("shared_link"),
+  pdfURL: text("pdf_url"),
+  isTemplate: boolean("is_template").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {

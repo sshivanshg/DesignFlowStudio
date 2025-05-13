@@ -404,41 +404,107 @@ export class MemStorage implements IStorage {
   }
 
   // Moodboard methods
-  async getMoodboards(userId: number): Promise<Moodboard[]> {
-    return Array.from(this.moodboards.values()).filter(
-      (moodboard) => moodboard.userId === userId,
-    );
+  async getMoodboards(): Promise<Moodboard[]> {
+    return Array.from(this.moodboards.values());
   }
 
   async getMoodboard(id: number): Promise<Moodboard | undefined> {
     return this.moodboards.get(id);
   }
 
-  async getMoodboardsByProjectId(projectId: number): Promise<Moodboard[]> {
+  async getMoodboardsByClientId(clientId: number): Promise<Moodboard[]> {
     return Array.from(this.moodboards.values()).filter(
-      (moodboard) => moodboard.projectId === projectId,
+      (moodboard) => moodboard.client_id === clientId,
+    );
+  }
+
+  async getMoodboardTemplates(): Promise<Moodboard[]> {
+    return Array.from(this.moodboards.values()).filter(
+      (moodboard) => moodboard.isTemplate === true,
     );
   }
 
   async createMoodboard(insertMoodboard: InsertMoodboard): Promise<Moodboard> {
-    const id = this.moodboardId++;
-    const now = new Date();
-    const moodboard: Moodboard = { ...insertMoodboard, id, createdAt: now };
-    this.moodboards.set(id, moodboard);
-    return moodboard;
+    try {
+      const id = this.moodboardId++;
+      const now = new Date();
+      
+      // Set default sections if not provided
+      if (!insertMoodboard.sections) {
+        insertMoodboard.sections = {
+          colorPalette: { title: "Color Palette", items: [] },
+          furniture: { title: "Furniture", items: [] },
+          layout: { title: "Layout", items: [] },
+          lighting: { title: "Lighting", items: [] },
+          inspiration: { title: "Theme Inspiration", items: [] }
+        };
+      }
+      
+      const moodboard: Moodboard = { 
+        ...insertMoodboard, 
+        id, 
+        createdAt: now,
+        updatedAt: now 
+      };
+      
+      this.moodboards.set(id, moodboard);
+      return moodboard;
+    } catch (error) {
+      console.error("Error creating moodboard:", error);
+      throw new Error(`Failed to create moodboard: ${error.message || String(error)}`);
+    }
   }
 
   async updateMoodboard(id: number, moodboardData: Partial<Moodboard>): Promise<Moodboard | undefined> {
-    const existingMoodboard = await this.getMoodboard(id);
-    if (!existingMoodboard) return undefined;
-    
-    const updatedMoodboard = { ...existingMoodboard, ...moodboardData };
-    this.moodboards.set(id, updatedMoodboard);
-    return updatedMoodboard;
+    try {
+      const existingMoodboard = await this.getMoodboard(id);
+      if (!existingMoodboard) return undefined;
+      
+      const updatedMoodboard = { 
+        ...existingMoodboard, 
+        ...moodboardData,
+        updatedAt: new Date() 
+      };
+      
+      this.moodboards.set(id, updatedMoodboard);
+      return updatedMoodboard;
+    } catch (error) {
+      console.error("Error updating moodboard:", error);
+      throw new Error(`Failed to update moodboard: ${error.message || String(error)}`);
+    }
   }
 
   async deleteMoodboard(id: number): Promise<boolean> {
-    return this.moodboards.delete(id);
+    try {
+      return this.moodboards.delete(id);
+    } catch (error) {
+      console.error("Error deleting moodboard:", error);
+      throw new Error(`Failed to delete moodboard: ${error.message || String(error)}`);
+    }
+  }
+  
+  async duplicateMoodboard(id: number): Promise<Moodboard | undefined> {
+    try {
+      const existingMoodboard = await this.getMoodboard(id);
+      if (!existingMoodboard) return undefined;
+      
+      // Create a new moodboard based on the existing one
+      const newMoodboard: InsertMoodboard = {
+        client_id: existingMoodboard.client_id,
+        name: `${existingMoodboard.name} (Copy)`,
+        description: existingMoodboard.description,
+        theme: existingMoodboard.theme,
+        sections: existingMoodboard.sections,
+        media: existingMoodboard.media,
+        comments: existingMoodboard.comments,
+        isTemplate: false
+      };
+      
+      return this.createMoodboard(newMoodboard);
+    } catch (error) {
+      console.error("Error duplicating moodboard:", error);
+      throw new Error(`Failed to duplicate moodboard: ${error.message || String(error)}`);
+    }
   }
 
   // Estimate methods

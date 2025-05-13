@@ -6,7 +6,8 @@ import {
   auth, 
   setupRecaptcha, 
   signOut as firebaseSignOut,
-  signInWithGoogle
+  signInWithGoogle,
+  handleGoogleRedirect
 } from "@/lib/firebase";
 import { 
   User as FirebaseUser, 
@@ -109,6 +110,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // Check for Google redirect result
+  useEffect(() => {
+    async function checkGoogleRedirect() {
+      try {
+        setIsLoading(true);
+        
+        // Try to get the redirect result from the current session
+        const result = await handleGoogleRedirect();
+        
+        if (result && result.user) {
+          console.log("Google redirect result detected:", result.user.email);
+          setFirebaseUser(result.user);
+          
+          // Get ID token
+          const idToken = await result.user.getIdToken();
+          
+          // Send to our backend to create/update user
+          const response = await fetch("/api/auth/firebase-auth", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firebaseUid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
+              phone: result.user.phoneNumber,
+              idToken,
+            }),
+            credentials: "include",
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to authenticate with server");
+          }
+          
+          const data = await response.json();
+          setUser(data.user);
+          
+          toast({
+            title: "Logged in successfully",
+            description: `Welcome${data.user?.fullName ? ', ' + data.user.fullName : ''}!`,
+          });
+          
+          // Reset query cache
+          queryClient.clear();
+          
+          // Redirect to dashboard after successful Google login
+          window.location.href = "/dashboard";
+        }
+      } catch (error) {
+        console.error("Error handling Google redirect:", error);
+        toast({
+          title: "Authentication error",
+          description: error instanceof Error ? error.message : "Failed to complete Google sign-in",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Run this effect once when the component mounts to handle any redirect results
+    checkGoogleRedirect();
+  }, [toast]);
+
   // Legacy session check (traditional authentication)
   useEffect(() => {
     async function checkAuthStatus() {
@@ -180,58 +249,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      // Sign in with Google popup
-      const result = await signInWithGoogle();
-      setFirebaseUser(result.user);
+      console.log("Initiating Google sign-in");
       
-      // Get ID token
-      const idToken = await result.user.getIdToken();
+      // Use the updated signInWithGoogle function that redirects
+      await signInWithGoogle();
+      // No immediate return as this will redirect the user to Google sign-in page
       
-      // Send to our backend to create/update user
-      const response = await fetch("/api/auth/firebase-auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firebaseUid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          phone: result.user.phoneNumber,
-          idToken,
-        }),
-        credentials: "include",
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to authenticate with server");
-      }
-      
-      const data = await response.json();
-      setUser(data.user);
-      
-      toast({
-        title: "Logged in successfully",
-        description: `Welcome${data.user?.fullName ? ', ' + data.user.fullName : ''}!`,
-      });
-      
-      // Reset query cache
-      queryClient.clear();
-      
-      // Redirect to dashboard after successful Google login
-      window.location.href = "/dashboard";
-      
+      // Note: The handling of the redirect response happens in a separate useEffect
+      // The rest of this function won't execute due to the redirect
     } catch (error) {
+      console.error("Google login initiation failed:", error);
       toast({
         title: "Google login failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 

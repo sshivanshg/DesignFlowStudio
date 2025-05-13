@@ -136,8 +136,14 @@ export class MemStorage implements IStorage {
       password: "password",
       email: "demo@example.com",
       fullName: "Sophia Martinez",
+      name: "Sophia Martinez", // Add name field to match schema
       role: "admin",
-      company: "InteriDesign Studio"
+      company: "InteriDesign Studio",
+      phone: null,
+      avatar: null,
+      firebaseUid: null,
+      supabaseUid: null,
+      activePlan: "pro"
     });
   }
 
@@ -179,8 +185,25 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
     const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    
+    // Ensure all required fields have values
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: now,
+      updatedAt: now,
+      // Set defaults for missing optional fields
+      role: insertUser.role || "designer",
+      phone: insertUser.phone || null,
+      activePlan: insertUser.activePlan || "free",
+      firebaseUid: insertUser.firebaseUid || null,
+      supabaseUid: insertUser.supabaseUid || null,
+      company: insertUser.company || null,
+      avatar: insertUser.avatar || null
+    };
+    
     this.users.set(id, user);
+    console.log(`Created user: id=${id}, name=${user.name}, email=${user.email}`);
     return user;
   }
   

@@ -12,10 +12,18 @@ import {
   insertLeadSchema,
   insertSubscriptionSchema,
   insertEstimateConfigSchema,
+  insertTemplateSchema,
+  insertTemplateCategorySchema,
+  insertAnalyticsSchema,
+  insertCompanySettingsSchema,
   User,
-  Lead
+  Lead,
+  analytics,
+  companySettings,
+  templateCategories,
+  templates
 } from "@shared/schema";
-import { Json } from "drizzle-orm/pg-core";
+import { json, lte, gte, and, eq, asc, desc } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -2415,6 +2423,380 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error retrying failed messages:", error);
       res.status(500).json({ message: "Error retrying failed messages" });
+    }
+  });
+  
+  // Admin Dashboard Routes
+  // Company Settings
+  app.get("/api/admin/company-settings", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const settings = await storage.getCompanySettings();
+      res.json(settings || { name: "My Company" });
+    } catch (error) {
+      console.error("Error fetching company settings:", error);
+      res.status(500).json({ message: "Error fetching company settings" });
+    }
+  });
+
+  app.put("/api/admin/company-settings", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const settings = await storage.updateCompanySettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating company settings:", error);
+      res.status(500).json({ message: "Error updating company settings" });
+    }
+  });
+
+  // Template Categories
+  app.get("/api/admin/template-categories", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const type = req.query.type as string | undefined;
+      const categories = await storage.getTemplateCategories(type);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching template categories:", error);
+      res.status(500).json({ message: "Error fetching template categories" });
+    }
+  });
+
+  app.get("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const category = await storage.getTemplateCategory(id);
+      if (!category) {
+        return res.status(404).json({ message: "Template category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      console.error("Error fetching template category:", error);
+      res.status(500).json({ message: "Error fetching template category" });
+    }
+  });
+
+  app.post("/api/admin/template-categories", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const category = await storage.createTemplateCategory(req.body);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating template category:", error);
+      res.status(500).json({ message: "Error creating template category" });
+    }
+  });
+
+  app.put("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const category = await storage.updateTemplateCategory(id, req.body);
+      if (!category) {
+        return res.status(404).json({ message: "Template category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating template category:", error);
+      res.status(500).json({ message: "Error updating template category" });
+    }
+  });
+
+  app.delete("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteTemplateCategory(id);
+      if (!success) {
+        return res.status(404).json({ message: "Template category not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting template category:", error);
+      res.status(500).json({ message: "Error deleting template category" });
+    }
+  });
+
+  // Templates
+  app.get("/api/admin/templates", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const type = req.query.type as string | undefined;
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+      const templates = await storage.getTemplates(type, categoryId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Error fetching templates" });
+    }
+  });
+
+  app.get("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const template = await storage.getTemplate(id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching template:", error);
+      res.status(500).json({ message: "Error fetching template" });
+    }
+  });
+
+  app.get("/api/admin/templates/default/:type", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const type = req.params.type;
+      const template = await storage.getDefaultTemplate(type);
+      if (!template) {
+        return res.status(404).json({ message: "Default template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching default template:", error);
+      res.status(500).json({ message: "Error fetching default template" });
+    }
+  });
+
+  app.post("/api/admin/templates", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const template = await storage.createTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating template:", error);
+      res.status(500).json({ message: "Error creating template" });
+    }
+  });
+
+  app.put("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const template = await storage.updateTemplate(id, req.body);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      res.status(500).json({ message: "Error updating template" });
+    }
+  });
+
+  app.delete("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteTemplate(id);
+      if (!success) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      res.status(500).json({ message: "Error deleting template" });
+    }
+  });
+
+  app.post("/api/admin/templates/:id/set-default", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const type = req.body.type;
+      const success = await storage.setDefaultTemplate(id, type);
+      if (!success) {
+        return res.status(404).json({ message: "Template not found or type mismatch" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting default template:", error);
+      res.status(500).json({ message: "Error setting default template" });
+    }
+  });
+
+  // User Management
+  app.get("/api/admin/users", isAuthenticated, async (req, res) => {
+    try {
+      // Need to ensure this is admin only
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+
+  app.post("/api/admin/users", isAuthenticated, async (req, res) => {
+    try {
+      // Need to ensure this is admin only
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const newUser = await storage.createUser(req.body);
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Error creating user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Need to ensure this is admin only
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updatedUser = await storage.updateUser(id, req.body);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Error updating user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Need to ensure this is admin only
+      const user = req.user as User;
+      if (user.role !== 'admin' || parseInt(req.params.id) === user.id) {
+        return res.status(403).json({ message: "Access denied or cannot delete yourself" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Error deleting user" });
+    }
+  });
+
+  // Analytics
+  app.get("/api/admin/analytics", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const metric = req.query.metric as string | undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      
+      const analyticsData = await storage.getAnalytics(metric, startDate, endDate);
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics data:", error);
+      res.status(500).json({ message: "Error fetching analytics data" });
+    }
+  });
+
+  app.post("/api/admin/analytics", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const entry = await storage.createAnalyticsEntry(req.body);
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Error creating analytics entry:", error);
+      res.status(500).json({ message: "Error creating analytics entry" });
     }
   });
   

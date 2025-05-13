@@ -1149,9 +1149,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true });
       }
       
-      res.status(500).json({ message: "Error deleting estimate" });
+      return res.status(500).json({ message: "Failed to delete estimate" });
     } catch (error) {
+      console.error("Error deleting estimate:", error);
       res.status(500).json({ message: "Error deleting estimate" });
+    }
+  });
+  
+  // Additional estimate routes
+  app.get("/api/estimates/lead/:leadId", isAuthenticated, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const estimates = await storage.getEstimatesByLeadId(leadId);
+      res.json(estimates);
+    } catch (error) {
+      console.error("Error fetching estimates by lead ID:", error);
+      res.status(500).json({ message: "Error fetching estimates" });
+    }
+  });
+  
+  app.get("/api/estimates/client/:clientId", isAuthenticated, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      const estimates = await storage.getEstimatesByClientId(clientId);
+      res.json(estimates);
+    } catch (error) {
+      console.error("Error fetching estimates by client ID:", error);
+      res.status(500).json({ message: "Error fetching estimates" });
+    }
+  });
+  
+  app.get("/api/estimate-templates", isAuthenticated, async (req, res) => {
+    try {
+      const templates = await storage.getEstimateTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching estimate templates:", error);
+      res.status(500).json({ message: "Error fetching estimate templates" });
+    }
+  });
+  
+  // Estimate Config routes
+  app.get("/api/estimate-configs", isAuthenticated, async (req, res) => {
+    try {
+      const configType = req.query.configType as string;
+      let configs;
+      
+      if (configType) {
+        configs = await storage.getEstimateConfigsByType(configType);
+      } else {
+        configs = await storage.getActiveEstimateConfigs();
+      }
+      
+      res.json(configs);
+    } catch (error) {
+      console.error("Error fetching estimate configs:", error);
+      res.status(500).json({ message: "Error fetching estimate configs" });
+    }
+  });
+
+  app.get("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const config = await storage.getEstimateConfig(id);
+      
+      if (!config) {
+        return res.status(404).json({ message: "Estimate config not found" });
+      }
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching estimate config:", error);
+      res.status(500).json({ message: "Error fetching estimate config" });
+    }
+  });
+
+  app.post("/api/estimate-configs", isAuthenticated, async (req, res) => {
+    try {
+      const configData = req.body;
+      const newConfig = await storage.createEstimateConfig(configData);
+      res.status(201).json(newConfig);
+    } catch (error) {
+      console.error("Error creating estimate config:", error);
+      res.status(500).json({ message: "Error creating estimate config" });
+    }
+  });
+
+  app.put("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const configData = req.body;
+      
+      const updatedConfig = await storage.updateEstimateConfig(id, configData);
+      
+      if (!updatedConfig) {
+        return res.status(404).json({ message: "Estimate config not found" });
+      }
+      
+      res.json(updatedConfig);
+    } catch (error) {
+      console.error("Error updating estimate config:", error);
+      res.status(500).json({ message: "Error updating estimate config" });
+    }
+  });
+
+  app.delete("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteEstimateConfig(id);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Estimate config not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting estimate config:", error);
+      res.status(500).json({ message: "Error deleting estimate config" });
     }
   });
 

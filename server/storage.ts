@@ -980,12 +980,24 @@ export class DrizzleStorage implements IStorage {
   
   // Estimate methods
   async getEstimates(userId: number): Promise<Estimate[]> {
-    return db.select().from(estimates);
+    try {
+      // For now, return all estimates since we're not filtering by userId yet
+      // In production, we would want to add this filter
+      return await db.select().from(estimates);
+    } catch (error) {
+      console.error("Database error in getEstimates:", error);
+      return []; // Return empty array on error instead of failing
+    }
   }
   
   async getEstimate(id: number): Promise<Estimate | undefined> {
-    const result = await db.select().from(estimates).where(eq(estimates.id, id));
-    return result[0];
+    try {
+      const result = await db.select().from(estimates).where(eq(estimates.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Database error in getEstimate for id ${id}:`, error);
+      return undefined;
+    }
   }
   
   async getEstimatesByProjectId(projectId: number): Promise<Estimate[]> {

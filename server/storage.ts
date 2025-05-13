@@ -126,6 +126,29 @@ export interface IStorage {
   createWhatsAppMessageLog(message: Omit<WhatsappMessage, 'createdAt' | 'updatedAt'>): Promise<WhatsappMessage>;
   updateWhatsAppMessageStatus(messageId: string, statusUpdate: Partial<WhatsappMessage>): Promise<WhatsappMessage | undefined>;
   updateWhatsAppMessageRetryCount(messageId: string, retryCount: number): Promise<WhatsappMessage | undefined>;
+  
+  // Company settings methods
+  getCompanySettings(): Promise<CompanySettings | undefined>;
+  updateCompanySettings(settings: Partial<CompanySettings>): Promise<CompanySettings | undefined>;
+  
+  // Templates methods
+  getTemplateCategories(type?: string): Promise<TemplateCategory[]>;
+  getTemplateCategory(id: number): Promise<TemplateCategory | undefined>;
+  createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory>;
+  updateTemplateCategory(id: number, category: Partial<TemplateCategory>): Promise<TemplateCategory | undefined>;
+  deleteTemplateCategory(id: number): Promise<boolean>;
+  
+  getTemplates(type?: string, categoryId?: number): Promise<Template[]>;
+  getTemplate(id: number): Promise<Template | undefined>;
+  getDefaultTemplate(type: string): Promise<Template | undefined>;
+  createTemplate(template: InsertTemplate): Promise<Template>;
+  updateTemplate(id: number, template: Partial<Template>): Promise<Template | undefined>;
+  deleteTemplate(id: number): Promise<boolean>;
+  setDefaultTemplate(id: number, type: string): Promise<boolean>;
+  
+  // Analytics methods
+  getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]>;
+  createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics>;
 }
 
 export class MemStorage implements IStorage {
@@ -138,6 +161,10 @@ export class MemStorage implements IStorage {
   private estimates: Map<number, Estimate>;
   private tasks: Map<number, Task>;
   private activities: Map<number, Activity>;
+  private companySettings: CompanySettings | undefined;
+  private templateCategories: Map<number, TemplateCategory>;
+  private templates: Map<number, Template>;
+  private analytics: Map<number, Analytics>;
   
   private userId: number;
   private leadId: number;

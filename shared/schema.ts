@@ -356,3 +356,114 @@ export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).
 
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;
+
+// Company feature toggles and settings
+export const companySettings = pgTable("company_settings", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().default("My Company"),
+  logo: text("logo"),
+  primaryColor: text("primary_color").default("#6366f1"),
+  secondaryColor: text("secondary_color").default("#8b5cf6"),
+  enabledFeatures: jsonb("enabled_features").default({
+    crm: true,
+    proposals: true,
+    moodboards: true,
+    estimates: true,
+    whatsapp: true,
+    tasks: true
+  }).notNull(),
+  planLimits: jsonb("plan_limits").default({
+    free: {
+      maxUsers: 2,
+      maxClients: 10,
+      maxProjects: 5,
+      maxProposals: 10,
+      maxStorage: 100, // MB
+    },
+    pro: {
+      maxUsers: 5,
+      maxClients: 50,
+      maxProjects: 20,
+      maxProposals: 100,
+      maxStorage: 1000, // MB
+    },
+    enterprise: {
+      maxUsers: -1, // unlimited
+      maxClients: -1, // unlimited
+      maxProjects: -1, // unlimited
+      maxProposals: -1, // unlimited
+      maxStorage: 10000, // MB
+    }
+  }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCompanySettingsSchema = createInsertSchema(companySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CompanySettings = typeof companySettings.$inferSelect;
+export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
+
+// Analytics data
+export const analytics = pgTable("analytics", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").defaultNow().notNull(),
+  metric: text("metric").notNull(),
+  value: integer("value").notNull(),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAnalyticsSchema = createInsertSchema(analytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Analytics = typeof analytics.$inferSelect;
+export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
+
+// Template categories
+export const templateCategories = pgTable("template_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ['proposal', 'estimate', 'moodboard', 'email'] }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTemplateCategorySchema = createInsertSchema(templateCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TemplateCategory = typeof templateCategories.$inferSelect;
+export type InsertTemplateCategory = z.infer<typeof insertTemplateCategorySchema>;
+
+// Templates
+export const templates = pgTable("templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ['proposal', 'estimate', 'moodboard', 'email'] }).notNull(),
+  categoryId: integer("category_id").references(() => templateCategories.id, { onDelete: "set null" }),
+  content: jsonb("content").notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTemplateSchema = createInsertSchema(templates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Template = typeof templates.$inferSelect;
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;

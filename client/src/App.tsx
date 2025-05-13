@@ -243,7 +243,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
-      <Route path="/settings">
+      <Route path="/settings/*">
         <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
           <AppLayout>
             <Settings />

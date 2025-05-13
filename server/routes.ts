@@ -27,6 +27,13 @@ import {
   generateMoodboardSuggestions,
   DesignInsightRequest 
 } from "./ai";
+import { 
+  generateClientToken, 
+  validateClientToken, 
+  markClientLogin, 
+  hasPortalAccess,
+  sendClientLoginEmail
+} from "./clientAuth";
 
 const SessionStore = MemoryStore(session);
 
@@ -1522,6 +1529,459 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Client Portal Routes
+  
+  // Client authentication middleware
+  const isClientAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token as string;
+    
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+    
+    const clientId = validateClientToken(token);
+    
+    if (!clientId) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+    
+    // Check if client has portal access
+    const hasAccess = await hasPortalAccess(clientId, storage);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "Portal access not enabled for this client" });
+    }
+    
+    // Set client ID in request for use in route handlers
+    (req as any).clientId = clientId;
+    
+    next();
+  };
+  
+  // Generate login token and email for client portal
+  app.post("/api/client-portal/generate-token", isAuthenticated, async (req, res) => {
+    try {
+      const { clientId, clientEmail } = req.body;
+      
+      if (!clientId || !clientEmail) {
+        return res.status(400).json({ message: "Client ID and email are required" });
+      }
+      
+      // Generate token
+      const token = await generateClientToken(parseInt(clientId), storage);
+      
+      // Send email with login link
+      await sendClientLoginEmail(clientEmail, token);
+      
+      res.json({ success: true, message: "Login link sent to client's email" });
+    } catch (error) {
+      console.error("Error generating client token:", error);
+      res.status(500).json({ message: "Error generating client login token" });
+    }
+  });
+  
+  // Validate client login token
+  app.post("/api/client-portal/login", async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      
+      const clientId = validateClientToken(token);
+      
+      if (!clientId) {
+        return res.status(401).json({ message: "Invalid or expired token" });
+      }
+      
+      // Mark client as logged in
+      await markClientLogin(clientId, storage);
+      
+      // Return client information and a new token for API access
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Generate a new token for API access
+      const apiToken = await generateClientToken(clientId, storage);
+      
+      res.json({ 
+        success: true, 
+        client: {
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          company: client.company
+        },
+        token: apiToken
+      });
+    } catch (error) {
+      console.error("Error logging into client portal:", error);
+      res.status(500).json({ message: "Error logging into client portal" });
+    }
+  });
+  
+  // Client portal - Get client info
+  app.get("/api/client-portal/me", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json({
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        company: client.company,
+        avatar: client.avatar
+      });
+    } catch (error) {
+      console.error("Error fetching client info:", error);
+      res.status(500).json({ message: "Error fetching client information" });
+    }
+  });
+  
+  // Client portal - Get client projects
+  app.get("/api/client-portal/projects", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const projects = await storage.getProjectsByClientId(clientId);
+      
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching client projects:", error);
+      res.status(500).json({ message: "Error fetching projects" });
+    }
+  });
+  
+  // Client portal - Get specific project
+  app.get("/api/client-portal/projects/:id", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const projectId = parseInt(req.params.id);
+      
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Verify the project belongs to this client
+      if (project.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this project" });
+      }
+      
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project details:", error);
+      res.status(500).json({ message: "Error fetching project details" });
+    }
+  });
+  
+  // Client portal - Get client proposals
+  app.get("/api/client-portal/proposals", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const projects = await storage.getProjectsByClientId(clientId);
+      
+      const allProposals = [];
+      
+      // Get proposals for each project
+      for (const project of projects) {
+        const proposals = await storage.getProposalsByProjectId(project.id);
+        allProposals.push(...proposals);
+      }
+      
+      // Also get proposals linked directly to client
+      const clientProposals = await storage.getProposalsByClientId(clientId);
+      
+      // Combine and deduplicate
+      const uniqueProposals = [...allProposals, ...clientProposals]
+        .filter((proposal, index, self) => 
+          index === self.findIndex(p => p.id === proposal.id)
+        );
+      
+      res.json(uniqueProposals);
+    } catch (error) {
+      console.error("Error fetching client proposals:", error);
+      res.status(500).json({ message: "Error fetching proposals" });
+    }
+  });
+  
+  // Client portal - Get specific proposal
+  app.get("/api/client-portal/proposals/:id", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const proposalId = parseInt(req.params.id);
+      
+      const proposal = await storage.getProposal(proposalId);
+      
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      // Verify the proposal belongs to this client
+      if (proposal.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this proposal" });
+      }
+      
+      // Mark as viewed if not already
+      if (!proposal.viewedAt) {
+        await storage.updateProposal(proposalId, { viewedAt: new Date() });
+      }
+      
+      res.json(proposal);
+    } catch (error) {
+      console.error("Error fetching proposal details:", error);
+      res.status(500).json({ message: "Error fetching proposal details" });
+    }
+  });
+  
+  // Client portal - Approve proposal
+  app.post("/api/client-portal/proposals/:id/approve", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const proposalId = parseInt(req.params.id);
+      
+      const proposal = await storage.getProposal(proposalId);
+      
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      // Verify the proposal belongs to this client
+      if (proposal.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this proposal" });
+      }
+      
+      // Update proposal status
+      const updatedProposal = await storage.updateProposal(proposalId, { 
+        clientApproved: true,
+        status: "approved" 
+      });
+      
+      // Create activity for the approval
+      const client = await storage.getClient(clientId);
+      
+      if (proposal.created_by) {
+        await storage.createActivity({
+          user_id: proposal.created_by,
+          client_id: clientId,
+          project_id: proposal.project_id || null,
+          type: "proposal_approved",
+          description: `${client?.name || 'Client'} approved proposal: ${proposal.title}`,
+          metadata: {}
+        });
+      }
+      
+      res.json(updatedProposal);
+    } catch (error) {
+      console.error("Error approving proposal:", error);
+      res.status(500).json({ message: "Error approving proposal" });
+    }
+  });
+  
+  // Client portal - Add comment to proposal
+  app.post("/api/client-portal/proposals/:id/comments", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const proposalId = parseInt(req.params.id);
+      const { text, section } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Comment text is required" });
+      }
+      
+      const proposal = await storage.getProposal(proposalId);
+      
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      // Verify the proposal belongs to this client
+      if (proposal.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this proposal" });
+      }
+      
+      // Get client information
+      const client = await storage.getClient(clientId);
+      
+      // Add comment to proposal
+      const comments = Array.isArray(proposal.comments) ? proposal.comments : [];
+      const newComment = {
+        id: comments.length > 0 ? Math.max(...comments.map((c: any) => c.id)) + 1 : 1,
+        text,
+        section: section || null,
+        createdAt: new Date(),
+        createdBy: {
+          id: clientId,
+          name: client?.name || 'Client',
+          type: 'client'
+        }
+      };
+      
+      const updatedComments = [...comments, newComment];
+      
+      // Update proposal
+      const updatedProposal = await storage.updateProposal(proposalId, { 
+        comments: updatedComments as any
+      });
+      
+      // Create activity for the comment
+      if (proposal.created_by) {
+        await storage.createActivity({
+          user_id: proposal.created_by,
+          client_id: clientId,
+          project_id: proposal.project_id || null,
+          type: "proposal_comment",
+          description: `${client?.name || 'Client'} commented on proposal: ${proposal.title}`,
+          metadata: {
+            commentId: newComment.id,
+            commentText: text
+          }
+        });
+      }
+      
+      res.json(updatedProposal);
+    } catch (error) {
+      console.error("Error adding comment to proposal:", error);
+      res.status(500).json({ message: "Error adding comment to proposal" });
+    }
+  });
+  
+  // Client portal - Get client estimates
+  app.get("/api/client-portal/estimates", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const estimates = await storage.getEstimatesByClientId(clientId);
+      
+      res.json(estimates);
+    } catch (error) {
+      console.error("Error fetching client estimates:", error);
+      res.status(500).json({ message: "Error fetching estimates" });
+    }
+  });
+  
+  // Client portal - Get specific estimate
+  app.get("/api/client-portal/estimates/:id", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const estimateId = parseInt(req.params.id);
+      
+      const estimate = await storage.getEstimate(estimateId);
+      
+      if (!estimate) {
+        return res.status(404).json({ message: "Estimate not found" });
+      }
+      
+      // Verify the estimate belongs to this client
+      if (estimate.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this estimate" });
+      }
+      
+      res.json(estimate);
+    } catch (error) {
+      console.error("Error fetching estimate details:", error);
+      res.status(500).json({ message: "Error fetching estimate details" });
+    }
+  });
+  
+  // Client portal - Get client moodboards
+  app.get("/api/client-portal/moodboards", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const moodboards = await storage.getMoodboardsByClientId(clientId);
+      
+      res.json(moodboards);
+    } catch (error) {
+      console.error("Error fetching client moodboards:", error);
+      res.status(500).json({ message: "Error fetching moodboards" });
+    }
+  });
+  
+  // Client portal - Get specific moodboard
+  app.get("/api/client-portal/moodboards/:id", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const moodboardId = parseInt(req.params.id);
+      
+      const moodboard = await storage.getMoodboard(moodboardId);
+      
+      if (!moodboard) {
+        return res.status(404).json({ message: "Moodboard not found" });
+      }
+      
+      // Verify the moodboard belongs to this client
+      if (moodboard.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this moodboard" });
+      }
+      
+      res.json(moodboard);
+    } catch (error) {
+      console.error("Error fetching moodboard details:", error);
+      res.status(500).json({ message: "Error fetching moodboard details" });
+    }
+  });
+  
+  // Client portal - Add comment to moodboard
+  app.post("/api/client-portal/moodboards/:id/comments", isClientAuthenticated, async (req, res) => {
+    try {
+      const clientId = (req as any).clientId;
+      const moodboardId = parseInt(req.params.id);
+      const { text, section } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Comment text is required" });
+      }
+      
+      const moodboard = await storage.getMoodboard(moodboardId);
+      
+      if (!moodboard) {
+        return res.status(404).json({ message: "Moodboard not found" });
+      }
+      
+      // Verify the moodboard belongs to this client
+      if (moodboard.client_id !== clientId) {
+        return res.status(403).json({ message: "You don't have access to this moodboard" });
+      }
+      
+      // Get client information
+      const client = await storage.getClient(clientId);
+      
+      // Add comment to moodboard
+      const comments = Array.isArray(moodboard.comments) ? moodboard.comments : [];
+      const newComment = {
+        id: comments.length > 0 ? Math.max(...comments.map((c: any) => c.id)) + 1 : 1,
+        text,
+        section: section || null,
+        createdAt: new Date(),
+        createdBy: {
+          id: clientId,
+          name: client?.name || 'Client',
+          type: 'client'
+        }
+      };
+      
+      const updatedComments = [...comments, newComment];
+      
+      // Update moodboard
+      const updatedMoodboard = await storage.updateMoodboard(moodboardId, { 
+        comments: updatedComments as any
+      });
+      
+      res.json(updatedMoodboard);
+    } catch (error) {
+      console.error("Error adding comment to moodboard:", error);
+      res.status(500).json({ message: "Error adding comment to moodboard" });
+    }
+  });
+  
   // Task routes
   // Note: Tasks are now stored in the projects table as an array
   app.get("/api/tasks", isAuthenticated, async (req, res) => {

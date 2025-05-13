@@ -946,8 +946,7 @@ export class StorageAdapter implements IStorage {
   }
   
   async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
-    const user = await this.drizzleStorage.getUserByFirebaseUid(supabaseUid);
-    // Temporarily use firebaseUid until we update the database
+    const user = await this.drizzleStorage.getUserBySupabaseUid(supabaseUid);
     return user ? convertKeysToCamelCase(user) : undefined;
   }
   

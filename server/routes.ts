@@ -211,16 +211,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Firebase authentication route
   app.post("/api/auth/firebase-auth", async (req, res) => {
     try {
-      const { firebaseUid, phone, email, displayName, photoURL, idToken } = req.body;
+      const { firebaseUid, phone, email, displayName, photoURL } = req.body;
       
       if (!firebaseUid) {
         return res.status(400).json({ message: "Missing Firebase UID" });
       }
       
+      console.log("Firebase auth request:", { firebaseUid, email, displayName });
+      
       // Check if user with this Firebase UID exists
       let user = await storage.getUserByFirebaseUid(firebaseUid);
       
       if (user) {
+        console.log("Found existing user by Firebase UID:", user.id);
         // Update existing user if needed
         const updates: any = {};
         
@@ -242,24 +245,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Apply updates if any
         if (Object.keys(updates).length > 0) {
+          console.log("Updating user with:", updates);
           user = await storage.updateUser(user.id, updates);
         }
+      } else if (email) {
+        // Try to find by email if we couldn't find by Firebase UID
+        user = await storage.getUserByEmail(email);
+        
+        if (user) {
+          console.log("Found existing user by email:", user.id);
+          // Update the Firebase UID
+          user = await storage.updateUser(user.id, { 
+            firebaseUid,
+            ...(displayName && { fullName: displayName }),
+            ...(photoURL && { avatar: photoURL }),
+            ...(phone && { phone })
+          });
+        } else {
+          console.log("Creating new user for Firebase auth");
+          // Create a new user
+          const randomPassword = Math.random().toString(36).slice(-8);
+          
+          // Generate a username from email
+          let usernameBase = email.split('@')[0];
+          
+          // Try to find an available username
+          let availableUsername = usernameBase;
+          let counter = 1;
+          let existingUser = await storage.getUserByUsername(availableUsername);
+          
+          while (existingUser) {
+            availableUsername = `${usernameBase}${counter}`;
+            counter++;
+            existingUser = await storage.getUserByUsername(availableUsername);
+          }
+          
+          // Create the user with default role 'designer'
+          const userData = {
+            username: availableUsername,
+            password: randomPassword, // This is just for compatibility, they'll use Firebase auth
+            email: email,
+            fullName: displayName || email.split('@')[0] || 'New User',
+            role: 'designer' as const,
+            phone: phone || null,
+            avatar: photoURL || null,
+            firebaseUid
+          };
+          
+          console.log("Creating user with data:", userData);
+          user = await storage.createUser(userData);
+        }
       } else {
+        // Handle case where we have no email
+        console.log("Creating new user with phone or default info");
         // Create a new user
         const randomPassword = Math.random().toString(36).slice(-8);
         
         // Generate a username
-        let usernameBase = '';
-        if (email) {
-          // Use email prefix
-          usernameBase = `user_${email.split('@')[0]}`;
-        } else if (phone) {
-          // Use phone number
-          usernameBase = `user_${phone.replace(/\D/g, '')}`;
-        } else {
-          // Use random identifier with firebaseUid
-          usernameBase = `user_${firebaseUid.substring(0, 8)}`;
-        }
+        const usernameBase = phone ? 
+          `user_${phone.replace(/\D/g, '')}` : 
+          `user_${firebaseUid.substring(0, 8)}`;
         
         // Try to find an available username
         let availableUsername = usernameBase;
@@ -267,36 +312,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let existingUser = await storage.getUserByUsername(availableUsername);
         
         while (existingUser) {
-          availableUsername = `${usernameBase}_${counter}`;
+          availableUsername = `${usernameBase}${counter}`;
           counter++;
           existingUser = await storage.getUserByUsername(availableUsername);
         }
         
-        // Create the user with default role 'sales'
+        // Use a dummy email since we require it
+        const dummyEmail = `${availableUsername}@example.com`;
+        
+        // Create the user with default role 'designer'
         const userData = {
           username: availableUsername,
-          password: randomPassword, // This is just for compatibility, they'll use Firebase auth
-          email: email || `${availableUsername}@example.com`, // Use provided email or placeholder
-          fullName: displayName || phone || 'New User', // Use displayName, or phone, or default
-          role: 'sales' as const,
+          password: randomPassword,
+          email: dummyEmail,
+          fullName: displayName || phone || 'New User',
+          role: 'designer' as const,
           phone: phone || null,
           avatar: photoURL || null,
           firebaseUid
         };
         
+        console.log("Creating user with data:", userData);
         user = await storage.createUser(userData);
       }
       
       // Log the user in
       req.login(user, (err) => {
         if (err) {
+          console.error("Error during login:", err);
           return res.status(500).json({ message: "Error logging in with Firebase" });
         }
+        console.log("Successfully logged in user:", user.id);
         return res.json({ user });
       });
       
     } catch (error) {
       console.error("Firebase auth error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
       res.status(500).json({ message: "Error authenticating with Firebase" });
     }
   });

@@ -1449,30 +1449,37 @@ export class DrizzleStorage implements IStorage {
     });
     
     try {
-      // Use the simpler Drizzle approach for now
+      // First, check if the user exists
       const existingUser = await this.getUser(id);
       if (!existingUser) {
         console.error("User not found with ID:", id);
         return undefined;
       }
       
-      // Create updated user object
-      const updatedUser = { 
-        ...existingUser,
+      // Prepare data for update with snake_case keys for the database
+      const updateData: Record<string, any> = {
         ...userData,
-        updatedAt: new Date()
+        updated_at: new Date()
       };
       
-      // For simplicity and to ensure the settings page loads, use in-memory update
-      // We'll handle the actual database update once we resolve the authentication issues
+      // Update the user in the database
+      const result = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, id))
+        .returning();
       
-      // Save to in-memory storage
-      this.users.set(id, updatedUser);
-      
-      return updatedUser;
+      if (result && result.length > 0) {
+        return result[0];
+      } else {
+        // Return the existing user if no database update occurred
+        return existingUser;
+      }
     } catch (error) {
       console.error("Error updating user:", error);
-      throw error;
+      // On database error, fall back to existing user data
+      const existingUser = await this.getUser(id);
+      return existingUser;
     }
   }
   

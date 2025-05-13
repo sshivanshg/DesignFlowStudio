@@ -961,41 +961,29 @@ export class StorageAdapter implements IStorage {
   
   // Activity methods
   async getActivities(userId: number, limit?: number): Promise<Activity[]> {
-    return this.drizzleStorage.getActivities(userId, limit);
+    const activities = await this.drizzleStorage.getActivities(userId, limit);
+    return activities.map(activity => convertKeysToCamelCase(activity));
   }
   
   async getActivity(id: number): Promise<Activity | undefined> {
-    return this.drizzleStorage.getActivity(id);
+    const activity = await this.drizzleStorage.getActivity(id);
+    return activity ? convertKeysToCamelCase(activity) : undefined;
   }
   
   async getActivitiesByClientId(clientId: number): Promise<Activity[]> {
-    return this.drizzleStorage.getActivitiesByClientId(clientId);
+    const activities = await this.drizzleStorage.getActivitiesByClientId(clientId);
+    return activities.map(activity => convertKeysToCamelCase(activity));
   }
   
   async getActivitiesByProjectId(projectId: number): Promise<Activity[]> {
-    return this.drizzleStorage.getActivitiesByProjectId(projectId);
+    const activities = await this.drizzleStorage.getActivitiesByProjectId(projectId);
+    return activities.map(activity => convertKeysToCamelCase(activity));
   }
   
   async createActivity(activity: InsertActivity): Promise<Activity> {
-    const dbActivity: any = { ...activity };
-    
-    // Convert camelCase to snake_case fields
-    if ('userId' in activity) {
-      dbActivity.user_id = activity.userId;
-      delete dbActivity.userId;
-    }
-    
-    if ('clientId' in activity) {
-      dbActivity.client_id = activity.clientId;
-      delete dbActivity.clientId;
-    }
-    
-    if ('projectId' in activity) {
-      dbActivity.project_id = activity.projectId;
-      delete dbActivity.projectId;
-    }
-    
-    return this.drizzleStorage.createActivity(dbActivity);
+    const snakeCaseActivity = convertKeysToSnakeCase(activity);
+    const createdActivity = await this.drizzleStorage.createActivity(snakeCaseActivity);
+    return convertKeysToCamelCase(createdActivity);
   }
 }
 

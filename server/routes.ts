@@ -255,8 +255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create activity for new client
       await storage.createActivity({
-        userId,
-        clientId: client.id,
+        user_id: userId,
+        client_id: client.id,
         type: "client_created",
         description: `Added ${client.name} as a new client`,
         metadata: {}

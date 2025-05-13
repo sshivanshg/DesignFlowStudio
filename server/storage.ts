@@ -7,7 +7,8 @@ import {
   moodboards, Moodboard, InsertMoodboard,
   estimates, Estimate, InsertEstimate,
   estimateConfigs, EstimateConfig, InsertEstimateConfig,
-  activities, Activity, InsertActivity
+  activities, Activity, InsertActivity,
+  whatsappMessages, WhatsappMessage, InsertWhatsappMessage
 } from "@shared/schema";
 import { eq, and, desc, sql as drizzleSql } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -115,6 +116,16 @@ export interface IStorage {
   getActivitiesByClientId(clientId: number): Promise<Activity[]>;
   getActivitiesByProjectId(projectId: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  
+  // WhatsApp message methods
+  getWhatsAppMessages(): Promise<WhatsappMessage[]>;
+  getWhatsAppMessagesByLeadId(leadId: number): Promise<WhatsappMessage[]>;
+  getWhatsAppMessagesByClientId(clientId: number): Promise<WhatsappMessage[]>;
+  getWhatsAppMessageById(messageId: string): Promise<WhatsappMessage | undefined>;
+  getWhatsAppFailedMessages(maxRetries: number): Promise<WhatsappMessage[]>;
+  createWhatsAppMessageLog(message: Omit<WhatsappMessage, 'createdAt' | 'updatedAt'>): Promise<WhatsappMessage>;
+  updateWhatsAppMessageStatus(messageId: string, statusUpdate: Partial<WhatsappMessage>): Promise<WhatsappMessage | undefined>;
+  updateWhatsAppMessageRetryCount(messageId: string, retryCount: number): Promise<WhatsappMessage | undefined>;
 }
 
 export class MemStorage implements IStorage {

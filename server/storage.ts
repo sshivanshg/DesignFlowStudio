@@ -897,49 +897,30 @@ export class StorageAdapter implements IStorage {
   
   // Moodboard methods
   async getMoodboards(userId: number): Promise<Moodboard[]> {
-    return this.drizzleStorage.getMoodboards(userId);
+    const moodboards = await this.drizzleStorage.getMoodboards(userId);
+    return moodboards.map(moodboard => convertKeysToCamelCase(moodboard));
   }
   
   async getMoodboard(id: number): Promise<Moodboard | undefined> {
-    return this.drizzleStorage.getMoodboard(id);
+    const moodboard = await this.drizzleStorage.getMoodboard(id);
+    return moodboard ? convertKeysToCamelCase(moodboard) : undefined;
   }
   
   async getMoodboardsByProjectId(projectId: number): Promise<Moodboard[]> {
-    return this.drizzleStorage.getMoodboardsByProjectId(projectId);
+    const moodboards = await this.drizzleStorage.getMoodboardsByProjectId(projectId);
+    return moodboards.map(moodboard => convertKeysToCamelCase(moodboard));
   }
   
   async createMoodboard(moodboard: InsertMoodboard): Promise<Moodboard> {
-    const dbMoodboard: any = { ...moodboard };
-    
-    // Convert camelCase to snake_case fields
-    if ('clientId' in moodboard) {
-      dbMoodboard.client_id = moodboard.clientId;
-      delete dbMoodboard.clientId;
-    }
-    
-    if ('sharedLink' in moodboard) {
-      dbMoodboard.shared_link = moodboard.sharedLink;
-      delete dbMoodboard.sharedLink;
-    }
-    
-    return this.drizzleStorage.createMoodboard(dbMoodboard);
+    const snakeCaseMoodboard = convertKeysToSnakeCase(moodboard);
+    const createdMoodboard = await this.drizzleStorage.createMoodboard(snakeCaseMoodboard);
+    return convertKeysToCamelCase(createdMoodboard);
   }
   
   async updateMoodboard(id: number, moodboard: Partial<Moodboard>): Promise<Moodboard | undefined> {
-    const dbMoodboard: any = { ...moodboard };
-    
-    // Convert camelCase to snake_case fields
-    if ('clientId' in moodboard) {
-      dbMoodboard.client_id = moodboard.clientId;
-      delete dbMoodboard.clientId;
-    }
-    
-    if ('sharedLink' in moodboard) {
-      dbMoodboard.shared_link = moodboard.sharedLink;
-      delete dbMoodboard.sharedLink;
-    }
-    
-    return this.drizzleStorage.updateMoodboard(id, dbMoodboard);
+    const snakeCaseMoodboard = convertKeysToSnakeCase(moodboard);
+    const updatedMoodboard = await this.drizzleStorage.updateMoodboard(id, snakeCaseMoodboard);
+    return updatedMoodboard ? convertKeysToCamelCase(updatedMoodboard) : undefined;
   }
   
   async deleteMoodboard(id: number): Promise<boolean> {
@@ -948,59 +929,30 @@ export class StorageAdapter implements IStorage {
   
   // Estimate methods
   async getEstimates(userId: number): Promise<Estimate[]> {
-    return this.drizzleStorage.getEstimates(userId);
+    const estimates = await this.drizzleStorage.getEstimates(userId);
+    return estimates.map(estimate => convertKeysToCamelCase(estimate));
   }
   
   async getEstimate(id: number): Promise<Estimate | undefined> {
-    return this.drizzleStorage.getEstimate(id);
+    const estimate = await this.drizzleStorage.getEstimate(id);
+    return estimate ? convertKeysToCamelCase(estimate) : undefined;
   }
   
   async getEstimatesByProjectId(projectId: number): Promise<Estimate[]> {
-    return this.drizzleStorage.getEstimatesByProjectId(projectId);
+    const estimates = await this.drizzleStorage.getEstimatesByProjectId(projectId);
+    return estimates.map(estimate => convertKeysToCamelCase(estimate));
   }
   
   async createEstimate(estimate: InsertEstimate): Promise<Estimate> {
-    const dbEstimate: any = { ...estimate };
-    
-    // Convert camelCase to snake_case fields
-    if ('clientId' in estimate) {
-      dbEstimate.client_id = estimate.clientId;
-      delete dbEstimate.clientId;
-    }
-    
-    if ('configJSON' in estimate) {
-      dbEstimate.config_json = estimate.configJSON;
-      delete dbEstimate.configJSON;
-    }
-    
-    if ('pdfURL' in estimate) {
-      dbEstimate.pdf_url = estimate.pdfURL;
-      delete dbEstimate.pdfURL;
-    }
-    
-    return this.drizzleStorage.createEstimate(dbEstimate);
+    const snakeCaseEstimate = convertKeysToSnakeCase(estimate);
+    const createdEstimate = await this.drizzleStorage.createEstimate(snakeCaseEstimate);
+    return convertKeysToCamelCase(createdEstimate);
   }
   
   async updateEstimate(id: number, estimate: Partial<Estimate>): Promise<Estimate | undefined> {
-    const dbEstimate: any = { ...estimate };
-    
-    // Convert camelCase to snake_case fields
-    if ('clientId' in estimate) {
-      dbEstimate.client_id = estimate.clientId;
-      delete dbEstimate.clientId;
-    }
-    
-    if ('configJSON' in estimate) {
-      dbEstimate.config_json = estimate.configJSON;
-      delete dbEstimate.configJSON;
-    }
-    
-    if ('pdfURL' in estimate) {
-      dbEstimate.pdf_url = estimate.pdfURL;
-      delete dbEstimate.pdfURL;
-    }
-    
-    return this.drizzleStorage.updateEstimate(id, dbEstimate);
+    const snakeCaseEstimate = convertKeysToSnakeCase(estimate);
+    const updatedEstimate = await this.drizzleStorage.updateEstimate(id, snakeCaseEstimate);
+    return updatedEstimate ? convertKeysToCamelCase(updatedEstimate) : undefined;
   }
   
   async deleteEstimate(id: number): Promise<boolean> {

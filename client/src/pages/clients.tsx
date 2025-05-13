@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Client, Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 
 export default function Clients() {
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   
   const { data: clients, isLoading: isClientsLoading } = useQuery<Client[]>({
     queryKey: ['/api/clients'],
@@ -31,7 +32,7 @@ export default function Clients() {
   
   const getClientProjects = (clientId: number) => {
     if (!projects) return [];
-    return projects.filter(project => project.clientId === clientId);
+    return projects.filter(project => project.client_id === clientId);
   };
   
   const filteredClients = clients?.filter(client =>
@@ -88,17 +89,33 @@ export default function Clients() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
+                          {client.portal_access && (
+                            <Badge variant="outline" className="ml-2 text-xs" title="Has portal access">
+                              <Link2 className="h-3 w-3 mr-1" />
+                              Portal
+                            </Badge>
+                          )}
+                        </div>
                         {client.company && (
                           <p className="text-sm text-gray-500">{client.company}</p>
                         )}
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                      <a href={`/crm?client=${client.id}`}>
-                        <ChevronRight className="h-4 w-4" />
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <ClientPortalAccess 
+                        client={client} 
+                        onClientUpdate={() => {
+                          queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+                        }}
+                      />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <a href={`/crm?client=${client.id}`}>
+                          <ChevronRight className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">

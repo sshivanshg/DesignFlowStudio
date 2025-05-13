@@ -164,6 +164,7 @@ export class MemStorage implements IStorage {
     this.estimateConfigs = new Map();
     this.tasks = new Map();
     this.activities = new Map();
+    this.whatsappMessages = new Map();
     
     this.userId = 1;
     this.leadId = 1;
@@ -1003,6 +1004,97 @@ export class MemStorage implements IStorage {
     const activity: Activity = { ...insertActivity, id, createdAt: now };
     this.activities.set(id, activity);
     return activity;
+  }
+  
+  // WhatsApp message methods
+  async getWhatsAppMessages(): Promise<WhatsappMessage[]> {
+    return Array.from(this.whatsappMessages.values())
+      .sort((a, b) => {
+        if (a.sentAt && b.sentAt) {
+          return b.sentAt.getTime() - a.sentAt.getTime();
+        }
+        return 0;
+      });
+  }
+  
+  async getWhatsAppMessagesByLeadId(leadId: number): Promise<WhatsappMessage[]> {
+    return Array.from(this.whatsappMessages.values())
+      .filter(message => message.leadId === leadId)
+      .sort((a, b) => {
+        if (a.sentAt && b.sentAt) {
+          return b.sentAt.getTime() - a.sentAt.getTime();
+        }
+        return 0;
+      });
+  }
+  
+  async getWhatsAppMessagesByClientId(clientId: number): Promise<WhatsappMessage[]> {
+    return Array.from(this.whatsappMessages.values())
+      .filter(message => message.clientId === clientId)
+      .sort((a, b) => {
+        if (a.sentAt && b.sentAt) {
+          return b.sentAt.getTime() - a.sentAt.getTime();
+        }
+        return 0;
+      });
+  }
+  
+  async getWhatsAppMessageById(messageId: string): Promise<WhatsappMessage | undefined> {
+    return this.whatsappMessages.get(messageId);
+  }
+  
+  async getWhatsAppFailedMessages(maxRetries: number): Promise<WhatsappMessage[]> {
+    return Array.from(this.whatsappMessages.values())
+      .filter(message => message.status === 'failed' && (message.retryCount || 0) < maxRetries)
+      .sort((a, b) => {
+        if (a.sentAt && b.sentAt) {
+          return a.sentAt.getTime() - b.sentAt.getTime(); // Oldest first for retries
+        }
+        return 0;
+      });
+  }
+  
+  async createWhatsAppMessageLog(message: Omit<WhatsappMessage, 'createdAt' | 'updatedAt'>): Promise<WhatsappMessage> {
+    const now = new Date();
+    const whatsappMessage: WhatsappMessage = {
+      ...message,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.whatsappMessages.set(message.id, whatsappMessage);
+    return whatsappMessage;
+  }
+  
+  async updateWhatsAppMessageStatus(messageId: string, statusUpdate: Partial<WhatsappMessage>): Promise<WhatsappMessage | undefined> {
+    const existingMessage = this.whatsappMessages.get(messageId);
+    if (!existingMessage) {
+      return undefined;
+    }
+    
+    const updatedMessage: WhatsappMessage = {
+      ...existingMessage,
+      ...statusUpdate,
+      updatedAt: new Date()
+    };
+    
+    this.whatsappMessages.set(messageId, updatedMessage);
+    return updatedMessage;
+  }
+  
+  async updateWhatsAppMessageRetryCount(messageId: string, retryCount: number): Promise<WhatsappMessage | undefined> {
+    const existingMessage = this.whatsappMessages.get(messageId);
+    if (!existingMessage) {
+      return undefined;
+    }
+    
+    const updatedMessage: WhatsappMessage = {
+      ...existingMessage,
+      retryCount,
+      updatedAt: new Date()
+    };
+    
+    this.whatsappMessages.set(messageId, updatedMessage);
+    return updatedMessage;
   }
 }
 

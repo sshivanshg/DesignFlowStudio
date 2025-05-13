@@ -48,7 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface LeadFormProps {
   lead?: LeadType;
-  onSubmit: (data: FormValues) => void;
+  onSubmit: (data: Partial<LeadType>) => void;
   isSubmitting: boolean;
 }
 
@@ -70,7 +70,12 @@ export function LeadForm({ lead, onSubmit, isSubmitting }: LeadFormProps) {
 
   // Handle form submission
   const handleSubmit = (values: FormValues) => {
-    onSubmit(values);
+    // Convert Date object to string for followUpDate if it exists
+    const leadData: Partial<LeadType> = {
+      ...values,
+      followUpDate: values.followUpDate ? values.followUpDate.toISOString() : null
+    };
+    onSubmit(leadData);
   };
 
   return (

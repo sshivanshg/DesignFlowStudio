@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Image, Palette, Pencil, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 export default function MoodboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [_, navigate] = useLocation();
   
   const { data: moodboards, isLoading } = useQuery<Moodboard[]>({
     queryKey: ['/api/moodboards'],
@@ -86,13 +88,38 @@ export default function MoodboardPage() {
               </p>
             </div>
             <div className="flex space-x-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={() => navigate(`/moodboard/edit/${moodboard.id}`)}
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Implementation for duplicate in a future PR
+                  alert('Duplicate functionality to be implemented');
+                }}
+              >
                 <Copy className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Implementation for delete in a future PR
+                  if (confirm('Are you sure you want to delete this moodboard?')) {
+                    alert('Delete functionality to be implemented');
+                  }
+                }}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -122,7 +149,7 @@ export default function MoodboardPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button>
+            <Button onClick={() => navigate("/moodboard/create")}>
               <Plus className="mr-2 h-4 w-4" /> Create Moodboard
             </Button>
           </div>
@@ -158,7 +185,7 @@ export default function MoodboardPage() {
               ? `No moodboards matching "${searchQuery}"` 
               : "Create your first moodboard to showcase design concepts and inspirations."}
           </p>
-          <Button className="mx-auto">
+          <Button className="mx-auto" onClick={() => navigate("/moodboard/create")}>
             <Plus className="mr-2 h-4 w-4" /> Create New Moodboard
           </Button>
         </Card>

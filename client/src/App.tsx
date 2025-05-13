@@ -15,6 +15,7 @@ import CRM from "@/pages/crm";
 import Proposals from "@/pages/proposals";
 import ProposalEditor from "@/pages/proposal-editor";
 import Moodboard from "@/pages/moodboard";
+import MoodboardEditor from "@/pages/moodboard-editor";
 import Estimates from "@/pages/estimates";
 import Estimate from "@/pages/estimate";
 import EstimateCreate from "@/pages/estimate-create";
@@ -143,6 +144,18 @@ function Router() {
           <AppLayout>
             <Moodboard />
           </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/moodboard/create">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <MoodboardEditor />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/moodboard/edit/:id">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <MoodboardEditor />
         </ProtectedRoute>
       </Route>
       

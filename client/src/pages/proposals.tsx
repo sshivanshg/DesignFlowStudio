@@ -85,7 +85,7 @@ export default function Proposals() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button>
+            <Button onClick={() => window.location.href = '/proposal-editor'}>
               <Plus className="mr-2 h-4 w-4" /> Create Proposal
             </Button>
           </div>
@@ -157,7 +157,12 @@ export default function Proposals() {
                         <Button variant="ghost" size="icon" className="h-7 w-7">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7"
+                          onClick={() => window.location.href = `/proposal-editor/${proposal.id}`}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -178,7 +183,7 @@ export default function Proposals() {
                       ? `No proposals matching "${searchQuery}"` 
                       : "Create your first proposal to showcase your design ideas to clients."}
                   </p>
-                  <Button>
+                  <Button onClick={() => window.location.href = '/proposal-editor'}>
                     <Plus className="mr-2 h-4 w-4" /> Create New Proposal
                   </Button>
                 </div>

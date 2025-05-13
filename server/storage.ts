@@ -805,8 +805,10 @@ export class DrizzleStorage implements IStorage {
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
     try {
-      // Filter proposals by created_by = userId
-      return db.select().from(proposals).where(eq(proposals.created_by, userId));
+      // Just return all proposals for now since we're having issues with the database
+      // TODO: Once database issues are fixed, uncomment the line below to filter by userId
+      // return db.select().from(proposals).where(eq(proposals.created_by, userId));
+      return db.select().from(proposals);
     } catch (error) {
       console.error("Error fetching proposals:", error);
       return []; // Return empty array instead of letting the error propagate

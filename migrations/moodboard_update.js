@@ -1,7 +1,10 @@
-const { drizzle } = require("drizzle-orm/node-postgres");
-const { Pool } = require("pg");
-const { sql } = require("drizzle-orm");
-require('dotenv').config();
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
+import { sql } from "drizzle-orm";
+import dotenv from "dotenv";
+
+const { Pool } = pg;
+dotenv.config();
 
 const main = async () => {
   // Initialize the database connection
@@ -44,6 +47,7 @@ const main = async () => {
   process.exit(0);
 };
 
+// Execute the migration script
 main().catch((error) => {
   console.error("Migration failed:", error);
   process.exit(1);

@@ -1,7 +1,7 @@
-// CommonJS syntax
-const pg = require('pg');
+// ES Modules syntax
+import pg from 'pg';
 
-function fixDatabase() {
+async function fixDatabase() {
   console.log('Starting database fix script...');
   
   try {

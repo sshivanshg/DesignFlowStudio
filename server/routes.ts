@@ -691,9 +691,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
+      
+      // Get client info if client_id exists
+      if (project.client_id) {
+        const client = await storage.getClient(project.client_id);
+        if (client) {
+          project.client = client;
+        }
+      }
+      
       res.json(project);
     } catch (error) {
       res.status(500).json({ message: "Error fetching project" });
+    }
+  });
+  
+  // Project room endpoints
+  app.post("/api/projects/:id/rooms", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = (req.user as any).id;
+      const { name, description } = req.body;
+      
+      // Validate the project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Add room to project
+      const updatedProject = await storage.addProjectRoom(projectId, { 
+        name, 
+        description
+      });
+      
+      // Create activity for adding room
+      await storage.createActivity({
+        user_id: userId,
+        client_id: project.client_id,
+        project_id: projectId,
+        type: "room_added",
+        description: `Added room "${name}" to project`,
+        metadata: {}
+      });
+      
+      res.status(201).json(updatedProject);
+    } catch (error) {
+      console.error("Error adding room to project:", error);
+      res.status(500).json({ message: "Error adding room to project" });
+    }
+  });
+  
+  app.patch("/api/projects/:id/rooms/:roomId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const roomId = parseInt(req.params.roomId);
+      const roomData = req.body;
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Update room in project
+      const updatedProject = await storage.updateProjectRoom(projectId, roomId, roomData);
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project room:", error);
+      res.status(500).json({ message: "Error updating project room" });
+    }
+  });
+  
+  app.delete("/api/projects/:id/rooms/:roomId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const roomId = parseInt(req.params.roomId);
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Delete room from project
+      const updatedProject = await storage.deleteProjectRoom(projectId, roomId);
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error deleting project room:", error);
+      res.status(500).json({ message: "Error deleting project room" });
+    }
+  });
+  
+  // Project task endpoints
+  app.post("/api/projects/:id/tasks", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = (req.user as any).id;
+      const { name, description, dueDate, status, assignedTo, roomId } = req.body;
+      
+      // Validate the project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Add task to project
+      const updatedProject = await storage.addProjectRoomTask(projectId, roomId, { 
+        name, 
+        description,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        assignedTo
+      });
+      
+      // Create activity for adding task
+      await storage.createActivity({
+        user_id: userId,
+        client_id: project.client_id,
+        project_id: projectId,
+        type: "task_added",
+        description: `Added task "${name}" to project`,
+        metadata: { roomId }
+      });
+      
+      res.status(201).json(updatedProject);
+    } catch (error) {
+      console.error("Error adding task to project:", error);
+      res.status(500).json({ message: "Error adding task to project" });
+    }
+  });
+  
+  app.patch("/api/projects/:id/tasks/:taskId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.taskId);
+      const taskData = req.body;
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Update task in project
+      const updatedProject = await storage.updateProjectTask(projectId, taskId, taskData);
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project task:", error);
+      res.status(500).json({ message: "Error updating project task" });
+    }
+  });
+  
+  app.delete("/api/projects/:id/tasks/:taskId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.taskId);
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Delete task from project
+      const updatedProject = await storage.deleteProjectTask(projectId, taskId);
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error deleting project task:", error);
+      res.status(500).json({ message: "Error deleting project task" });
+    }
+  });
+  
+  // Project logs endpoints
+  app.post("/api/projects/:id/logs", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = (req.user as any).id;
+      const { text, photoUrl, photoCaption, roomId } = req.body;
+      
+      // Validate the project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Add log to project
+      const updatedProject = await storage.addProjectLog(
+        projectId, 
+        { text, photoUrl, photoCaption, roomId }, 
+        userId
+      );
+      
+      res.status(201).json(updatedProject);
+    } catch (error) {
+      console.error("Error adding log to project:", error);
+      res.status(500).json({ message: "Error adding log to project" });
+    }
+  });
+  
+  // Project reports endpoints
+  app.post("/api/projects/:id/reports", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const reportSettings = req.body;
+      
+      // Validate the project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Configure reports for project
+      const updatedProject = await storage.configureProjectReports(projectId, reportSettings);
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error configuring project reports:", error);
+      res.status(500).json({ message: "Error configuring project reports" });
     }
   });
 

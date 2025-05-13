@@ -2325,6 +2325,200 @@ export class DrizzleStorage implements IStorage {
       .returning();
     return result[0];
   }
+  
+  // Company settings methods
+  async getCompanySettings(): Promise<CompanySettings | undefined> {
+    const result = await db.select().from(companySettings).limit(1);
+    return result[0];
+  }
+  
+  async updateCompanySettings(settings: Partial<CompanySettings>): Promise<CompanySettings | undefined> {
+    const currentSettings = await this.getCompanySettings();
+    
+    if (!currentSettings) {
+      // Create settings if they don't exist
+      const result = await db.insert(companySettings).values({
+        ...settings,
+        name: settings.name || "My Company",
+        enabledFeatures: settings.enabledFeatures || {
+          crm: true,
+          proposals: true,
+          moodboards: true,
+          estimates: true,
+          whatsapp: true,
+          tasks: true
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      
+      return result[0];
+    }
+    
+    // Update existing settings
+    const result = await db.update(companySettings)
+      .set({
+        ...settings,
+        updatedAt: new Date()
+      })
+      .where(eq(companySettings.id, currentSettings.id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  // Template category methods
+  async getTemplateCategories(type?: string): Promise<TemplateCategory[]> {
+    if (type) {
+      return await db.select().from(templateCategories).where(eq(templateCategories.type, type));
+    }
+    
+    return await db.select().from(templateCategories);
+  }
+  
+  async getTemplateCategory(id: number): Promise<TemplateCategory | undefined> {
+    const result = await db.select().from(templateCategories).where(eq(templateCategories.id, id));
+    return result[0];
+  }
+  
+  async createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory> {
+    const result = await db.insert(templateCategories).values({
+      ...category,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    return result[0];
+  }
+  
+  async updateTemplateCategory(id: number, category: Partial<TemplateCategory>): Promise<TemplateCategory | undefined> {
+    const result = await db.update(templateCategories)
+      .set({
+        ...category,
+        updatedAt: new Date()
+      })
+      .where(eq(templateCategories.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deleteTemplateCategory(id: number): Promise<boolean> {
+    const result = await db.delete(templateCategories).where(eq(templateCategories.id, id));
+    return result.count > 0;
+  }
+  
+  // Template methods
+  async getTemplates(type?: string, categoryId?: number): Promise<Template[]> {
+    if (type && categoryId) {
+      return await db.select().from(templates)
+        .where(and(
+          eq(templates.type, type),
+          eq(templates.categoryId, categoryId)
+        ));
+    } else if (type) {
+      return await db.select().from(templates).where(eq(templates.type, type));
+    } else if (categoryId) {
+      return await db.select().from(templates).where(eq(templates.categoryId, categoryId));
+    }
+    
+    return await db.select().from(templates);
+  }
+  
+  async getTemplate(id: number): Promise<Template | undefined> {
+    const result = await db.select().from(templates).where(eq(templates.id, id));
+    return result[0];
+  }
+  
+  async getDefaultTemplate(type: string): Promise<Template | undefined> {
+    const result = await db.select().from(templates)
+      .where(and(
+        eq(templates.type, type),
+        eq(templates.isDefault, true)
+      ));
+    
+    return result[0];
+  }
+  
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const result = await db.insert(templates).values({
+      ...template,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    return result[0];
+  }
+  
+  async updateTemplate(id: number, template: Partial<Template>): Promise<Template | undefined> {
+    const result = await db.update(templates)
+      .set({
+        ...template,
+        updatedAt: new Date()
+      })
+      .where(eq(templates.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deleteTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.id, id));
+    return result.count > 0;
+  }
+  
+  async setDefaultTemplate(id: number, type: string): Promise<boolean> {
+    try {
+      // First, unset any existing default templates for this type
+      await db.update(templates)
+        .set({ isDefault: false })
+        .where(and(
+          eq(templates.type, type),
+          eq(templates.isDefault, true)
+        ));
+      
+      // Then set the new default template
+      const result = await db.update(templates)
+        .set({ isDefault: true })
+        .where(and(
+          eq(templates.id, id),
+          eq(templates.type, type)
+        ));
+      
+      return result.count > 0;
+    } catch (error) {
+      console.error("Error setting default template:", error);
+      return false;
+    }
+  }
+  
+  // Analytics methods
+  async getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]> {
+    let query = db.select().from(analytics);
+    
+    if (metric) {
+      query = query.where(eq(analytics.metric, metric));
+    }
+    
+    if (startDate) {
+      query = query.where(gte(analytics.date, startDate));
+    }
+    
+    if (endDate) {
+      query = query.where(lte(analytics.date, endDate));
+    }
+    
+    return await query;
+  }
+  
+  async createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics> {
+    const result = await db.insert(analytics).values({
+      ...entry,
+      createdAt: new Date()
+    }).returning();
+    
+    return result[0];
+  }
 }
 
 // Choose which implementation to use

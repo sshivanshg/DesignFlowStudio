@@ -27,6 +27,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
+  getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined>;
+  getUserByField(field: string, value: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   
@@ -158,6 +160,18 @@ export class MemStorage implements IStorage {
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.firebaseUid === firebaseUid,
+    );
+  }
+  
+  async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.supabaseUid === supabaseUid,
+    );
+  }
+  
+  async getUserByField(field: string, value: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user[field as keyof User] === value,
     );
   }
 
@@ -902,6 +916,21 @@ export class StorageAdapter implements IStorage {
   
   async getUserByEmail(email: string): Promise<User | undefined> {
     const user = await this.drizzleStorage.getUserByEmail(email);
+    return user ? convertKeysToCamelCase(user) : undefined;
+  }
+  
+  async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
+    const user = await this.drizzleStorage.getUserByFirebaseUid(firebaseUid);
+    return user ? convertKeysToCamelCase(user) : undefined;
+  }
+  
+  async getUserBySupabaseUid(supabaseUid: string): Promise<User | undefined> {
+    const user = await this.drizzleStorage.getUserBySupabaseUid(supabaseUid);
+    return user ? convertKeysToCamelCase(user) : undefined;
+  }
+  
+  async getUserByField(field: string, value: string): Promise<User | undefined> {
+    const user = await this.drizzleStorage.getUserByField(field, value);
     return user ? convertKeysToCamelCase(user) : undefined;
   }
   

@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   role: text("role", { enum: ['admin', 'designer', 'sales'] }).notNull().default('sales'),
   activePlan: text("active_plan").default('free'),
   firebaseUid: text("firebase_uid").unique(),
+  supabaseUid: text("supabase_uid").unique(),
   company: text("company"),
   avatar: text("avatar"),
   createdAt: timestamp("created_at").defaultNow(),

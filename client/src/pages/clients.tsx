@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Client, Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,75 @@ import {
   ChevronRight,
   Link2
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { apiRequest } from "@/lib/queryClient";
+
+// Client validation schema
+const clientSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  email: z.string().email({ message: "Valid email is required" }),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  company: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+type ClientFormValues = z.infer<typeof clientSchema>;
 
 export default function Clients() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  // Form setup
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      company: "",
+      notes: "",
+    },
+  });
+  
+  // Create client mutation
+  const createClientMutation = useMutation({
+    mutationFn: (data: ClientFormValues) => {
+      return apiRequest("/api/clients", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      toast({
+        title: "Client created",
+        description: "New client has been added successfully.",
+      });
+      setIsCreateDialogOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create client. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
   
   const { data: clients, isLoading: isClientsLoading } = useQuery<Client[]>({
     queryKey: ['/api/clients'],
@@ -40,6 +105,10 @@ export default function Clients() {
     client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  
+  const handleSubmit = async (values: ClientFormValues) => {
+    createClientMutation.mutate(values);
+  };
   
   return (
     <>
@@ -61,12 +130,134 @@ export default function Clients() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Add Client
             </Button>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Create Client Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Add New Client</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="client@example.com" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 000-0000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="company"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Company Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 Main St, City, Country" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add any additional notes about this client" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    form.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createClientMutation.isPending}
+                >
+                  {createClientMutation.isPending ? "Creating..." : "Create Client"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
       {isClientsLoading ? (
         <div className="p-12 flex justify-center">

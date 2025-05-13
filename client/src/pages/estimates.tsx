@@ -59,8 +59,8 @@ export default function EstimatesPage() {
   const { data: estimates, isLoading, isError } = useQuery({
     queryKey: ['/api/estimates'],
     queryFn: async () => {
-      const result = await apiRequest('GET', '/api/estimates');
-      return result;
+      const response = await apiRequest('GET', '/api/estimates');
+      return response.json();
     }
   });
 

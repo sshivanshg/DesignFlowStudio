@@ -22,7 +22,7 @@ const profileFormSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   company: z.string().optional(),
-  role: z.string()
+  role: z.enum(["admin", "designer", "sales"])
 });
 
 const passwordFormSchema = z.object({

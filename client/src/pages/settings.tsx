@@ -66,6 +66,61 @@ export default function Settings() {
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </Button>
+                
+                {/* Test mode for role switching - Development only */}
+                <div className="mt-4 border-t pt-4 w-full">
+                  <h4 className="text-xs font-semibold text-gray-500 mb-2">Test Different Roles</h4>
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={user.role === 'admin' ? 'default' : 'outline'}
+                      className="w-full text-xs"
+                      onClick={() => {
+                        // Update the user object in localStorage with admin role
+                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
+                        const updatedUser = { ...currentUser, role: 'admin' };
+                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+                        // Reload the page to apply changes
+                        window.location.reload();
+                      }}
+                    >
+                      Switch to Admin
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={user.role === 'designer' ? 'default' : 'outline'}
+                      className="w-full text-xs"
+                      onClick={() => {
+                        // Update the user object in localStorage with designer role
+                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
+                        const updatedUser = { ...currentUser, role: 'designer' };
+                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+                        // Reload the page to apply changes
+                        window.location.reload();
+                      }}
+                    >
+                      Switch to Designer
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={user.role === 'sales' ? 'default' : 'outline'}
+                      className="w-full text-xs"
+                      onClick={() => {
+                        // Update the user object in localStorage with sales role
+                        const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
+                        const updatedUser = { ...currentUser, role: 'sales' };
+                        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+                        // Reload the page to apply changes
+                        window.location.reload();
+                      }}
+                    >
+                      Switch to Sales
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    This is for testing only. Role changes are temporary and will be reset on logout.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

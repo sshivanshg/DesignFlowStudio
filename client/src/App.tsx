@@ -95,6 +95,15 @@ function ProtectedRoute({
 function Router() {
   return (
     <Switch>
+      {/* Settings Routes - Must be defined first */}
+      <Route path="/settings">
+        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
+          <AppLayout>
+            <Settings />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
       <Route path="/login">
         <Login />
       </Route>
@@ -243,13 +252,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
-      <Route path="/settings/*">
-        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
-          <AppLayout>
-            <Settings />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
+      {/* Settings route moved to the top of the router */}
       
       <Route>
         <NotFound />

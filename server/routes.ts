@@ -325,6 +325,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lead routes
+  app.get("/api/leads", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const leads = await storage.getLeads(userId);
+      res.json(leads);
+    } catch (error) {
+      console.error("Error getting leads:", error);
+      res.status(500).json({ message: "Error retrieving leads" });
+    }
+  });
+  
+  app.get("/api/leads/stage/:stage", isAuthenticated, async (req, res) => {
+    try {
+      const stage = req.params.stage;
+      const leads = await storage.getLeadsByStage(stage);
+      res.json(leads);
+    } catch (error) {
+      console.error("Error getting leads by stage:", error);
+      res.status(500).json({ message: "Error retrieving leads by stage" });
+    }
+  });
+  
+  app.get("/api/leads/:id", isAuthenticated, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      res.json(lead);
+    } catch (error) {
+      console.error("Error getting lead:", error);
+      res.status(500).json({ message: "Error retrieving lead" });
+    }
+  });
+  
+  app.post("/api/leads", isAuthenticated, async (req, res) => {
+    try {
+      const { name, phone, email, source, stage, tag, notes, followUpDate } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      
+      const userId = (req.user as any).id;
+      
+      const newLead = await storage.createLead({
+        name,
+        phone: phone || null,
+        email: email || null,
+        source: source || null,
+        stage: stage || "new",
+        tag: tag || null,
+        assignedTo: userId,
+        notes: notes || null,
+        followUpDate: followUpDate ? new Date(followUpDate) : null
+      });
+      
+      // Create activity for new lead
+      await storage.createActivity({
+        user_id: userId,
+        type: "lead_created",
+        description: `Added new lead: ${name}`,
+        metadata: { source, stage }
+      });
+      
+      res.status(201).json(newLead);
+    } catch (error) {
+      console.error("Error creating lead:", error);
+      res.status(500).json({ message: "Error creating lead" });
+    }
+  });
+  
+  app.patch("/api/leads/:id", isAuthenticated, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      const { name, phone, email, source, stage, tag, notes, followUpDate, assignedTo } = req.body;
+      const updatedData: Partial<Lead> = {};
+      
+      if (name !== undefined) updatedData.name = name;
+      if (phone !== undefined) updatedData.phone = phone;
+      if (email !== undefined) updatedData.email = email;
+      if (source !== undefined) updatedData.source = source;
+      if (stage !== undefined) updatedData.stage = stage;
+      if (tag !== undefined) updatedData.tag = tag;
+      if (notes !== undefined) updatedData.notes = notes;
+      if (followUpDate !== undefined) updatedData.followUpDate = followUpDate ? new Date(followUpDate) : null;
+      if (assignedTo !== undefined) updatedData.assignedTo = assignedTo;
+      
+      const updatedLead = await storage.updateLead(leadId, updatedData);
+      
+      // Create activity for updated lead
+      if (stage && stage !== lead.stage) {
+        await storage.createActivity({
+          user_id: (req.user as any).id,
+          type: "lead_stage_changed",
+          description: `Changed lead "${lead.name}" stage from ${lead.stage} to ${stage}`,
+          metadata: { previousStage: lead.stage, newStage: stage }
+        });
+      } else {
+        await storage.createActivity({
+          user_id: (req.user as any).id,
+          type: "lead_updated",
+          description: `Updated lead information for ${lead.name}`,
+          metadata: {}
+        });
+      }
+      
+      res.json(updatedLead);
+    } catch (error) {
+      console.error("Error updating lead:", error);
+      res.status(500).json({ message: "Error updating lead" });
+    }
+  });
+  
+  app.delete("/api/leads/:id", isAuthenticated, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      const deleted = await storage.deleteLead(leadId);
+      
+      if (deleted) {
+        // Create activity for deleted lead
+        await storage.createActivity({
+          user_id: (req.user as any).id,
+          type: "lead_deleted",
+          description: `Removed lead ${lead.name}`,
+          metadata: {}
+        });
+        
+        return res.json({ success: true });
+      }
+      
+      res.status(500).json({ message: "Error deleting lead" });
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      res.status(500).json({ message: "Error deleting lead" });
+    }
+  });
+  
   // Project routes
   app.get("/api/projects", isAuthenticated, async (req, res) => {
     try {

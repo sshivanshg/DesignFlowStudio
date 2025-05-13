@@ -551,6 +551,62 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
   
+  // Lead methods
+  async getLeads(userId: number): Promise<Lead[]> {
+    const result = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.assignedTo, userId));
+    
+    return result;
+  }
+  
+  async getLeadsByStage(stage: string): Promise<Lead[]> {
+    const result = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.stage, stage));
+    
+    return result;
+  }
+  
+  async getLead(id: number): Promise<Lead | undefined> {
+    const result = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.id, id));
+    
+    return result[0];
+  }
+  
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const result = await db
+      .insert(leads)
+      .values(lead)
+      .returning();
+    
+    return result[0];
+  }
+  
+  async updateLead(id: number, leadData: Partial<Lead>): Promise<Lead | undefined> {
+    const result = await db
+      .update(leads)
+      .set({ ...leadData, updatedAt: new Date() })
+      .where(eq(leads.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deleteLead(id: number): Promise<boolean> {
+    const result = await db
+      .delete(leads)
+      .where(eq(leads.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
+  
   // Client methods
   async getClients(userId: number): Promise<Client[]> {
     return db.select().from(clients);
@@ -864,6 +920,38 @@ export class StorageAdapter implements IStorage {
     const snakeCaseUserData = convertKeysToSnakeCase(userData);
     const updatedUser = await this.drizzleStorage.updateUser(id, snakeCaseUserData);
     return updatedUser ? convertKeysToCamelCase(updatedUser) : undefined;
+  }
+  
+  // Lead methods
+  async getLeads(userId: number): Promise<Lead[]> {
+    const leads = await this.drizzleStorage.getLeads(userId);
+    return leads.map(lead => convertKeysToCamelCase(lead));
+  }
+  
+  async getLeadsByStage(stage: string): Promise<Lead[]> {
+    const leads = await this.drizzleStorage.getLeadsByStage(stage);
+    return leads.map(lead => convertKeysToCamelCase(lead));
+  }
+  
+  async getLead(id: number): Promise<Lead | undefined> {
+    const lead = await this.drizzleStorage.getLead(id);
+    return lead ? convertKeysToCamelCase(lead) : undefined;
+  }
+  
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const snakeCaseLead = convertKeysToSnakeCase(lead);
+    const createdLead = await this.drizzleStorage.createLead(snakeCaseLead);
+    return convertKeysToCamelCase(createdLead);
+  }
+  
+  async updateLead(id: number, lead: Partial<Lead>): Promise<Lead | undefined> {
+    const snakeCaseLead = convertKeysToSnakeCase(lead);
+    const updatedLead = await this.drizzleStorage.updateLead(id, snakeCaseLead);
+    return updatedLead ? convertKeysToCamelCase(updatedLead) : undefined;
+  }
+  
+  async deleteLead(id: number): Promise<boolean> {
+    return this.drizzleStorage.deleteLead(id);
   }
   
   // Client methods

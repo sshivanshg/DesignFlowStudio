@@ -2,35 +2,100 @@ import React, { createContext, useState, useEffect } from "react";
 import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { 
+  auth, 
+  setupRecaptcha, 
+  signOut as firebaseSignOut 
+} from "@/lib/firebase";
+import { 
+  User as FirebaseUser, 
+  ConfirmationResult,
+  signInWithCredential, 
+  PhoneAuthProvider,
+  onAuthStateChanged
+} from "firebase/auth";
 
 interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   isLoading: boolean;
+  confirmationResult: ConfirmationResult | null;
   login: (username: string, password: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, recaptchaContainerId: string) => Promise<void>;
+  verifyOtp: (otp: string) => Promise<void>;
   register: (userData: {
     username: string;
     password: string;
     email: string;
     fullName: string;
+    phone?: string;
+    role?: 'admin' | 'designer' | 'sales';
     company?: string;
   }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
+  firebaseUser: null,
   isLoading: true,
+  confirmationResult: null,
   login: async () => {},
+  loginWithPhone: async () => {},
+  verifyOtp: async () => {},
   register: async () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Check if user is already logged in
+  // Firebase auth state listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setFirebaseUser(currentUser);
+      
+      if (currentUser) {
+        try {
+          // Get ID token to pass to backend
+          const idToken = await currentUser.getIdToken();
+          
+          // Fetch user data from our database
+          const response = await fetch("/api/auth/firebase-auth", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ 
+              firebaseUid: currentUser.uid,
+              phone: currentUser.phoneNumber,
+              idToken 
+            }),
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+          } else {
+            console.error("Failed to get user data");
+          }
+        } catch (error) {
+          console.error("Failed to process Firebase auth:", error);
+        }
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Legacy session check (traditional authentication)
   useEffect(() => {
     async function checkAuthStatus() {
       try {
@@ -45,12 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Failed to check auth status:", error);
       } finally {
-        setIsLoading(false);
+        if (!firebaseUser) {
+          setIsLoading(false);
+        }
       }
     }
 
-    checkAuthStatus();
-  }, []);
+    if (!firebaseUser) {
+      checkAuthStatus();
+    }
+  }, [firebaseUser]);
 
   // Login function
   const login = async (username: string, password: string) => {

@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,8 +54,23 @@ export default function Login() {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   
+  // Reset OTP input and clear recaptcha when changing tabs
+  useEffect(() => {
+    setShowOtpInput(false);
+    // Clear any existing recaptcha when switching to phone tab
+    if (activeTab === "phone" && (window as any).recaptchaVerifier) {
+      try {
+        (window as any).recaptchaVerifier.clear();
+        (window as any).recaptchaVerifier = null;
+      } catch (error) {
+        console.error("Error clearing recaptcha:", error);
+      }
+    }
+  }, [activeTab]);
+  
   const { login, register, loginWithPhone, verifyOtp } = useAuth();
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -134,6 +150,12 @@ export default function Login() {
       setShowOtpInput(true);
     } catch (error) {
       console.error("Phone authentication failed:", error);
+      // Display error message
+      toast({
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Failed to authenticate with phone number",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -271,7 +293,7 @@ export default function Login() {
                           </FormItem>
                         )}
                       />
-                      <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
+                      <div id="recaptcha-container" ref={recaptchaContainerRef} className="recaptcha-container"></div>
                     </CardContent>
                     <CardFooter>
                       <Button 

@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Phone OTP login function
-  const loginWithPhone = async (phoneNumber: string, recaptchaContainerId: string) => {
+  const loginWithPhone = async (phoneNumber: string, recaptchaContainerId: string): Promise<void> => {
     setIsLoading(true);
     try {
       // Setup reCAPTCHA and send OTP
@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Please enter the code sent to your phone",
       });
       
-      return confirmation;
+      // No return value as promised by the interface
     } catch (error) {
       toast({
         title: "Failed to send verification code",

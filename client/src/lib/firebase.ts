@@ -22,12 +22,23 @@ export const auth = getAuth(app);
 
 // OTP Authentication functions
 export const setupRecaptcha = (phoneNumber: string, containerID: string) => {
+  // Create a new RecaptchaVerifier instance, or clear and recreate if it exists
+  if ((window as any).recaptchaVerifier) {
+    (window as any).recaptchaVerifier.clear();
+  }
+  
   const recaptchaVerifier = new RecaptchaVerifier(auth, containerID, {
     size: 'invisible',
     callback: () => {
-      // reCAPTCHA solved, allow signInWithPhoneNumber
+      console.log("reCAPTCHA solved, allowing signInWithPhoneNumber");
+    },
+    'expired-callback': () => {
+      console.log("reCAPTCHA expired");
     }
   });
+  
+  // Store in window for potential reuse
+  (window as any).recaptchaVerifier = recaptchaVerifier;
 
   return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
 };

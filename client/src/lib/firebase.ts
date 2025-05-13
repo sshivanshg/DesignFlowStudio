@@ -25,26 +25,43 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // OTP Authentication functions
-export const setupRecaptcha = (phoneNumber: string, containerID: string) => {
-  // Create a new RecaptchaVerifier instance, or clear and recreate if it exists
-  if ((window as any).recaptchaVerifier) {
-    (window as any).recaptchaVerifier.clear();
-  }
-  
-  const recaptchaVerifier = new RecaptchaVerifier(auth, containerID, {
-    size: 'invisible',
-    callback: () => {
-      console.log("reCAPTCHA solved, allowing signInWithPhoneNumber");
-    },
-    'expired-callback': () => {
-      console.log("reCAPTCHA expired");
+export const setupRecaptcha = async (phoneNumber: string, containerID: string) => {
+  try {
+    // Create a new RecaptchaVerifier instance, or clear and recreate if it exists
+    if ((window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier.clear();
     }
-  });
-  
-  // Store in window for potential reuse
-  (window as any).recaptchaVerifier = recaptchaVerifier;
+    
+    const recaptchaVerifier = new RecaptchaVerifier(auth, containerID, {
+      size: 'invisible',
+      callback: () => {
+        console.log("reCAPTCHA solved, allowing signInWithPhoneNumber");
+      },
+      'expired-callback': () => {
+        console.log("reCAPTCHA expired");
+      }
+    });
+    
+    // Store in window for potential reuse
+    (window as any).recaptchaVerifier = recaptchaVerifier;
 
-  return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+    return await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+  } catch (error: any) {
+    console.error("Phone authentication failed:", error);
+    
+    // Provide more user-friendly error messages
+    if (error.code === 'auth/invalid-phone-number') {
+      throw new Error('The phone number is invalid. Please enter a valid phone number with country code (e.g., +1234567890).');
+    } else if (error.code === 'auth/captcha-check-failed') {
+      throw new Error('The reCAPTCHA verification failed. Please try again.');
+    } else if (error.code === 'auth/quota-exceeded') {
+      throw new Error('SMS quota has been exceeded. Please try again later.');
+    } else if (error.code?.includes('permission-denied') || error.code?.includes('api-key')) {
+      throw new Error('The Firebase API key has been suspended or is incorrectly configured. Please check your Firebase project configuration and billing status.');
+    } else {
+      throw error;
+    }
+  }
 };
 
 // Google authentication provider
@@ -60,7 +77,15 @@ export const signInWithGoogle = async () => {
     return result;
   } catch (error) {
     console.error("Error signing in with Google:", error);
-    throw error;
+    
+    // Provide more user-friendly error messages
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain is not authorized for authentication. Please add your domain in the Firebase console under Authentication > Settings > Authorized domains.');
+    } else if (error.code?.includes('permission-denied') || error.code?.includes('api-key')) {
+      throw new Error('The Firebase API key has been suspended or is incorrectly configured. Please check your Firebase project configuration and billing status.');
+    } else {
+      throw error;
+    }
   }
 };
 

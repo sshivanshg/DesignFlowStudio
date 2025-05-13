@@ -168,9 +168,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     try {
       console.log("Starting Google Sign In with Supabase...");
       
-      // Make sure we redirect to the dashboard after successful login
-      const redirectUrl = `${window.location.origin}/dashboard`;
-      console.log("Redirect URL:", redirectUrl);
+      // Get the current URL to redirect back to the same page after auth
+      // This helps prevent login loops when we're on a protected page
+      const currentPath = window.location.pathname;
+      const redirectPath = currentPath === '/login' ? '/dashboard' : currentPath;
+      const redirectUrl = `${window.location.origin}${redirectPath}`;
+      
+      console.log("Redirect URL after auth:", redirectUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

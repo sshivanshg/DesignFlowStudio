@@ -609,59 +609,31 @@ export class DrizzleStorage implements IStorage {
     }, null, 2));
     
     try {
-      // We need to manually map fields because Drizzle has CamelCase in the schema
-      // but snake_case in the database
-      const valuesToInsert: any = {};
+      // Instead of using raw SQL, let's use the Drizzle ORM directly
+      const newUser = await db
+        .insert(users)
+        .values({
+          username: user.username,
+          password: user.password,
+          email: user.email,
+          name: user.name || user.username,
+          fullName: user.fullName || user.name || user.username,
+          phone: user.phone || null,
+          role: user.role || 'designer',
+          activePlan: user.activePlan || 'free',
+          firebaseUid: user.firebaseUid || null,
+          supabaseUid: user.supabaseUid || null,
+          company: user.company || null,
+          avatar: user.avatar || null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning()
+        .execute();
       
-      // Set required fields
-      valuesToInsert.username = user.username;
-      valuesToInsert.password = user.password;
-      valuesToInsert.email = user.email;
-      valuesToInsert.name = user.name;
-      
-      // Set the fullName field using correct database column name (snake_case)
-      if (user.fullName) {
-        valuesToInsert.full_name = user.fullName;
-      }
-      
-      // Set optional fields
-      if (user.phone !== undefined) valuesToInsert.phone = user.phone;
-      if (user.role !== undefined) valuesToInsert.role = user.role;
-      if (user.activePlan !== undefined) valuesToInsert.active_plan = user.activePlan;
-      if (user.firebaseUid !== undefined) valuesToInsert.firebase_uid = user.firebaseUid;
-      if (user.supabaseUid !== undefined) valuesToInsert.supabase_uid = user.supabaseUid;
-      if (user.company !== undefined) valuesToInsert.company = user.company;
-      if (user.avatar !== undefined) valuesToInsert.avatar = user.avatar;
-      
-      // Execute a raw SQL query to avoid the mapping issues with Drizzle
-      const query = drizzleSql`
-        INSERT INTO users (
-          username, password, email, name, full_name, 
-          phone, role, active_plan, firebase_uid, supabase_uid, 
-          company, avatar
-        ) 
-        VALUES (
-          ${valuesToInsert.username}, 
-          ${valuesToInsert.password}, 
-          ${valuesToInsert.email}, 
-          ${valuesToInsert.name}, 
-          ${valuesToInsert.full_name}, 
-          ${valuesToInsert.phone}, 
-          ${valuesToInsert.role || 'designer'}, 
-          ${valuesToInsert.active_plan || 'free'}, 
-          ${valuesToInsert.firebase_uid}, 
-          ${valuesToInsert.supabase_uid}, 
-          ${valuesToInsert.company}, 
-          ${valuesToInsert.avatar}
-        )
-        RETURNING *
-      `;
-      
-      const result = await db.execute(query);
-      
-      if (result && result.length > 0) {
-        console.log("User created successfully:", result[0].id);
-        return result[0] as User;
+      if (newUser && newUser.length > 0) {
+        console.log("User created successfully:", newUser[0].id);
+        return newUser[0];
       } else {
         throw new Error("Failed to create user, no result returned");
       }

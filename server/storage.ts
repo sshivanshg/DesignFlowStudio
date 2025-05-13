@@ -478,6 +478,77 @@ export class MemStorage implements IStorage {
   async deleteEstimate(id: number): Promise<boolean> {
     return this.estimates.delete(id);
   }
+  
+  async getEstimatesByLeadId(leadId: number): Promise<Estimate[]> {
+    return Array.from(this.estimates.values()).filter(
+      (estimate) => estimate.lead_id === leadId,
+    );
+  }
+  
+  async getEstimatesByClientId(clientId: number): Promise<Estimate[]> {
+    return Array.from(this.estimates.values()).filter(
+      (estimate) => estimate.client_id === clientId,
+    );
+  }
+  
+  async getEstimateTemplates(): Promise<Estimate[]> {
+    return Array.from(this.estimates.values()).filter(
+      (estimate) => estimate.isTemplate === true,
+    );
+  }
+  
+  // EstimateConfig methods
+  async getEstimateConfigs(): Promise<EstimateConfig[]> {
+    return Array.from(this.estimateConfigs.values());
+  }
+  
+  async getActiveEstimateConfigs(): Promise<EstimateConfig[]> {
+    return Array.from(this.estimateConfigs.values()).filter(
+      (config) => config.isActive === true,
+    );
+  }
+  
+  async getEstimateConfigsByType(configType: string): Promise<EstimateConfig[]> {
+    return Array.from(this.estimateConfigs.values()).filter(
+      (config) => config.configType === configType,
+    );
+  }
+  
+  async getEstimateConfig(id: number): Promise<EstimateConfig | undefined> {
+    return this.estimateConfigs.get(id);
+  }
+  
+  async createEstimateConfig(insertConfig: InsertEstimateConfig): Promise<EstimateConfig> {
+    const id = this.estimateConfigId++;
+    const now = new Date();
+    const config: EstimateConfig = { 
+      ...insertConfig, 
+      id, 
+      createdAt: now,
+      updatedAt: now,
+      isActive: insertConfig.isActive ?? true
+    };
+    this.estimateConfigs.set(id, config);
+    return config;
+  }
+  
+  async updateEstimateConfig(id: number, configData: Partial<EstimateConfig>): Promise<EstimateConfig | undefined> {
+    const existingConfig = await this.getEstimateConfig(id);
+    if (!existingConfig) return undefined;
+    
+    const now = new Date();
+    const updatedConfig = { 
+      ...existingConfig, 
+      ...configData,
+      updatedAt: now 
+    };
+    this.estimateConfigs.set(id, updatedConfig);
+    return updatedConfig;
+  }
+  
+  async deleteEstimateConfig(id: number): Promise<boolean> {
+    return this.estimateConfigs.delete(id);
+  }
 
   // Task methods
   async getTasks(userId: number): Promise<Task[]> {

@@ -69,7 +69,7 @@ export default function Login() {
     }
   }, [activeTab]);
   
-  const { login, register, loginWithPhone, loginWithGoogle, verifyOtp } = useAuth();
+  const { login, register: registerFirebase, loginWithPhone, loginWithGoogle, verifyOtp } = useAuth();
   const { signInWithEmail, signInWithGoogle: supabaseSignInWithGoogle, signUp, signOut } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();

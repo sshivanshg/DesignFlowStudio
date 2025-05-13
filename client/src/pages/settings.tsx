@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut } from "lucide-react";
+import { Link } from "wouter";
+import { LogOut, Settings as SettingsIcon, Users, Shield } from "lucide-react";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -46,27 +47,46 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-[300px_1fr]">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center space-y-4">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={user?.avatar || ""} alt={user?.fullName} />
-                <AvatarFallback className="text-xl bg-primary text-white">
-                  {user?.fullName?.split(" ").map(n => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-center">
-                <h3 className="font-medium text-lg">{user.fullName}</h3>
-                <p className="text-sm text-gray-500">{user.email}</p>
-                <p className="text-xs text-gray-400 mt-1">Role: {user.role}</p>
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center space-y-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user?.avatar || ""} alt={user?.fullName} />
+                  <AvatarFallback className="text-xl bg-primary text-white">
+                    {user?.fullName?.split(" ").map(n => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-center">
+                  <h3 className="font-medium text-lg">{user.fullName}</h3>
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                  <p className="text-xs text-gray-400 mt-1">Role: {user.role}</p>
+                </div>
+                <Button variant="outline" className="w-full" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
               </div>
-              <Button variant="outline" className="w-full" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          {user.role === 'admin' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Tools</CardTitle>
+                <CardDescription>Manage your organization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/admin">
+                  <Button className="w-full" variant="outline">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         <div className="space-y-6">
           <Card>

@@ -21,6 +21,7 @@ import Estimate from "@/pages/estimate";
 import EstimateCreate from "@/pages/estimate-create";
 import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
+import AdminDashboard from "@/pages/settings/admin";
 import ProjectTracker from "@/pages/project-tracker";
 import ProjectLogs from "@/pages/project-logs";
 
@@ -100,6 +101,14 @@ function Router() {
         <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
           <AppLayout>
             <Settings />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/settings/admin">
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AppLayout>
+            <AdminDashboard />
           </AppLayout>
         </ProtectedRoute>
       </Route>

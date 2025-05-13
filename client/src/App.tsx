@@ -17,6 +17,7 @@ import ProposalEditor from "@/pages/proposal-editor";
 import Moodboard from "@/pages/moodboard";
 import Estimates from "@/pages/estimates";
 import Estimate from "@/pages/estimate";
+import EstimateCreate from "@/pages/estimate-create";
 import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
 
@@ -149,6 +150,14 @@ function Router() {
         <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
           <AppLayout>
             <Estimates />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/estimates/create">
+        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
+          <AppLayout>
+            <EstimateCreate />
           </AppLayout>
         </ProtectedRoute>
       </Route>

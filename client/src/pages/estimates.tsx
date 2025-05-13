@@ -160,7 +160,7 @@ export default function EstimatesPage() {
           <h1 className="text-2xl font-bold">Estimates</h1>
           <p className="text-muted-foreground">Manage and track all your project estimates</p>
         </div>
-        <Button onClick={() => navigate('/crm')}>
+        <Button onClick={() => navigate('/estimates/create')}>
           <Calculator className="mr-2 h-4 w-4" />
           Create Estimate
         </Button>
@@ -322,7 +322,7 @@ export default function EstimatesPage() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     No estimates found. 
-                    <Button variant="link" onClick={() => navigate('/crm')}>
+                    <Button variant="link" onClick={() => navigate('/estimates/create')}>
                       Create your first estimate
                     </Button>
                   </TableCell>

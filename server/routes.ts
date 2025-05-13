@@ -34,6 +34,7 @@ import {
   hasPortalAccess,
   sendClientLoginEmail
 } from "./clientAuth";
+import { WhatsAppService } from "./whatsapp";
 
 const SessionStore = MemoryStore(session);
 
@@ -2279,6 +2280,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   const httpServer = createServer(app);
+  
+  // Initialize WhatsApp service
+  const whatsAppService = new WhatsAppService(storage);
+  
+  // WhatsApp API Routes
+  app.get("/api/whatsapp/messages", isAuthenticated, async (req, res) => {
+    try {
+      const messages = await storage.getWhatsAppMessages();
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching WhatsApp messages:", error);
+      res.status(500).json({ message: "Error fetching WhatsApp messages" });
+    }
+  });
+  
+  app.get("/api/whatsapp/messages/lead/:leadId", isAuthenticated, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      if (isNaN(leadId)) {
+        return res.status(400).json({ message: "Invalid lead ID" });
+      }
+      const messages = await storage.getWhatsAppMessagesByLeadId(leadId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching WhatsApp messages for lead:", error);
+      res.status(500).json({ message: "Error fetching WhatsApp messages for lead" });
+    }
+  });
+  
+  app.get("/api/whatsapp/messages/client/:clientId", isAuthenticated, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      if (isNaN(clientId)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      const messages = await storage.getWhatsAppMessagesByClientId(clientId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching WhatsApp messages for client:", error);
+      res.status(500).json({ message: "Error fetching WhatsApp messages for client" });
+    }
+  });
+  
+  app.post("/api/whatsapp/send/welcome", isAuthenticated, async (req, res) => {
+    try {
+      const { leadId, name, phone } = req.body;
+      
+      if (!leadId || !phone) {
+        return res.status(400).json({ message: "Lead ID and phone number are required" });
+      }
+      
+      const result = await whatsAppService.sendWelcomeMessage(
+        leadId, 
+        name || "there", 
+        phone
+      );
+      
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ message: result.error || "Failed to send message" });
+      }
+    } catch (error) {
+      console.error("Error sending welcome message:", error);
+      res.status(500).json({ message: "Error sending welcome message" });
+    }
+  });
+  
+  app.post("/api/whatsapp/send/proposal-followup", isAuthenticated, async (req, res) => {
+    try {
+      const { leadId, clientId, name, phone, proposalLink } = req.body;
+      
+      if (!leadId || !clientId || !phone || !proposalLink) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const result = await whatsAppService.sendProposalFollowUp(
+        leadId,
+        clientId,
+        name || "there",
+        phone,
+        proposalLink
+      );
+      
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ message: result.error || "Failed to send message" });
+      }
+    } catch (error) {
+      console.error("Error sending proposal follow-up:", error);
+      res.status(500).json({ message: "Error sending proposal follow-up" });
+    }
+  });
+  
+  app.post("/api/whatsapp/send/site-visit", isAuthenticated, async (req, res) => {
+    try {
+      const { clientId, name, phone, siteVisitDate, address } = req.body;
+      
+      if (!clientId || !phone || !siteVisitDate || !address) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const result = await whatsAppService.sendSiteVisitConfirmation(
+        clientId,
+        name || "there",
+        phone,
+        siteVisitDate,
+        address
+      );
+      
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ message: result.error || "Failed to send message" });
+      }
+    } catch (error) {
+      console.error("Error sending site visit confirmation:", error);
+      res.status(500).json({ message: "Error sending site visit confirmation" });
+    }
+  });
+  
+  app.post("/api/whatsapp/retry-failed", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is an admin
+      const user = req.user as User;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can retry failed messages" });
+      }
+      
+      const result = await whatsAppService.retryFailedMessages();
+      res.json(result);
+    } catch (error) {
+      console.error("Error retrying failed messages:", error);
+      res.status(500).json({ message: "Error retrying failed messages" });
+    }
+  });
+  
   // Add an endpoint to seed estimate configurations
   app.post("/api/seed/estimate-configs", isAuthenticated, async (req, res) => {
     try {

@@ -223,9 +223,17 @@ export class WhatsAppService {
           // Get variables from metadata
           const variables = message.metadata?.variables || {};
           
+          // Make sure phone number is properly formatted
+          const formattedPhone = message.to || '';
+          
+          if (!formattedPhone) {
+            console.error(`[WhatsApp] Missing phone number for message ${message.id}`);
+            continue;
+          }
+          
           // Attempt to resend
           const result = await this.sendTemplateMessage(
-            message.to, 
+            formattedPhone, 
             message.messageType, 
             variables, 
             message.leadId, 

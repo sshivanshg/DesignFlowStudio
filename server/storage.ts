@@ -634,32 +634,30 @@ export class DrizzleStorage implements IStorage {
       if (user.avatar !== undefined) valuesToInsert.avatar = user.avatar;
       
       // Execute a raw SQL query to avoid the mapping issues with Drizzle
-      const query = `
+      const query = drizzleSql`
         INSERT INTO users (
           username, password, email, name, full_name, 
           phone, role, active_plan, firebase_uid, supabase_uid, 
           company, avatar
         ) 
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          ${valuesToInsert.username}, 
+          ${valuesToInsert.password}, 
+          ${valuesToInsert.email}, 
+          ${valuesToInsert.name}, 
+          ${valuesToInsert.full_name}, 
+          ${valuesToInsert.phone}, 
+          ${valuesToInsert.role || 'designer'}, 
+          ${valuesToInsert.active_plan || 'free'}, 
+          ${valuesToInsert.firebase_uid}, 
+          ${valuesToInsert.supabase_uid}, 
+          ${valuesToInsert.company}, 
+          ${valuesToInsert.avatar}
         )
         RETURNING *
       `;
       
-      const result = await db.execute(query, [
-        valuesToInsert.username,
-        valuesToInsert.password,
-        valuesToInsert.email,
-        valuesToInsert.name,
-        valuesToInsert.full_name,
-        valuesToInsert.phone,
-        valuesToInsert.role || 'designer',
-        valuesToInsert.active_plan || 'free',
-        valuesToInsert.firebase_uid,
-        valuesToInsert.supabase_uid,
-        valuesToInsert.company,
-        valuesToInsert.avatar
-      ]);
+      const result = await db.execute(query);
       
       if (result && result.length > 0) {
         console.log("User created successfully:", result[0].id);

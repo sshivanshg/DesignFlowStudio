@@ -101,9 +101,18 @@ export const projects = pgTable("projects", {
   endDate: timestamp("end_date"),
   budget: integer("budget"),
   progress: integer("progress").default(0),
+  // Rooms/zones within the project - Array of objects with id, name, status, progress
+  rooms: jsonb("rooms").default([]),
+  // Tasks assigned per room with due dates and status
   tasks: jsonb("tasks").default([]),
+  // Photos uploaded for daily progress logs
   photos: jsonb("photos").default([]),
+  // Daily logs with timestamps, photos, text notes
   logs: jsonb("logs").default([]),
+  // Last weekly PDF report generation timestamp
+  lastReportDate: timestamp("last_report_date"),
+  // Weekly report settings (auto-generate, recipients)
+  reportSettings: jsonb("report_settings").default({}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {

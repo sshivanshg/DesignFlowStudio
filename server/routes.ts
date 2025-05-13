@@ -915,11 +915,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Moodboard routes
   app.get("/api/moodboards", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
-      const moodboards = await storage.getMoodboards(userId);
+      const moodboards = await storage.getMoodboards();
       res.json(moodboards);
     } catch (error) {
+      console.error("Error fetching moodboards:", error);
       res.status(500).json({ message: "Error fetching moodboards" });
+    }
+  });
+  
+  app.get("/api/moodboards/templates", isAuthenticated, async (req, res) => {
+    try {
+      const templates = await storage.getMoodboardTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching moodboard templates:", error);
+      res.status(500).json({ message: "Error fetching moodboard templates" });
     }
   });
 
@@ -935,43 +945,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects/:projectId/moodboards", isAuthenticated, async (req, res) => {
+  app.get("/api/clients/:clientId/moodboards", isAuthenticated, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
-      const moodboards = await storage.getMoodboardsByProjectId(projectId);
+      const clientId = parseInt(req.params.clientId);
+      const moodboards = await storage.getMoodboardsByClientId(clientId);
       res.json(moodboards);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching project moodboards" });
+      console.error("Error fetching client moodboards:", error);
+      res.status(500).json({ message: "Error fetching client moodboards" });
     }
   });
 
   app.post("/api/moodboards", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const moodboardData = insertMoodboardSchema.parse({ ...req.body, userId });
-      const moodboard = await storage.createMoodboard(moodboardData);
       
-      // Get project to get client ID
-      const project = await storage.getProject(moodboard.project_id);
+      // Process the request data
+      const moodboardData = {
+        ...req.body,
+        // Don't set userId as it's no longer in our schema
+      };
+      
+      // Validate with our schema
+      const validatedData = insertMoodboardSchema.parse(moodboardData);
+      const moodboard = await storage.createMoodboard(validatedData);
       
       // Create activity for new moodboard
-      if (project) {
-        await storage.createActivity({
-          user_id: userId,
-          client_id: project.client_id,
-          project_id: moodboard.project_id,
-          type: "moodboard_created",
-          description: `Created new moodboard: ${moodboard.name || 'Untitled'}`,
-          metadata: {}
-        });
-      }
+      await storage.createActivity({
+        user_id: userId,
+        client_id: moodboard.client_id || null,
+        type: "moodboard_created",
+        description: `Created new moodboard: ${moodboard.name || 'Untitled'}`,
+        metadata: {}
+      });
       
       res.status(201).json(moodboard);
     } catch (error) {
+      console.error("Error creating moodboard:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors });
       }
       res.status(500).json({ message: "Error creating moodboard" });
+    }
+  });
+  
+  app.post("/api/moodboards/:id/duplicate", isAuthenticated, async (req, res) => {
+    try {
+      const moodboardId = parseInt(req.params.id);
+      const userId = (req.user as any).id;
+      
+      const duplicatedMoodboard = await storage.duplicateMoodboard(moodboardId);
+      
+      if (!duplicatedMoodboard) {
+        return res.status(404).json({ message: "Moodboard not found or could not be duplicated" });
+      }
+      
+      // Create activity for duplicated moodboard
+      await storage.createActivity({
+        user_id: userId,
+        client_id: duplicatedMoodboard.client_id || null,
+        type: "moodboard_duplicated",
+        description: `Duplicated moodboard: ${duplicatedMoodboard.name || 'Untitled'}`,
+        metadata: { original_id: moodboardId }
+      });
+      
+      res.status(201).json(duplicatedMoodboard);
+    } catch (error) {
+      console.error("Error duplicating moodboard:", error);
+      res.status(500).json({ message: "Error duplicating moodboard" });
     }
   });
 
@@ -985,23 +1026,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Moodboard not found" });
       }
       
-      // Get project to get client ID
-      const project = await storage.getProject(updatedMoodboard.project_id);
-      
       // Create activity for updated moodboard
-      if (project) {
-        await storage.createActivity({
-          user_id: (req.user as any).id,
-          client_id: project.client_id,
-          project_id: updatedMoodboard.project_id,
-          type: "moodboard_updated",
-          description: `Updated moodboard: ${updatedMoodboard.name || 'Untitled'}`,
-          metadata: {}
-        });
-      }
+      await storage.createActivity({
+        user_id: (req.user as any).id,
+        client_id: updatedMoodboard.client_id || null,
+        type: "moodboard_updated",
+        description: `Updated moodboard: ${updatedMoodboard.name || 'Untitled'}`,
+        metadata: {}
+      });
       
       res.json(updatedMoodboard);
     } catch (error) {
+      console.error("Error updating moodboard:", error);
       res.status(500).json({ message: "Error updating moodboard" });
     }
   });
@@ -1018,26 +1054,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deleted = await storage.deleteMoodboard(moodboardId);
       
       if (deleted) {
-        // Get project to get client ID
-        const project = await storage.getProject(moodboard.project_id);
-        
         // Create activity for deleted moodboard
-        if (project) {
-          await storage.createActivity({
-            user_id: (req.user as any).id,
-            client_id: project.client_id,
-            project_id: moodboard.project_id,
-            type: "moodboard_deleted",
-            description: `Deleted moodboard: ${moodboard.name || 'Untitled'}`,
-            metadata: {}
-          });
-        }
+        await storage.createActivity({
+          user_id: (req.user as any).id,
+          client_id: moodboard.client_id || null,
+          type: "moodboard_deleted",
+          description: `Deleted moodboard: ${moodboard.name || 'Untitled'}`,
+          metadata: {}
+        });
         
         return res.json({ success: true });
       }
       
       res.status(500).json({ message: "Error deleting moodboard" });
     } catch (error) {
+      console.error("Error deleting moodboard:", error);
       res.status(500).json({ message: "Error deleting moodboard" });
     }
   });

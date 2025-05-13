@@ -286,14 +286,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             password: randomPassword, // This is just for compatibility, they'll use Firebase auth
             email: email,
             fullName: displayName || email.split('@')[0] || 'New User',
+            name: displayName || email.split('@')[0] || 'New User', // Add name field to match schema
             role: 'designer' as const,
             phone: phone || null,
             avatar: photoURL || null,
-            firebaseUid
+            firebaseUid,
+            company: null
           };
           
           console.log("Creating user with data:", userData);
-          user = await storage.createUser(userData);
+          try {
+            user = await storage.createUser(userData);
+            console.log("Successfully created new user with ID:", user.id);
+          } catch (error) {
+            console.error("Error creating user:", error);
+            return res.status(500).json({
+              message: "Failed to create user account",
+              error: error instanceof Error ? error.message : "Unknown error"
+            });
+          }
         }
       } else {
         // Handle case where we have no email

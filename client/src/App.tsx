@@ -29,8 +29,13 @@ function ProtectedRoute({
   children: React.ReactNode; 
   allowedRoles?: Array<"admin" | "designer" | "sales">;
 }) {
-  const { user, isLoading } = useAuth();
-  // const { user, isLoading } = useSupabaseAuth(); // TODO: Switch to this once migration is complete
+  // Use both auth systems during transition period
+  const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
+  const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
+  
+  // Prefer Supabase user if available, otherwise fallback to Firebase user
+  const user = supabaseUser || firebaseUser;
+  const isLoading = supabaseLoading || firebaseLoading;
 
   if (isLoading) {
     return (

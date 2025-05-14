@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import * as React from "react";
+import { CalendarIcon } from "lucide-react";
+import { addDays, format } from "date-fns";
+import { DateRange } from "react-day-picker";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,41 +13,32 @@ import {
 } from "@/components/ui/popover";
 
 interface DateRangePickerProps {
+  className?: string;
   initialDateFrom?: Date;
   initialDateTo?: Date;
-  onUpdate: (dateRange: { from: Date | undefined; to: Date | undefined }) => void;
+  onUpdate?: (date: DateRange) => void;
 }
 
 export function DateRangePicker({
+  className,
   initialDateFrom,
   initialDateTo,
-  onUpdate
+  onUpdate,
 }: DateRangePickerProps) {
-  const [date, setDate] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: initialDateFrom,
-    to: initialDateTo,
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: initialDateFrom || new Date(),
+    to: initialDateTo || addDays(new Date(), 7),
   });
 
-  useEffect(() => {
-    // If initialDateFrom or initialDateTo change, update the date state
-    if (initialDateFrom || initialDateTo) {
-      setDate({
-        from: initialDateFrom || date.from,
-        to: initialDateTo || date.to,
-      });
+  // Update parent component when date changes
+  React.useEffect(() => {
+    if (onUpdate && date) {
+      onUpdate(date);
     }
-  }, [initialDateFrom, initialDateTo]);
-
-  // When date changes, call the onUpdate callback
-  useEffect(() => {
-    onUpdate(date);
   }, [date, onUpdate]);
 
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button

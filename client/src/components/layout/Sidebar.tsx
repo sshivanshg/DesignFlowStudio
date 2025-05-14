@@ -75,14 +75,9 @@ export default function Sidebar() {
       icon: <Palette className="h-5 w-5" />,
     },
     {
-      href: "/project-tracker",
-      label: "Project Tracker",
+      href: "/unified-project-tracker",
+      label: "Project Manager",
       icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      href: "/project-logs",
-      label: "Project Logs",
-      icon: <LineChart className="h-5 w-5" />,
     },
     {
       href: "/clients",

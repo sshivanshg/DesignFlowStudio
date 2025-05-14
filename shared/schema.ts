@@ -68,7 +68,7 @@ export const leads = pgTable("leads", {
   phone: text("phone"),
   email: text("email"),
   source: text("source"),
-  stage: text("stage").default("new"),
+  stage: text("stage", { enum: ['new', 'in_discussion', 'won', 'lost'] }).default("new"),
   tag: text("tag"),
   assignedTo: integer("assigned_to").references(() => users.id),
   notes: text("notes"),

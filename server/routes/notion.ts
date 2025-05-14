@@ -107,7 +107,8 @@ export function registerNotionRoutes(app: Express, storage: IStorage, isAuthenti
     // Bulk sync routes
     app.post("/api/notion/sync/all-clients", isAuthenticated, hasRole(['admin']), async (req: Request, res: Response) => {
         try {
-            const clients = await storage.getAllClients();
+            const userId = (req.user as any)?.id || 0;
+            const clients = await storage.getClients(userId);
             
             const results = [];
             for (const client of clients) {
@@ -133,7 +134,8 @@ export function registerNotionRoutes(app: Express, storage: IStorage, isAuthenti
 
     app.post("/api/notion/sync/all-projects", isAuthenticated, hasRole(['admin']), async (req: Request, res: Response) => {
         try {
-            const projects = await storage.getAllProjects();
+            const userId = (req.user as any)?.id || 0;
+            const projects = await storage.getProjects(userId);
             
             const results = [];
             for (const project of projects) {

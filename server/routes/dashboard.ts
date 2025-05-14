@@ -73,8 +73,11 @@ export function registerDashboardRoutes(app: Express, storage: IStorage, isAuthe
   // Get recent projects for dashboard
   app.get("/api/dashboard/recent-projects", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Get user ID from request
+      const userId = (req.user as any)?.id || 0;
+      
       // Get the most recent projects
-      const projects = await storage.getAllProjects();
+      const projects = await storage.getProjects(userId);
       
       // Sort by created date (newest first) and take the first 5
       const recentProjects = projects
@@ -110,8 +113,11 @@ export function registerDashboardRoutes(app: Express, storage: IStorage, isAuthe
   // Get recent proposals for dashboard
   app.get("/api/dashboard/recent-proposals", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Get user ID from request
+      const userId = (req.user as any)?.id || 0;
+      
       // Get the most recent proposals
-      const proposals = await storage.getAllProposals();
+      const proposals = await storage.getProposals(userId);
       
       // Sort by created date (newest first) and take the first 5
       const recentProposals = proposals
@@ -147,9 +153,12 @@ export function registerDashboardRoutes(app: Express, storage: IStorage, isAuthe
   // Get upcoming tasks for dashboard
   app.get("/api/dashboard/upcoming-tasks", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Get user ID from request
+      const userId = (req.user as any)?.id || 0;
+      
       // In a real implementation, this would fetch tasks from a tasks table
       // For now, we'll extract tasks from project.tasks arrays
-      const projects = await storage.getAllProjects();
+      const projects = await storage.getProjects(userId);
       
       // Collect all tasks from all projects
       const allTasks = projects.flatMap(project => {
@@ -192,8 +201,11 @@ export function registerDashboardRoutes(app: Express, storage: IStorage, isAuthe
   // Get recent client activities for dashboard
   app.get("/api/dashboard/recent-activities", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Get user ID from request
+      const userId = (req.user as any)?.id || 0;
+      
       // Get recent activities
-      const activities = await storage.getRecentActivities(10);
+      const activities = await storage.getActivities(userId, 10);
       
       // Augment with client and project data
       const enrichedActivities = await Promise.all(

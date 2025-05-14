@@ -51,11 +51,10 @@ export function LeadColumn({
 
   // Map stages to count badge colors
   const countColors: CardCountColorMap = {
-    new: 'bg-blue-100 text-blue-800',
-    contacted: 'bg-yellow-100 text-yellow-800',
-    visited: 'bg-purple-100 text-purple-800',
-    quoted: 'bg-indigo-100 text-indigo-800',
-    closed: 'bg-green-100 text-green-800',
+    [LEAD_STAGES.NEW]: 'bg-blue-100 text-blue-800',
+    [LEAD_STAGES.IN_DISCUSSION]: 'bg-amber-100 text-amber-800',
+    [LEAD_STAGES.WON]: 'bg-green-100 text-green-800',
+    [LEAD_STAGES.LOST]: 'bg-red-100 text-red-800',
   };
 
   return (

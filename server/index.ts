@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
+import { scheduleWeeklyReports } from "./projectReports";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +68,17 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Schedule weekly report generation (runs on startup and daily thereafter)
+    scheduleWeeklyReports(storage)
+      .then(() => log('Weekly report scheduling initialized'))
+      .catch(err => console.error('Error initializing weekly report scheduling:', err));
+    
+    // Schedule daily checks for report generation
+    setInterval(() => {
+      scheduleWeeklyReports(storage)
+        .then(() => log('Daily report check complete'))
+        .catch(err => console.error('Error in daily report check:', err));
+    }, 24 * 60 * 60 * 1000); // 24 hours
   });
 })();

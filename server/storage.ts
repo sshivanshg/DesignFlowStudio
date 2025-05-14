@@ -2953,16 +2953,37 @@ export class DrizzleStorage implements IStorage {
       const report = await this.getProjectReport(id);
       if (!report) return undefined;
       
-      // In a real implementation, this would use a PDF generation library
-      // to create a PDF based on the report data and logs
+      // Get the associated project
+      const project = await this.getProject(report.project_id);
+      if (!project) return undefined;
       
-      // For now, we'll simulate creating a PDF
-      const pdfUrl = `/reports/report-${id}-${Date.now()}.pdf`;
+      // Get logs for the report period
+      let logs: any[] = [];
+      if (report.start_date && report.end_date) {
+        logs = await this.getProjectLogsByDateRange(
+          report.project_id, 
+          new Date(report.start_date), 
+          new Date(report.end_date)
+        );
+      } else {
+        // If no date range is specified, get all logs for the project
+        logs = await this.getProjectLogs(report.project_id);
+      }
       
-      // Update the report with the PDF URL
-      await this.updateProjectReport(id, {
-        pdf_url: pdfUrl
-      });
+      // Import the PDF generation function
+      const { generateProjectReportPdf } = await import('./projectReports');
+      
+      // Generate the PDF and get its URL
+      const pdfUrl = await generateProjectReportPdf(
+        report,
+        logs,
+        project,
+        this,
+        {
+          includePhotos: report.includes_photos ?? true,
+          includeNotes: report.includes_notes ?? true
+        }
+      );
       
       return pdfUrl;
     } catch (error) {

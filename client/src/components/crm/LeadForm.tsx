@@ -197,11 +197,18 @@ export function LeadForm({ lead, onSubmit, isSubmitting }: LeadFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.entries(LEAD_STAGES).map(([key, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {key.charAt(0) + key.slice(1).toLowerCase()}
-                      </SelectItem>
-                    ))}
+                    {Object.entries(LEAD_STAGES).map(([key, value]) => {
+                      // Format the stage label: "NEW" -> "New", "IN_DISCUSSION" -> "In Discussion"
+                      const formattedLabel = key === 'NEW' ? 'New' : 
+                                           key === 'IN_DISCUSSION' ? 'In Discussion' :
+                                           key === 'WON' ? 'Won' : 'Lost';
+                      
+                      return (
+                        <SelectItem key={value} value={value}>
+                          {formattedLabel}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 <FormMessage />

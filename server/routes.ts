@@ -101,17 +101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware to check if user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    // Temporary fix to allow all requests through for debugging
-    // This should be removed in production
-    return next();
-    
-    // Original authentication check:
-    /*
+    // Check if the user is authenticated through either Passport session or Supabase token
     if (req.isAuthenticated()) {
       return next();
     }
-    res.status(401).json({ message: "Unauthorized" });
-    */
+    
+    // If not authenticated, return 401 Unauthorized
+    res.status(401).json({ message: "Unauthorized. Please log in to access this resource." });
   };
 
   // Auth routes
@@ -1998,29 +1994,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Client authentication middleware
   const isClientAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization?.split(' ')[1] || req.query.token as string;
-    
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
+    try {
+      // Get token from Authorization header or query parameter
+      const token = req.headers.authorization?.split(' ')[1] || req.query.token as string;
+      
+      if (!token) {
+        return res.status(401).json({ message: "No client token provided" });
+      }
+      
+      // Validate the client token
+      const clientId = validateClientToken(token);
+      
+      if (!clientId) {
+        return res.status(401).json({ message: "Invalid or expired client token" });
+      }
+      
+      // Check if client has portal access
+      const hasAccess = await hasPortalAccess(clientId, storage);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Portal access not enabled for this client" });
+      }
+      
+      // Set client ID in request for use in route handlers
+      (req as any).clientId = clientId;
+      
+      // Update last login timestamp for the client
+      try {
+        await markClientLogin(clientId, storage);
+      } catch (loginError) {
+        console.error("Failed to update client login timestamp:", loginError);
+        // Continue despite the error - this is not critical
+      }
+      
+      next();
+    } catch (error) {
+      console.error("Client authentication error:", error);
+      return res.status(500).json({ message: "Authentication error. Please try again." });
     }
-    
-    const clientId = validateClientToken(token);
-    
-    if (!clientId) {
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-    
-    // Check if client has portal access
-    const hasAccess = await hasPortalAccess(clientId, storage);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ message: "Portal access not enabled for this client" });
-    }
-    
-    // Set client ID in request for use in route handlers
-    (req as any).clientId = clientId;
-    
-    next();
   };
   
   // Generate login token and email for client portal

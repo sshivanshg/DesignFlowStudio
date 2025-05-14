@@ -46,7 +46,7 @@ export function useLeads() {
   // Create a new lead
   const createLead = useMutation({
     mutationFn: (leadData: Partial<LeadType>) => 
-      apiRequest('/api/leads', 'POST', leadData),
+      apiRequest('POST', '/api/leads', leadData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
     },
@@ -55,7 +55,7 @@ export function useLeads() {
   // Update a lead
   const updateLead = useMutation({
     mutationFn: ({ id, ...data }: { id: number } & Partial<LeadType>) => 
-      apiRequest(`/api/leads/${id}`, 'PATCH', data),
+      apiRequest('PATCH', `/api/leads/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
     },
@@ -64,7 +64,7 @@ export function useLeads() {
   // Delete a lead
   const deleteLead = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/leads/${id}`, 'DELETE'),
+      apiRequest('DELETE', `/api/leads/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
     },

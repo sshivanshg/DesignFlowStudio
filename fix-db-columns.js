@@ -1,8 +1,8 @@
 // Fix missing columns in the database
 
-const { drizzle } = require('drizzle-orm/postgres-js');
-const postgres = require('postgres');
-const { leads, estimates } = require('./shared/schema');
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { leads, estimates } from './shared/schema.js';
 
 async function fixDatabaseColumns() {
   try {

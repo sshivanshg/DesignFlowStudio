@@ -1863,7 +1863,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/estimate-configs/active", isAuthenticated, async (req, res) => {
     try {
       console.log("Fetching active estimate configs");
-      const activeConfigs = await storage.getActiveEstimateConfigs();
+      // Get all configs and filter for active ones
+      const configs = await storage.getEstimateConfigs();
+      const activeConfigs = configs.filter(config => config.isActive === true);
       res.json(activeConfigs);
     } catch (error) {
       console.error("Error fetching active estimate configs:", error);

@@ -172,6 +172,138 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  // Project Logs
+  async getProjectLogs(): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values());
+  }
+
+  async getProjectLogsByProject(projectId: number): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values()).filter(log => log.project_id === projectId);
+  }
+
+  async getProjectLogsByDate(date: Date): Promise<ProjectLog[]> {
+    // Compare just the date part, not time
+    const dateString = date.toISOString().split('T')[0];
+    return Array.from(this.projectLogs.values()).filter(log => {
+      const logDate = new Date(log.createdAt as Date);
+      return logDate.toISOString().split('T')[0] === dateString;
+    });
+  }
+
+  async getProjectLogsByDateRange(startDate: Date, endDate: Date): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values()).filter(log => {
+      const logDate = new Date(log.createdAt as Date);
+      return logDate >= startDate && logDate <= endDate;
+    });
+  }
+
+  async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values()).filter(log => log.room_id === roomId);
+  }
+
+  async getProjectLog(id: number): Promise<ProjectLog | undefined> {
+    return this.projectLogs.get(id);
+  }
+
+  async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
+    const newLog: ProjectLog = {
+      id: this.projectLogId++,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      project_id: log.project_id || null,
+      room_id: log.room_id || null,
+      user_id: log.user_id || null,
+      text: log.text || "",
+      photo_url: log.photo_url || null,
+      photo_caption: log.photo_caption || null,
+    };
+    this.projectLogs.set(newLog.id, newLog);
+    return newLog;
+  }
+
+  async updateProjectLog(id: number, log: Partial<InsertProjectLog>): Promise<ProjectLog | undefined> {
+    const existingLog = this.projectLogs.get(id);
+    if (!existingLog) return undefined;
+
+    const updatedLog: ProjectLog = {
+      ...existingLog,
+      ...log,
+      updatedAt: new Date(),
+    };
+    this.projectLogs.set(id, updatedLog);
+    return updatedLog;
+  }
+
+  async deleteProjectLog(id: number): Promise<boolean> {
+    return this.projectLogs.delete(id);
+  }
+
+  // Project Reports
+  async getProjectReports(): Promise<ProjectReport[]> {
+    return Array.from(this.projectReports.values());
+  }
+
+  async getProjectReportsByProject(projectId: number): Promise<ProjectReport[]> {
+    return Array.from(this.projectReports.values()).filter(report => report.project_id === projectId);
+  }
+
+  async getProjectReport(id: number): Promise<ProjectReport | undefined> {
+    return this.projectReports.get(id);
+  }
+
+  async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
+    const newReport: ProjectReport = {
+      id: this.projectReportId++,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      project_id: report.project_id || null,
+      user_id: report.user_id || null,
+      title: report.title || "Project Report",
+      report_type: report.report_type || "weekly",
+      start_date: report.start_date || null,
+      end_date: report.end_date || null,
+      include_photos: report.include_photos ?? true,
+      include_logs: report.include_logs ?? true,
+      status: report.status || "draft",
+      pdf_url: report.pdf_url || null,
+    };
+    this.projectReports.set(newReport.id, newReport);
+    return newReport;
+  }
+
+  async updateProjectReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport | undefined> {
+    const existingReport = this.projectReports.get(id);
+    if (!existingReport) return undefined;
+
+    const updatedReport: ProjectReport = {
+      ...existingReport,
+      ...report,
+      updatedAt: new Date(),
+    };
+    this.projectReports.set(id, updatedReport);
+    return updatedReport;
+  }
+
+  async deleteProjectReport(id: number): Promise<boolean> {
+    return this.projectReports.delete(id);
+  }
+
+  async generateProjectReportPdf(id: number): Promise<string | undefined> {
+    const report = this.projectReports.get(id);
+    if (!report) return undefined;
+    
+    // In a real implementation, this would generate a PDF
+    // For now, we'll simulate a PDF URL
+    const pdfUrl = `/reports/report-${id}-${Date.now()}.pdf`;
+    
+    // Update the report with the PDF URL
+    report.pdf_url = pdfUrl;
+    report.status = "completed";
+    report.updatedAt = new Date();
+    this.projectReports.set(id, report);
+    
+    return pdfUrl;
+  }
   private users: Map<number, User>;
   private leads: Map<number, Lead>;
   private clients: Map<number, Client>;
@@ -215,7 +347,8 @@ export class MemStorage implements IStorage {
     this.moodboards = new Map();
     this.estimates = new Map();
     this.estimateConfigs = new Map();
-    this.tasks = new Map();
+    this.projectLogs = new Map();
+    this.projectReports = new Map();
     this.activities = new Map();
     this.whatsappMessages = new Map();
     this.templateCategories = new Map();
@@ -275,7 +408,8 @@ export class MemStorage implements IStorage {
     this.moodboardId = 1;
     this.estimateId = 1;
     this.estimateConfigId = 1;
-    this.taskId = 1;
+    this.projectLogId = 1;
+    this.projectReportId = 1;
     this.activityId = 1;
     
     // Add a default user for testing
@@ -3106,6 +3240,89 @@ export class StorageAdapter implements IStorage {
     const snakeCaseEntry = convertKeysToSnakeCase(entry);
     const createdEntry = await this.drizzleStorage.createAnalyticsEntry(snakeCaseEntry);
     return convertKeysToCamelCase(createdEntry);
+  }
+  
+  // Project Logs Methods
+  async getProjectLogs(): Promise<ProjectLog[]> {
+    const logs = await this.drizzleStorage.getProjectLogs();
+    return logs.map(log => convertKeysToCamelCase(log));
+  }
+
+  async getProjectLogsByProject(projectId: number): Promise<ProjectLog[]> {
+    const logs = await this.drizzleStorage.getProjectLogsByProject(projectId);
+    return logs.map(log => convertKeysToCamelCase(log));
+  }
+
+  async getProjectLogsByDate(date: Date): Promise<ProjectLog[]> {
+    const logs = await this.drizzleStorage.getProjectLogsByDate(date);
+    return logs.map(log => convertKeysToCamelCase(log));
+  }
+
+  async getProjectLogsByDateRange(startDate: Date, endDate: Date): Promise<ProjectLog[]> {
+    const logs = await this.drizzleStorage.getProjectLogsByDateRange(startDate, endDate);
+    return logs.map(log => convertKeysToCamelCase(log));
+  }
+
+  async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
+    const logs = await this.drizzleStorage.getProjectLogsByRoom(roomId);
+    return logs.map(log => convertKeysToCamelCase(log));
+  }
+
+  async getProjectLog(id: number): Promise<ProjectLog | undefined> {
+    const log = await this.drizzleStorage.getProjectLog(id);
+    return log ? convertKeysToCamelCase(log) : undefined;
+  }
+
+  async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
+    const snakeCaseLog = convertKeysToSnakeCase(log);
+    const newLog = await this.drizzleStorage.createProjectLog(snakeCaseLog);
+    return convertKeysToCamelCase(newLog);
+  }
+
+  async updateProjectLog(id: number, log: Partial<InsertProjectLog>): Promise<ProjectLog | undefined> {
+    const snakeCaseLog = convertKeysToSnakeCase(log);
+    const updatedLog = await this.drizzleStorage.updateProjectLog(id, snakeCaseLog);
+    return updatedLog ? convertKeysToCamelCase(updatedLog) : undefined;
+  }
+
+  async deleteProjectLog(id: number): Promise<boolean> {
+    return await this.drizzleStorage.deleteProjectLog(id);
+  }
+
+  // Project Reports Methods
+  async getProjectReports(): Promise<ProjectReport[]> {
+    const reports = await this.drizzleStorage.getProjectReports();
+    return reports.map(report => convertKeysToCamelCase(report));
+  }
+
+  async getProjectReportsByProject(projectId: number): Promise<ProjectReport[]> {
+    const reports = await this.drizzleStorage.getProjectReportsByProject(projectId);
+    return reports.map(report => convertKeysToCamelCase(report));
+  }
+
+  async getProjectReport(id: number): Promise<ProjectReport | undefined> {
+    const report = await this.drizzleStorage.getProjectReport(id);
+    return report ? convertKeysToCamelCase(report) : undefined;
+  }
+
+  async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
+    const snakeCaseReport = convertKeysToSnakeCase(report);
+    const newReport = await this.drizzleStorage.createProjectReport(snakeCaseReport);
+    return convertKeysToCamelCase(newReport);
+  }
+
+  async updateProjectReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport | undefined> {
+    const snakeCaseReport = convertKeysToSnakeCase(report);
+    const updatedReport = await this.drizzleStorage.updateProjectReport(id, snakeCaseReport);
+    return updatedReport ? convertKeysToCamelCase(updatedReport) : undefined;
+  }
+
+  async deleteProjectReport(id: number): Promise<boolean> {
+    return await this.drizzleStorage.deleteProjectReport(id);
+  }
+
+  async generateProjectReportPdf(id: number): Promise<string | undefined> {
+    return await this.drizzleStorage.generateProjectReportPdf(id);
   }
 }
 

@@ -2339,12 +2339,32 @@ export class DrizzleStorage implements IStorage {
   }
   
   async getProposalsByProjectId(projectId: number): Promise<Proposal[]> {
-    const projectProposals = await db.select().from(proposals);
-    // Filter by client_id that matches the project's client_id
-    const project = await this.getProject(projectId);
-    if (!project) return [];
-    
-    return projectProposals.filter(p => p.client_id === project.client_id);
+    try {
+      // Use specific columns to avoid the "slug does not exist" error
+      const projectProposals = await db.select({
+        id: proposals.id,
+        client_id: proposals.client_id,
+        lead_id: proposals.lead_id,
+        created_by: proposals.created_by,
+        title: proposals.title,
+        status: proposals.status,
+        dataJSON: proposals.dataJSON,
+        pdfURL: proposals.pdfURL,
+        sharedLink: proposals.sharedLink,
+        clientApproved: proposals.clientApproved,
+        createdAt: proposals.createdAt,
+        updatedAt: proposals.updatedAt
+      }).from(proposals);
+      
+      // Filter by client_id that matches the project's client_id
+      const project = await this.getProject(projectId);
+      if (!project) return [];
+      
+      return projectProposals.filter(p => p.client_id === project.client_id);
+    } catch (error) {
+      console.error(`Error fetching proposals for project ${projectId}:`, error);
+      return [];
+    }
   }
   
   async createProposal(proposal: InsertProposal): Promise<Proposal> {

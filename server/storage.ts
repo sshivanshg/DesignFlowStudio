@@ -179,12 +179,13 @@ export class MemStorage implements IStorage {
   private proposals: Map<number, Proposal>;
   private moodboards: Map<number, Moodboard>;
   private estimates: Map<number, Estimate>;
-  private tasks: Map<number, Task>;
+  private projectLogs: Map<number, ProjectLog>;
+  private projectReports: Map<number, ProjectReport>;
   private activities: Map<number, Activity>;
-  private companySettings: CompanySettings | undefined;
-  private templateCategories: Map<number, TemplateCategory>;
-  private templates: Map<number, Template>;
-  private analytics: Map<number, Analytics>;
+  private companySettings: any | undefined;
+  private templateCategories: Map<number, any>;
+  private templates: Map<number, any>;
+  private analytics: Map<number, any>;
   
   private userId: number;
   private leadId: number;
@@ -193,7 +194,8 @@ export class MemStorage implements IStorage {
   private proposalId: number;
   private moodboardId: number;
   private estimateId: number;
-  private taskId: number;
+  private projectLogId: number;
+  private projectReportId: number;
   private activityId: number;
   private templateCategoryId: number;
   private templateId: number;

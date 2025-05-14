@@ -928,51 +928,387 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Project logs endpoints
-  app.post("/api/projects/:id/logs", isAuthenticated, async (req, res) => {
+  app.get("/api/project-logs/:projectId", isAuthenticated, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
-      const userId = (req.user as any).id;
-      const { text, photoUrl, photoCaption, roomId } = req.body;
+      const projectId = parseInt(req.params.projectId);
       
-      // Validate the project exists
+      // Validate project exists
       const project = await storage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Add log to project
-      const updatedProject = await storage.addProjectLog(
-        projectId, 
-        { text, photoUrl, photoCaption, roomId }, 
-        userId
-      );
+      // Get logs for project
+      const logs = await storage.getProjectLogs(projectId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching project logs:", error);
+      res.status(500).json({ message: "Error fetching project logs" });
+    }
+  });
+  
+  app.get("/api/project-logs/:projectId/by-date", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const { date } = req.query;
       
-      res.status(201).json(updatedProject);
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get logs for project by date
+      const logs = await storage.getProjectLogsByDate(projectId, new Date(date as string));
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching project logs by date:", error);
+      res.status(500).json({ message: "Error fetching project logs by date" });
+    }
+  });
+  
+  app.get("/api/project-logs/:projectId/by-date-range", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date parameters are required" });
+      }
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get logs for project by date range
+      const logs = await storage.getProjectLogsByDateRange(
+        projectId, 
+        new Date(startDate as string), 
+        new Date(endDate as string)
+      );
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching project logs by date range:", error);
+      res.status(500).json({ message: "Error fetching project logs by date range" });
+    }
+  });
+  
+  app.get("/api/project-logs/:projectId/by-room/:roomId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const roomId = req.params.roomId;
+      
+      // Validate project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get logs for project by room
+      const logs = await storage.getProjectLogsByRoom(projectId, roomId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching project logs by room:", error);
+      res.status(500).json({ message: "Error fetching project logs by room" });
+    }
+  });
+  
+  app.post("/api/project-logs", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { text, photo_url, photo_caption, room_id, project_id, log_type } = req.body;
+      
+      if (!project_id) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+      
+      // Validate project exists
+      const project = await storage.getProject(Number(project_id));
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Create new log
+      const newLog = await storage.createProjectLog({
+        project_id: Number(project_id),
+        user_id: userId,
+        text,
+        room_id: room_id || null,
+        log_type: log_type || "note",
+        photo_url: photo_url || null,
+        photo_caption: photo_caption || null
+      });
+      
+      // Create activity for adding log
+      await storage.createActivity({
+        user_id: userId,
+        project_id: Number(project_id),
+        client_id: project.client_id,
+        type: "log_added",
+        description: `Added log entry to project: ${project.name}`,
+        metadata: { logId: newLog.id }
+      });
+      
+      res.status(201).json(newLog);
     } catch (error) {
       console.error("Error adding log to project:", error);
       res.status(500).json({ message: "Error adding log to project" });
     }
   });
   
-  // Project reports endpoints
-  app.post("/api/projects/:id/reports", isAuthenticated, async (req, res) => {
+  app.get("/api/project-logs/:id", isAuthenticated, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
-      const reportSettings = req.body;
+      const logId = parseInt(req.params.id);
+      const log = await storage.getProjectLog(logId);
       
-      // Validate the project exists
+      if (!log) {
+        return res.status(404).json({ message: "Log not found" });
+      }
+      
+      res.json(log);
+    } catch (error) {
+      console.error("Error fetching project log:", error);
+      res.status(500).json({ message: "Error fetching project log" });
+    }
+  });
+  
+  app.patch("/api/project-logs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const logId = parseInt(req.params.id);
+      const logData = req.body;
+      
+      // Get existing log to verify ownership
+      const log = await storage.getProjectLog(logId);
+      if (!log) {
+        return res.status(404).json({ message: "Log not found" });
+      }
+      
+      // Only allow updating logs created by the current user, unless they're an admin
+      const user = req.user as User;
+      if (log.user_id !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: "You can only update logs you created" });
+      }
+      
+      const updatedLog = await storage.updateProjectLog(logId, logData);
+      res.json(updatedLog);
+    } catch (error) {
+      console.error("Error updating project log:", error);
+      res.status(500).json({ message: "Error updating project log" });
+    }
+  });
+  
+  app.delete("/api/project-logs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const logId = parseInt(req.params.id);
+      
+      // Get existing log to verify ownership
+      const log = await storage.getProjectLog(logId);
+      if (!log) {
+        return res.status(404).json({ message: "Log not found" });
+      }
+      
+      // Only allow deleting logs created by the current user, unless they're an admin
+      const user = req.user as User;
+      if (log.user_id !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: "You can only delete logs you created" });
+      }
+      
+      const deleted = await storage.deleteProjectLog(logId);
+      
+      if (deleted) {
+        return res.json({ success: true });
+      }
+      
+      res.status(500).json({ message: "Error deleting project log" });
+    } catch (error) {
+      console.error("Error deleting project log:", error);
+      res.status(500).json({ message: "Error deleting project log" });
+    }
+  });
+  
+  // Project reports endpoints
+  app.get("/api/project-reports/:projectId", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      // Validate project exists
       const project = await storage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Configure reports for project
-      const updatedProject = await storage.configureProjectReports(projectId, reportSettings);
-      
-      res.json(updatedProject);
+      // Get reports for project
+      const reports = await storage.getProjectReports(projectId);
+      res.json(reports);
     } catch (error) {
-      console.error("Error configuring project reports:", error);
-      res.status(500).json({ message: "Error configuring project reports" });
+      console.error("Error fetching project reports:", error);
+      res.status(500).json({ message: "Error fetching project reports" });
+    }
+  });
+  
+  app.get("/api/project-reports/:id", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getProjectReport(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching project report:", error);
+      res.status(500).json({ message: "Error fetching project report" });
+    }
+  });
+  
+  app.post("/api/project-reports", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { 
+        project_id, 
+        report_type, 
+        start_date, 
+        end_date, 
+        includes_photos, 
+        includes_notes 
+      } = req.body;
+      
+      if (!project_id) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      // Validate project exists
+      const project = await storage.getProject(Number(project_id));
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Create new report
+      const newReport = await storage.createProjectReport({
+        project_id: Number(project_id),
+        user_id: userId,
+        report_type: report_type || "weekly",
+        start_date: start_date ? new Date(start_date) : null,
+        end_date: end_date ? new Date(end_date) : null,
+        includes_photos: includes_photos ?? true,
+        includes_notes: includes_notes ?? true
+      });
+      
+      // Generate PDF for report
+      const pdfUrl = await storage.generateProjectReportPdf(newReport.id);
+      
+      if (pdfUrl) {
+        // Update report with PDF URL
+        const updatedReport = await storage.updateProjectReport(newReport.id, { pdf_url: pdfUrl });
+        
+        // Create activity for generating report
+        await storage.createActivity({
+          user_id: userId,
+          project_id: Number(project_id),
+          client_id: project.client_id,
+          type: "report_generated",
+          description: `Generated report for project: ${project.name}`,
+          metadata: { reportId: newReport.id, reportType: report_type }
+        });
+        
+        return res.status(201).json(updatedReport);
+      }
+      
+      res.status(201).json(newReport);
+    } catch (error) {
+      console.error("Error generating project report:", error);
+      res.status(500).json({ message: "Error generating project report" });
+    }
+  });
+  
+  app.patch("/api/project-reports/:id", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const reportData = req.body;
+      
+      // Get existing report to verify ownership
+      const report = await storage.getProjectReport(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      // Only allow updating reports created by the current user, unless they're an admin
+      const user = req.user as User;
+      if (report.user_id !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: "You can only update reports you created" });
+      }
+      
+      const updatedReport = await storage.updateProjectReport(reportId, reportData);
+      res.json(updatedReport);
+    } catch (error) {
+      console.error("Error updating project report:", error);
+      res.status(500).json({ message: "Error updating project report" });
+    }
+  });
+  
+  app.delete("/api/project-reports/:id", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      
+      // Get existing report to verify ownership
+      const report = await storage.getProjectReport(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      // Only allow deleting reports created by the current user, unless they're an admin
+      const user = req.user as User;
+      if (report.user_id !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: "You can only delete reports you created" });
+      }
+      
+      const deleted = await storage.deleteProjectReport(reportId);
+      
+      if (deleted) {
+        return res.json({ success: true });
+      }
+      
+      res.status(500).json({ message: "Error deleting project report" });
+    } catch (error) {
+      console.error("Error deleting project report:", error);
+      res.status(500).json({ message: "Error deleting project report" });
+    }
+  });
+  
+  // Generate PDF endpoint
+  app.get("/api/project-reports/:id/pdf", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      
+      // Get existing report
+      const report = await storage.getProjectReport(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      // Generate PDF for report
+      const pdfUrl = await storage.generateProjectReportPdf(reportId);
+      
+      if (!pdfUrl) {
+        return res.status(500).json({ message: "Error generating PDF" });
+      }
+      
+      // Return the PDF URL
+      res.json({ pdfUrl });
+    } catch (error) {
+      console.error("Error generating PDF for project report:", error);
+      res.status(500).json({ message: "Error generating PDF for project report" });
     }
   });
 

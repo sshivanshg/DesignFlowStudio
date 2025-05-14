@@ -29,8 +29,11 @@ type NavItem = {
 export default function Sidebar() {
   const [location] = useLocation();
   const { isOpen, close } = useSidebar();
-  const { user, logout } = useAuth();
-  const { signOut } = useSupabaseAuth();
+  const { user: firebaseUser, logout } = useAuth();
+  const { user: supabaseUser, signOut } = useSupabaseAuth();
+  
+  // Prefer Supabase user, but fallback to Firebase user during transition
+  const user = supabaseUser || firebaseUser;
   
   // Close sidebar when navigating on mobile
   useEffect(() => {
@@ -178,20 +181,21 @@ export default function Sidebar() {
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.avatar || ""} alt={user.fullName} />
+                <AvatarImage src={user.avatar || ""} alt={user.name || user.fullName || user.email} />
                 <AvatarFallback className="bg-primary text-white">
-                  {user.fullName?.split(" ").map(n => n[0]).join("")}
+                  {(user.name || user.fullName || user.email || "U").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-800">{user.fullName}</p>
-                <p className="text-xs font-medium text-gray-500">{user.role}</p>
+                <p className="text-sm font-medium text-gray-800">{user.name || user.fullName || user.email}</p>
+                <p className="text-xs font-medium text-gray-500 capitalize">{user.role || "User"}</p>
               </div>
               <div className="ml-auto">
                 <button 
                   onClick={handleLogout}
                   type="button" 
-                  className="flex text-gray-500 focus:outline-none"
+                  className="flex text-gray-500 focus:outline-none hover:text-primary"
+                  title="Logout"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>

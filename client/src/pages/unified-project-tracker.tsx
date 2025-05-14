@@ -163,6 +163,14 @@ export default function UnifiedProjectTracker() {
   const params = useParams<{ projectId?: string }>();
   const projectId = params.projectId || '';
   
+  // Use both auth systems during transition period
+  const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
+  const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
+  
+  // Prefer Supabase user if available, otherwise fallback to Firebase user
+  const user = supabaseUser || firebaseUser;
+  const isAuthLoading = supabaseLoading || firebaseLoading;
+  
   // General state
   const [view, setView] = useState<string>(projectId ? 'rooms' : 'projects');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -249,7 +257,8 @@ export default function UnifiedProjectTracker() {
     isLoading: projectsLoading 
   } = useQuery({
     queryKey: ['/api/projects'],
-    queryFn: () => fetch('/api/projects').then(res => res.json())
+    queryFn: () => fetch('/api/projects').then(res => res.json()),
+    enabled: !!user // Only run query when user is authenticated
   });
   
   // Query specific project (if ID provided)
@@ -259,7 +268,7 @@ export default function UnifiedProjectTracker() {
   } = useQuery({
     queryKey: ['/api/projects', projectId],
     queryFn: () => fetch(`/api/projects/${projectId}`).then(res => res.json()),
-    enabled: !!projectId,
+    enabled: !!projectId && !!user, // Only run query when user is authenticated and projectId exists
   });
   
   // Query project logs
@@ -269,7 +278,7 @@ export default function UnifiedProjectTracker() {
   } = useQuery({
     queryKey: ['/api/project-logs', projectId],
     queryFn: () => fetch(`/api/project-logs?project_id=${projectId}`).then(res => res.json()),
-    enabled: !!projectId,
+    enabled: !!projectId && !!user, // Only run query when user is authenticated and projectId exists
   });
   
   // Query project reports
@@ -279,7 +288,7 @@ export default function UnifiedProjectTracker() {
   } = useQuery({
     queryKey: ['/api/project-reports', projectId],
     queryFn: () => fetch(`/api/project-reports?project_id=${projectId}`).then(res => res.json()),
-    enabled: !!projectId,
+    enabled: !!projectId && !!user, // Only run query when user is authenticated and projectId exists
   });
 
   // =======================================================

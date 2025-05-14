@@ -74,6 +74,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
             if (response.ok) {
               const data = await response.json();
+              console.log("User data from backend:", data.user);
               setUser(data.user);
             } else {
               console.error("Failed to get user data from backend");
@@ -112,7 +113,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
           if (response.ok) {
             const data = await response.json();
+            console.log("Initial session check - User data from backend:", data.user);
             setUser(data.user);
+          } else {
+            console.error("Failed to get user data from backend during session check");
           }
         } catch (error) {
           console.error("Failed to fetch user data:", error);

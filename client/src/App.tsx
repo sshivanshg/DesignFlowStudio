@@ -125,7 +125,14 @@ function ProtectedRoute({
   
   // Check if user has the required role to access this route
   if (user && !allowedRoles.includes(user.role)) {
-    console.log(`User role ${user.role} not allowed for this route`);
+    console.log(`User role ${user.role} not allowed for this route. Required roles: ${allowedRoles.join(', ')}`);
+    
+    // Special case - if they're admin, always allow access
+    if (user.role === 'admin') {
+      console.log("User is admin, allowing access");
+      return <>{children}</>;
+    }
+    
     setLocation("/dashboard");
     return null;
   }

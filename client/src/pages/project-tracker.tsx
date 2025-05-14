@@ -34,6 +34,7 @@ import {
   List, 
   MapPin, 
   MessageSquare, 
+  Pencil,
   Plus, 
   Search,
   CheckCircle,
@@ -87,6 +88,11 @@ export default function ProjectTracker() {
   const [viewNotesOpen, setViewNotesOpen] = useState(false);
   const [selectedRoomNotes, setSelectedRoomNotes] = useState<any[]>([]);
   const [selectedRoomName, setSelectedRoomName] = useState("");
+  
+  // Task edit states
+  const [editTaskOpen, setEditTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [editTaskStatus, setEditTaskStatus] = useState("");
   
   const [newProject, setNewProject] = useState({
     name: '',
@@ -1098,7 +1104,24 @@ export default function ProjectTracker() {
                                         <span className="text-gray-400">No due date</span>
                                       )}
                                     </TableCell>
-                                    <TableCell>{getStatusBadge(task.status || 'not_started')}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center space-x-2">
+                                        {getStatusBadge(task.status || 'not_started')}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-6 w-6"
+                                          onClick={() => {
+                                            setSelectedTask(task);
+                                            setEditTaskStatus(task.status || 'not_started');
+                                            setEditTaskOpen(true);
+                                          }}
+                                        >
+                                          <span className="sr-only">Edit task status</span>
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
                                     <TableCell>{task.assignedTo || 'Unassigned'}</TableCell>
                                   </TableRow>
                                 ))

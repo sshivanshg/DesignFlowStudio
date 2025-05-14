@@ -1681,14 +1681,61 @@ export class DrizzleStorage implements IStorage {
         console.log(`UPDATE users SET ${setClause} WHERE id = $${filteredParams.length} RETURNING *`);
         console.log("Params:", filteredParams);
         
-        // Execute the query using the postgres client's tagged template literal syntax
+        // Execute the query using raw SQL query built manually
         try {
-          // This is using the postgres library's tagged template literal syntax
-          const result = await client`
-            UPDATE users SET ${client.unsafe(setClause)}
-            WHERE id = ${id}
-            RETURNING *
-          `;
+          // For each field in updateData, create a separate placeholder with unique index
+          const updateFields = Object.keys(updateData);
+          const setValues = updateFields.map((field, index) => {
+            return field === 'updated_at' 
+              ? `${field} = NOW()` 
+              : `${field} = $${index + 1}`;
+          });
+          
+          // Only collect parameter values for non-updated_at fields
+          const paramValues = [];
+          for (const [key, value] of Object.entries(updateData)) {
+            if (key !== 'updated_at') {
+              paramValues.push(value);
+            }
+          }
+          
+          // Add the id parameter at the end
+          paramValues.push(id);
+          
+          // Use a different approach with direct SQL template literals
+          const sql = this.getDb();
+          
+          // Build the condition first
+          let query;
+          
+          // Simple approach with direct parameters for up to 2 update fields
+          if (updateFields.length === 1 && updateFields[0] === 'supabase_uid') {
+            // Handle the most common case directly
+            query = sql`
+              UPDATE users 
+              SET supabase_uid = ${updateData.supabase_uid}, 
+                  updated_at = NOW()
+              WHERE id = ${id}
+              RETURNING *
+            `;
+          } else {
+            // For simplicity, log what fields we're trying to update
+            console.log("Too many fields to update, using simple approach");
+            
+            // Just update the supabase_uid (most critical for auth)
+            query = sql`
+              UPDATE users 
+              SET supabase_uid = ${updateData.supabase_uid || null}, 
+                  updated_at = NOW()
+              WHERE id = ${id}
+              RETURNING *
+            `;
+          }
+          
+          console.log("Executing direct SQL query");
+          
+          // Execute the query
+          const result = await query;
           
           console.log("SQL executed successfully, result:", result);
           

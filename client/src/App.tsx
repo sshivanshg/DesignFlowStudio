@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { ClearTestMode } from "./clear-test-mode";
+import { useEffect } from "react";
 
 import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
@@ -38,6 +39,40 @@ import ClientMoodboardDetail from "@/pages/client-moodboard-detail";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+
+/**
+ * AuthRedirect component - handles the root path redirection:
+ * - If user is authenticated, redirects to dashboard 
+ * - If user is not authenticated, redirects to login
+ */
+function AuthRedirect() {
+  const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
+  const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
+  const [_, setLocation] = useLocation();
+  
+  // Prefer Supabase user if available, otherwise fallback to Firebase user
+  const user = supabaseUser || firebaseUser;
+  const isLoading = supabaseLoading || firebaseLoading;
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (user) {
+      // User is logged in, redirect to dashboard
+      setLocation("/dashboard");
+    } else {
+      // User is not logged in, redirect to login page
+      setLocation("/login");
+    }
+  }, [user, isLoading, setLocation]);
+
+  // Show loading state while checking authentication
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ 
   children, 
@@ -99,23 +134,7 @@ function ProtectedRoute({
 function Router() {
   return (
     <Switch>
-      {/* Settings Routes - Must be defined first */}
-      <Route path="/settings">
-        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
-          <AppLayout>
-            <Settings />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/settings/admin">
-        <ProtectedRoute allowedRoles={["admin"]}>
-          <AppLayout>
-            <AdminDashboard />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-      
+      {/* Public Routes */}
       <Route path="/login">
         <Login />
       </Route>
@@ -160,8 +179,25 @@ function Router() {
         <ClientMoodboardDetail />
       </Route>
       
+      {/* Settings Routes */}
+      <Route path="/settings">
+        <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
+          <AppLayout>
+            <Settings />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/settings/admin">
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AppLayout>
+            <AdminDashboard />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
       {/* Admin/Designer/Sales Routes - Protected */}
-      <Route path="/">
+      <Route path="/dashboard">
         <ProtectedRoute>
           <AppLayout>
             <Dashboard />
@@ -169,12 +205,9 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
-      <Route path="/dashboard">
-        <ProtectedRoute>
-          <AppLayout>
-            <Dashboard />
-          </AppLayout>
-        </ProtectedRoute>
+      {/* Default route - make login the default */}
+      <Route path="/">
+        <AuthRedirect />
       </Route>
       
       <Route path="/crm">

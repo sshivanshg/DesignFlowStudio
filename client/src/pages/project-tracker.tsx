@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -27,7 +28,8 @@ import {
 } from "@/components/ui/table";
 import { 
   Clipboard, 
-  ClipboardList, 
+  ClipboardList,
+  FileTextIcon,
   Clock, 
   Eye,
   Layers, 
@@ -418,6 +420,14 @@ export default function ProjectTracker() {
                       <CardDescription>
                         {getProjectLocation(projectDetails)}
                       </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Link href={`/project-reports/${selectedProject}`}>
+                        <Button variant="outline" size="sm">
+                          <FileText className="h-4 w-4 mr-1" />
+                          Reports
+                        </Button>
+                      </Link>
                     </div>
                     <Badge variant="outline">
                       {getProjectStatus(projectDetails)}

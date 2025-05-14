@@ -59,6 +59,26 @@ export default function ProjectTracker() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  
+  // Dialog states for rooms, tasks, and logs
+  const [addRoomOpen, setAddRoomOpen] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomType, setNewRoomType] = useState("living");
+  
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [newTaskName, setNewTaskName] = useState("");
+  const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [taskStatus, setTaskStatus] = useState("not_started");
+  const [taskDueDate, setTaskDueDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7); // One week from now
+    return date.toISOString().split('T')[0];
+  });
+  
+  const [addLogOpen, setAddLogOpen] = useState(false);
+  const [logText, setLogText] = useState("");
+  const [logType, setLogType] = useState("note");
+  
   const [newProject, setNewProject] = useState({
     name: '',
     location: '',
@@ -614,115 +634,182 @@ export default function ProjectTracker() {
                               return;
                             }
                             
-                            // Show task creation dialog
-                            const taskName = prompt("Enter task name:", "New Task");
-                            if (!taskName) return; // User canceled
-                            
-                            // Select room from available rooms
-                            let roomOptions = "Available rooms:\n";
-                            let roomIdMap: Record<number, string> = {};
-                            
                             if (projectDetails.rooms && Array.isArray(projectDetails.rooms) && projectDetails.rooms.length > 0) {
-                              projectDetails.rooms.forEach((room: any, index: number) => {
-                                roomOptions += `${index + 1}. ${room.name} (${room.type})\n`;
-                                roomIdMap[index + 1] = room.id;
-                              });
+                              setSelectedRoomId(projectDetails.rooms[0].id);
+                              setAddTaskOpen(true);
                             } else {
                               toast({
                                 title: "Warning",
                                 description: "No rooms found. Please add a room first.",
                                 variant: "destructive",
                               });
-                              return;
                             }
-                            
-                            const roomSelection = prompt(roomOptions + "\nEnter room number:", "1");
-                            if (!roomSelection) return; // User canceled
-                            
-                            const selectedRoomIndex = parseInt(roomSelection);
-                            const roomId = roomIdMap[selectedRoomIndex];
-                            if (!roomId) {
-                              toast({
-                                title: "Error",
-                                description: "Invalid room selection.",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            
-                            // Get task status
-                            const statusOptions = "Task status:\n1. Not Started\n2. In Progress\n3. Completed\n4. On Hold";
-                            const statusSelection = prompt(statusOptions + "\nEnter status number:", "1");
-                            if (!statusSelection) return; // User canceled
-                            
-                            const statusMap: Record<string, string> = {
-                              "1": "not_started",
-                              "2": "in_progress",
-                              "3": "completed",
-                              "4": "on_hold"
-                            };
-                            
-                            const status = statusSelection in statusMap ? statusMap[statusSelection] : "not_started";
-                            
-                            // Get due date
-                            const today = new Date();
-                            const nextWeek = new Date(today);
-                            nextWeek.setDate(today.getDate() + 7);
-                            
-                            const defaultDueDate = nextWeek.toISOString().split('T')[0];
-                            const dueDate = prompt("Enter due date (YYYY-MM-DD):", defaultDueDate);
-                            if (!dueDate) return; // User canceled
-                            
-                            // Create new task
-                            const newTask = {
-                              id: Date.now().toString(),
-                              name: taskName,
-                              status: status,
-                              roomId: roomId,
-                              assignedTo: "",
-                              dueDate: dueDate,
-                            };
-                            
-                            // Prepare updated tasks array
-                            const updatedTasks = projectDetails.tasks && Array.isArray(projectDetails.tasks) 
-                              ? [...projectDetails.tasks, newTask]
-                              : [newTask];
-                            
-                            // Update the project with the new task
-                            fetch(`/api/projects/${selectedProject}`, {
-                              method: 'PATCH',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                tasks: updatedTasks
-                              }),
-                            })
-                            .then(response => {
-                              if (!response.ok) throw new Error('Failed to add task');
-                              return response.json();
-                            })
-                            .then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
-                              toast({
-                                title: "Task added",
-                                description: `New task "${taskName}" has been added successfully`,
-                              });
-                            })
-                            .catch(error => {
-                              console.error('Error adding task:', error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to add task. Please try again.",
-                                variant: "destructive",
-                              });
-                            });
                           }}
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Task
                         </Button>
                       </div>
+                      
+                      {/* Add Task Dialog */}
+                      <Dialog open={addTaskOpen} onOpenChange={setAddTaskOpen}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add New Task</DialogTitle>
+                            <DialogDescription>
+                              Create a new task for this project
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="task-name" className="text-right">
+                                Task Name
+                              </Label>
+                              <Input
+                                id="task-name"
+                                placeholder="Enter task name"
+                                className="col-span-3"
+                                value={newTaskName}
+                                onChange={(e) => setNewTaskName(e.target.value)}
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="task-room" className="text-right">
+                                Room
+                              </Label>
+                              <Select 
+                                value={selectedRoomId} 
+                                onValueChange={setSelectedRoomId}
+                              >
+                                <SelectTrigger id="task-room" className="col-span-3">
+                                  <SelectValue placeholder="Select room" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {projectDetails?.rooms?.map((room: any) => (
+                                    <SelectItem key={room.id} value={room.id}>
+                                      {room.name} ({room.type})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="task-status" className="text-right">
+                                Status
+                              </Label>
+                              <Select 
+                                value={taskStatus} 
+                                onValueChange={setTaskStatus}
+                              >
+                                <SelectTrigger id="task-status" className="col-span-3">
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="not_started">Not Started</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="on_hold">On Hold</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="task-due-date" className="text-right">
+                                Due Date
+                              </Label>
+                              <Input
+                                id="task-due-date"
+                                type="date"
+                                className="col-span-3"
+                                value={taskDueDate}
+                                onChange={(e) => setTaskDueDate(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button
+                              onClick={() => {
+                                if (!newTaskName.trim()) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Task name is required",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                if (!selectedRoomId) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Please select a room",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Create new task
+                                const newTask = {
+                                  id: Date.now().toString(),
+                                  name: newTaskName,
+                                  status: taskStatus,
+                                  roomId: selectedRoomId,
+                                  assignedTo: "",
+                                  dueDate: taskDueDate,
+                                };
+                                
+                                // Prepare updated tasks array
+                                const updatedTasks = projectDetails.tasks && Array.isArray(projectDetails.tasks) 
+                                  ? [...projectDetails.tasks, newTask]
+                                  : [newTask];
+                                
+                                // Update the project with the new task
+                                fetch(`/api/projects/${selectedProject}`, {
+                                  method: 'PATCH',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    tasks: updatedTasks
+                                  }),
+                                })
+                                .then(response => {
+                                  if (!response.ok) throw new Error('Failed to add task');
+                                  return response.json();
+                                })
+                                .then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                  toast({
+                                    title: "Task added",
+                                    description: `New task "${newTaskName}" has been added successfully`,
+                                  });
+                                  
+                                  // Reset form and close dialog
+                                  setNewTaskName("");
+                                  setTaskStatus("not_started");
+                                  const date = new Date();
+                                  date.setDate(date.getDate() + 7);
+                                  setTaskDueDate(date.toISOString().split('T')[0]);
+                                  setAddTaskOpen(false);
+                                })
+                                .catch(error => {
+                                  console.error('Error adding task:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to add task. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                });
+                              }}
+                            >
+                              Add Task
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       <div className="flex justify-between items-center mb-4 gap-2">
                         <div className="relative flex-1">
                           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
@@ -833,72 +920,125 @@ export default function ProjectTracker() {
                               return;
                             }
                             
-                            // Prompt for log text
-                            const logText = prompt("Enter progress note:", "");
-                            if (!logText) return; // User canceled
-                            
-                            // Select log type
-                            const logTypeOptions = "Select log type:\n1. Note\n2. Progress Update\n3. Issue\n4. Communication";
-                            const logTypeSelection = prompt(logTypeOptions + "\nEnter type number:", "1");
-                            if (!logTypeSelection) return; // User canceled
-                            
-                            const logTypeMap: Record<string, string> = {
-                              "1": "note",
-                              "2": "progress",
-                              "3": "issue",
-                              "4": "communication"
-                            };
-                            
-                            const logType = logTypeSelection in logTypeMap ? logTypeMap[logTypeSelection] : "note";
-                            
-                            // Create a new log entry
-                            const date = new Date();
-                            const newLog = {
-                              id: Date.now().toString(),
-                              date: date.toISOString(),
-                              text: logText,
-                              type: logType
-                            };
-                            
-                            // Prepare updated logs array
-                            const updatedLogs = projectDetails.logs && Array.isArray(projectDetails.logs) 
-                              ? [...projectDetails.logs, newLog]
-                              : [newLog];
-                            
-                            // Update the project with the new log
-                            fetch(`/api/projects/${selectedProject}`, {
-                              method: 'PATCH',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                logs: updatedLogs
-                              }),
-                            })
-                            .then(response => {
-                              if (!response.ok) throw new Error('Failed to add log');
-                              return response.json();
-                            })
-                            .then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
-                              toast({
-                                title: "Log added",
-                                description: "New progress log has been added successfully",
-                              });
-                            })
-                            .catch(error => {
-                              console.error('Error adding log:', error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to add log. Please try again.",
-                                variant: "destructive",
-                              });
-                            });
+                            setAddLogOpen(true);
                           }}
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Log Entry
                         </Button>
+                        
+                        {/* Add Log Dialog */}
+                        <Dialog open={addLogOpen} onOpenChange={setAddLogOpen}>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Progress Log</DialogTitle>
+                              <DialogDescription>
+                                Add a new log entry to track project progress
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="log-type" className="text-right">
+                                  Log Type
+                                </Label>
+                                <Select 
+                                  value={logType} 
+                                  onValueChange={setLogType}
+                                >
+                                  <SelectTrigger id="log-type" className="col-span-3">
+                                    <SelectValue placeholder="Select log type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="note">Note</SelectItem>
+                                    <SelectItem value="progress">Progress Update</SelectItem>
+                                    <SelectItem value="issue">Issue</SelectItem>
+                                    <SelectItem value="communication">Communication</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="log-text" className="text-right">
+                                  Log Details
+                                </Label>
+                                <textarea
+                                  id="log-text"
+                                  placeholder="Enter log details"
+                                  className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
+                                  value={logText}
+                                  onChange={(e) => setLogText(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            
+                            <DialogFooter>
+                              <Button
+                                onClick={() => {
+                                  if (!logText.trim()) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Log text is required",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  
+                                  // Create a new log entry
+                                  const date = new Date();
+                                  const newLog = {
+                                    id: Date.now().toString(),
+                                    date: date.toISOString(),
+                                    text: logText,
+                                    type: logType
+                                  };
+                                  
+                                  // Prepare updated logs array
+                                  const updatedLogs = projectDetails.logs && Array.isArray(projectDetails.logs) 
+                                    ? [...projectDetails.logs, newLog]
+                                    : [newLog];
+                                  
+                                  // Update the project with the new log
+                                  fetch(`/api/projects/${selectedProject}`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                      logs: updatedLogs
+                                    }),
+                                  })
+                                  .then(response => {
+                                    if (!response.ok) throw new Error('Failed to add log');
+                                    return response.json();
+                                  })
+                                  .then(() => {
+                                    queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                    toast({
+                                      title: "Log added",
+                                      description: "New progress log has been added successfully",
+                                    });
+                                    
+                                    // Reset form and close dialog
+                                    setLogText("");
+                                    setLogType("note");
+                                    setAddLogOpen(false);
+                                  })
+                                  .catch(error => {
+                                    console.error('Error adding log:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to add log. Please try again.",
+                                      variant: "destructive",
+                                    });
+                                  });
+                                }}
+                              >
+                                Add Log Entry
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                       <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
                         <div className="flex items-start">

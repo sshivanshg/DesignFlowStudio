@@ -927,12 +927,17 @@ export default function ProjectTracker() {
                                 // Count total and completed tasks
                                 const totalTasks = roomTasks.length;
                                 const completedTasks = roomTasks.filter(
-                                  (task: any) => task.status === 'completed' || task.status === 'in_progress'
+                                  (task: any) => task.status === 'completed'
                                 ).length;
                                 
-                                // Calculate progress percentage
+                                const inProgressTasks = roomTasks.filter(
+                                  (task: any) => task.status === 'in_progress'
+                                ).length;
+                                
+                                // Calculate progress percentage based on weighted values
+                                // Completed tasks count as 100%, in-progress as 50%
                                 const progress = totalTasks > 0 
-                                  ? Math.round((completedTasks / totalTasks) * 100) 
+                                  ? Math.round(((completedTasks + (inProgressTasks * 0.5)) / totalTasks) * 100) 
                                   : 0;
                                 
                                 // Return updated room with new counts and progress

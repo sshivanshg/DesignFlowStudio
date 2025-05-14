@@ -22,8 +22,15 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function RecentProposals() {
-  const { data: proposals, isLoading } = useQuery<Proposal[]>({
-    queryKey: ['/api/proposals'],
+  const { data: recentProposals, isLoading } = useQuery<Proposal[]>({
+    queryKey: ['/api/dashboard/recent-proposals'],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/recent-proposals');
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent proposals');
+      }
+      return response.json();
+    }
   });
 
   return (
@@ -59,8 +66,8 @@ export default function RecentProposals() {
                 </div>
               </div>
             ))
-          ) : proposals && proposals.length > 0 ? (
-            proposals.slice(0, 3).map((proposal) => (
+          ) : recentProposals && recentProposals.length > 0 ? (
+            recentProposals.map((proposal) => (
               <div key={proposal.id} className="bg-gray-50 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
@@ -73,8 +80,8 @@ export default function RecentProposals() {
                     <div className="mt-1 flex items-center flex-wrap">
                       <span className="text-xs text-gray-500">Client:</span>
                       <span className="ml-1 text-xs font-medium text-gray-700">
-                        {/* In a real app, we would fetch client name using the clientId */}
-                        Client {proposal.clientId}
+                        {/* In a real app, we would fetch client name using the client_id */}
+                        Client {proposal.client_id}
                       </span>
                       <span className="mx-2 text-gray-300">•</span>
                       <span className="text-xs text-gray-500">Created:</span>

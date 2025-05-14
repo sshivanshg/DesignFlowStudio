@@ -112,8 +112,8 @@ export default function RecentProjects() {
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {/* In a real app, we would fetch client details using the clientId */}
-                        Client {project.clientId}
+                        {/* In a real app, we would fetch client details using the client_id */}
+                        Client {project.client_id}
                       </div>
                       <div className="text-sm text-gray-500">client@example.com</div>
                     </td>

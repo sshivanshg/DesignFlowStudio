@@ -29,6 +29,7 @@ import {
   Clipboard, 
   ClipboardList, 
   Clock, 
+  Eye,
   Layers, 
   List, 
   MapPin, 
@@ -83,6 +84,9 @@ export default function ProjectTracker() {
   const [addRoomNoteOpen, setAddRoomNoteOpen] = useState(false);
   const [roomNoteText, setRoomNoteText] = useState("");
   const [selectedRoomForNote, setSelectedRoomForNote] = useState<string>("");
+  const [viewNotesOpen, setViewNotesOpen] = useState(false);
+  const [selectedRoomNotes, setSelectedRoomNotes] = useState<any[]>([]);
+  const [selectedRoomName, setSelectedRoomName] = useState("");
   
   const [newProject, setNewProject] = useState({
     name: '',
@@ -605,12 +609,8 @@ export default function ProjectTracker() {
                                 </div>
                               </div>
                               <div className="flex mt-3 space-x-2">
-                                <Button variant="outline" size="sm">
-                                  <ClipboardList className="h-3.5 w-3.5 mr-1" />
-                                  Tasks
-                                </Button>
                                 <Button 
-                                  variant="outline" 
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     if (!projectDetails || !selectedProject) {
@@ -622,13 +622,81 @@ export default function ProjectTracker() {
                                       return;
                                     }
                                     
-                                    setSelectedRoomForNote(room.id);
-                                    setAddRoomNoteOpen(true);
+                                    // Find tasks for this room
+                                    const roomTasks = projectDetails.tasks?.filter(
+                                      (task: any) => task.roomId === room.id
+                                    ) || [];
+                                    
+                                    // Show info toast if no tasks
+                                    if (roomTasks.length === 0) {
+                                      toast({
+                                        title: "No Tasks",
+                                        description: "There are no tasks for this room yet.",
+                                      });
+                                      return;
+                                    }
+                                    
+                                    // Set selected room and view to tasks
+                                    setSelectedRoomId(room.id);
+                                    setView('tasks');
                                   }}
                                 >
-                                  <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                                  Add Note
+                                  <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                                  Tasks ({room.tasks || 0})
                                 </Button>
+                                
+                                <div className="flex space-x-1">
+                                  <Button 
+                                    variant={room.notes && room.notes.length > 0 ? "secondary" : "outline"}
+                                    size="sm"
+                                    onClick={() => {
+                                      if (!projectDetails || !selectedProject) {
+                                        toast({
+                                          title: "Error",
+                                          description: "Please select a project first",
+                                          variant: "destructive",
+                                        });
+                                        return;
+                                      }
+                                      
+                                      if (!room.notes || room.notes.length === 0) {
+                                        toast({
+                                          title: "No Notes",
+                                          description: "There are no notes for this room yet.",
+                                        });
+                                        return;
+                                      }
+                                      
+                                      // Set the selected room notes for viewing
+                                      setSelectedRoomNotes(room.notes);
+                                      setSelectedRoomName(room.name);
+                                      setViewNotesOpen(true);
+                                    }}
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-1" />
+                                    Notes {room.notes ? `(${room.notes.length})` : '(0)'}
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      if (!projectDetails || !selectedProject) {
+                                        toast({
+                                          title: "Error",
+                                          description: "Please select a project first",
+                                          variant: "destructive",
+                                        });
+                                        return;
+                                      }
+                                      
+                                      setSelectedRoomForNote(room.id);
+                                      setAddRoomNoteOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))
@@ -678,7 +746,7 @@ export default function ProjectTracker() {
                                 
                                 // Find the room to update
                                 const roomIndex = projectDetails?.rooms?.findIndex(
-                                  r => r.id === selectedRoomForNote
+                                  (r: any) => r.id === selectedRoomForNote
                                 );
                                 
                                 if (roomIndex === undefined || roomIndex === -1 || !projectDetails?.rooms) {
@@ -746,6 +814,39 @@ export default function ProjectTracker() {
                               }}
                             >
                               Add Note
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      {/* View Room Notes Dialog */}
+                      <Dialog open={viewNotesOpen} onOpenChange={setViewNotesOpen}>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Notes for {selectedRoomName}</DialogTitle>
+                            <DialogDescription>
+                              View all notes for this room
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="space-y-4 my-4 max-h-[400px] overflow-y-auto">
+                            {selectedRoomNotes.map((note: any, index: number) => (
+                              <div key={note.id || index} className="p-4 border rounded-md">
+                                <div className="flex justify-between items-start">
+                                  <div className="font-medium text-sm">
+                                    {note.date ? new Date(note.date).toLocaleString() : 'No date'}
+                                  </div>
+                                </div>
+                                <p className="mt-2 text-gray-700 whitespace-pre-wrap">
+                                  {note.text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button onClick={() => setViewNotesOpen(false)}>
+                              Close
                             </Button>
                           </DialogFooter>
                         </DialogContent>

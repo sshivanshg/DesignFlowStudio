@@ -414,64 +414,130 @@ export default function ProjectTracker() {
                               });
                               return;
                             }
-                            
-                            // Show room creation dialog
-                            const roomType = prompt("Select room type (living, bedroom, kitchen, bathroom, office):", "living");
-                            if (!roomType) return; // User canceled
-                            
-                            const roomName = prompt("Enter room name:", "New Room");
-                            if (!roomName) return; // User canceled
-                            
-                            // Add a new room to the project
-                            const newRoom = {
-                              id: Date.now().toString(), // Generate a unique ID
-                              name: roomName,
-                              type: roomType.toLowerCase(),
-                              progress: 0,
-                              tasks: 0,
-                              completedTasks: 0
-                            };
-                            
-                            // Prepare updated rooms array
-                            const updatedRooms = projectDetails.rooms && Array.isArray(projectDetails.rooms) 
-                              ? [...projectDetails.rooms, newRoom]
-                              : [newRoom];
-                            
-                            // Update the project with the new room
-                            fetch(`/api/projects/${selectedProject}`, {
-                              method: 'PATCH',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                rooms: updatedRooms
-                              }),
-                            })
-                            .then(response => {
-                              if (!response.ok) throw new Error('Failed to add room');
-                              return response.json();
-                            })
-                            .then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
-                              toast({
-                                title: "Room added",
-                                description: `New room "${roomName}" has been added successfully`,
-                              });
-                            })
-                            .catch(error => {
-                              console.error('Error adding room:', error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to add room. Please try again.",
-                                variant: "destructive",
-                              });
-                            });
+                            setAddRoomOpen(true);
                           }}
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Room
                         </Button>
                       </div>
+                      
+                      {/* Add Room Dialog */}
+                      <Dialog open={addRoomOpen} onOpenChange={setAddRoomOpen}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add New Room</DialogTitle>
+                            <DialogDescription>
+                              Add a new room or zone to the project
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="room-name" className="text-right">
+                                Name
+                              </Label>
+                              <Input
+                                id="room-name"
+                                placeholder="Enter room name"
+                                className="col-span-3"
+                                value={newRoomName}
+                                onChange={(e) => setNewRoomName(e.target.value)}
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="room-type" className="text-right">
+                                Type
+                              </Label>
+                              <Select 
+                                value={newRoomType} 
+                                onValueChange={setNewRoomType}
+                              >
+                                <SelectTrigger id="room-type" className="col-span-3">
+                                  <SelectValue placeholder="Select room type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="living">Living Room</SelectItem>
+                                  <SelectItem value="bedroom">Bedroom</SelectItem>
+                                  <SelectItem value="kitchen">Kitchen</SelectItem>
+                                  <SelectItem value="bathroom">Bathroom</SelectItem>
+                                  <SelectItem value="office">Office</SelectItem>
+                                  <SelectItem value="dining">Dining Room</SelectItem>
+                                  <SelectItem value="outdoor">Outdoor Space</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button
+                              onClick={() => {
+                                if (!newRoomName.trim()) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Room name is required",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Add a new room to the project
+                                const newRoom = {
+                                  id: Date.now().toString(),
+                                  name: newRoomName,
+                                  type: newRoomType,
+                                  progress: 0,
+                                  tasks: 0,
+                                  completedTasks: 0
+                                };
+                                
+                                // Prepare updated rooms array
+                                const updatedRooms = projectDetails?.rooms && Array.isArray(projectDetails.rooms) 
+                                  ? [...projectDetails.rooms, newRoom]
+                                  : [newRoom];
+                                
+                                // Update the project with the new room
+                                fetch(`/api/projects/${selectedProject}`, {
+                                  method: 'PATCH',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    rooms: updatedRooms
+                                  }),
+                                })
+                                .then(response => {
+                                  if (!response.ok) throw new Error('Failed to add room');
+                                  return response.json();
+                                })
+                                .then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                  toast({
+                                    title: "Room added",
+                                    description: `New room "${newRoomName}" has been added successfully`,
+                                  });
+                                  // Reset form and close dialog
+                                  setNewRoomName("");
+                                  setNewRoomType("living");
+                                  setAddRoomOpen(false);
+                                })
+                                .catch(error => {
+                                  console.error('Error adding room:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to add room. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                });
+                              }}
+                            >
+                              Add Room
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       <div className="space-y-3">
                         {!projectDetails ? (
                           <div className="p-8 text-center">

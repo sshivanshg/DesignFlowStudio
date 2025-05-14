@@ -574,7 +574,9 @@ export default function UnifiedProjectTracker() {
     return [];
   };
   
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadgeColor = (status: string | undefined) => {
+    if (!status) return 'default';
+    
     switch (status.toLowerCase()) {
       case 'planned':
         return 'secondary';

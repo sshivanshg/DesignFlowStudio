@@ -1858,6 +1858,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching estimate configs" });
     }
   });
+  
+  // Specific route for active configs - must be before the :id route
+  app.get("/api/estimate-configs/active", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Fetching active estimate configs");
+      const activeConfigs = await storage.getActiveEstimateConfigs();
+      res.json(activeConfigs);
+    } catch (error) {
+      console.error("Error fetching active estimate configs:", error);
+      res.status(500).json({ message: "Error fetching active estimate configs" });
+    }
+  });
 
   app.get("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
     try {

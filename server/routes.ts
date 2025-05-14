@@ -412,14 +412,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             existingUser = await storage.getUserByUsername(availableUsername);
           }
           
-          // Create the user with default role 'designer'
+          // Create the user with admin role for full access
           const userData = {
             username: availableUsername,
             password: randomPassword, // This is just for compatibility, they'll use Firebase auth
             email: email,
             fullName: displayName || email.split('@')[0] || 'New User',
             name: displayName || email.split('@')[0] || 'New User', // Add name field to match schema
-            role: 'designer' as const,
+            role: 'admin' as const, // Default to admin role so new users have full access
             phone: phone || null,
             avatar: photoURL || null,
             firebaseUid,
@@ -472,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: dummyEmail,
           fullName: displayNameValue,
           name: displayNameValue, // Add name field to match schema
-          role: 'designer' as const,
+          role: 'admin' as const, // Default to admin role so new users have full access
           phone: phone || null,
           avatar: photoURL || null,
           firebaseUid,

@@ -596,8 +596,8 @@ export default function UnifiedProjectTracker() {
   // Helper functions
   const getRoomOptions = () => {
     if (project?.rooms && Array.isArray(project.rooms)) {
-      return project.rooms.map((room: any) => ({
-        id: room.id,
+      return project.rooms.map((room: Room) => ({
+        id: room.id.toString(),
         label: room.name
       }));
     }
@@ -977,9 +977,9 @@ export default function UnifiedProjectTracker() {
           {/* Rooms display */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {project?.rooms && Array.isArray(project.rooms) && project.rooms
-              .filter(room => statusFilter === 'all' || (room.status && room.status.toLowerCase() === statusFilter.toLowerCase()))
-              .filter(room => searchQuery === '' || (room.name && room.name.toLowerCase().includes(searchQuery.toLowerCase())))
-              .map((room) => (
+              .filter((room: Room) => statusFilter === 'all' || (room.status && room.status.toLowerCase() === statusFilter.toLowerCase()))
+              .filter((room: Room) => searchQuery === '' || (room.name && room.name.toLowerCase().includes(searchQuery.toLowerCase())))
+              .map((room: Room) => (
                 <Card key={room.id} className="overflow-hidden">
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">
@@ -1073,9 +1073,9 @@ export default function UnifiedProjectTracker() {
                 <TableBody>
                   {project?.tasks && Array.isArray(project.tasks) ? (
                     project.tasks
-                      .filter(task => statusFilter === 'all' || task.status === statusFilter)
-                      .filter(task => searchQuery === '' || task.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((task: any) => {
+                      .filter((task: Task) => statusFilter === 'all' || (task.status && task.status === statusFilter))
+                      .filter((task: Task) => searchQuery === '' || (task.name && task.name.toLowerCase().includes(searchQuery.toLowerCase())))
+                      .map((task: Task) => {
                         // Find the room name based on roomId
                         const room = project.rooms?.find((r: any) => r.id === task.roomId);
                         const roomName = room?.name || "General";

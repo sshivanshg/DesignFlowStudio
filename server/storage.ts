@@ -2652,11 +2652,9 @@ export class DrizzleStorage implements IStorage {
         isTemplate: estimates.isTemplate,
         templateName: estimates.templateName,
         sharedLink: estimates.sharedLink,
-        note: estimates.note,
         createdAt: estimates.createdAt,
         updatedAt: estimates.updatedAt,
         pdfURL: estimates.pdfURL,
-        items: estimates.items,
         milestoneBreakdown: estimates.milestoneBreakdown
       }).from(estimates).where(eq(estimates.lead_id, leadId));
     } catch (error) {
@@ -2680,11 +2678,9 @@ export class DrizzleStorage implements IStorage {
         isTemplate: estimates.isTemplate,
         templateName: estimates.templateName,
         sharedLink: estimates.sharedLink,
-        note: estimates.note,
         createdAt: estimates.createdAt,
         updatedAt: estimates.updatedAt,
         pdfURL: estimates.pdfURL,
-        items: estimates.items,
         milestoneBreakdown: estimates.milestoneBreakdown
       }).from(estimates).where(eq(estimates.client_id, clientId));
     } catch (error) {
@@ -2708,11 +2704,9 @@ export class DrizzleStorage implements IStorage {
         isTemplate: estimates.isTemplate,
         templateName: estimates.templateName,
         sharedLink: estimates.sharedLink,
-        note: estimates.note,
         createdAt: estimates.createdAt,
         updatedAt: estimates.updatedAt,
         pdfURL: estimates.pdfURL,
-        items: estimates.items,
         milestoneBreakdown: estimates.milestoneBreakdown
       }).from(estimates).where(eq(estimates.isTemplate, true));
     } catch (error) {

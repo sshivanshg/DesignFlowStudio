@@ -247,7 +247,7 @@ export default function UnifiedProjectTracker() {
     isLoading: projectsLoading 
   } = useQuery({
     queryKey: ['/api/projects'],
-    queryFn: () => apiRequest('/api/projects')
+    queryFn: () => fetch('/api/projects').then(res => res.json())
   });
   
   // Query specific project (if ID provided)
@@ -633,10 +633,11 @@ export default function UnifiedProjectTracker() {
   // Create new project mutation
   const createProjectMutation = useMutation({
     mutationFn: (data: any) => {
-      return apiRequest('/api/projects', { 
+      return fetch('/api/projects', { 
         method: 'POST',
-        data: data
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });

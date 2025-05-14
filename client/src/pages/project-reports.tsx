@@ -103,8 +103,8 @@ const ProjectReports = () => {
   
   // Query project reports
   const { data: reports, isLoading: isLoadingReports } = useQuery({
-    queryKey: ['/api/projects', projectId, 'reports'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/reports`),
+    queryKey: ['/api/project-reports', projectId],
+    queryFn: () => apiRequest(`/api/project-reports/${projectId}`),
     enabled: !!projectId,
   });
   
@@ -135,9 +135,12 @@ const ProjectReports = () => {
   // Create new report
   const createReportMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/projects/${projectId}/reports`, {
+      return apiRequest(`/api/project-reports`, {
         method: 'POST',
-        data
+        data: {
+          ...data,
+          project_id: projectId
+        }
       });
     },
     onSuccess: () => {
@@ -146,7 +149,7 @@ const ProjectReports = () => {
         description: 'New report has been created successfully.',
       });
       setIsOpenNewReportDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/project-reports', projectId] });
     },
     onError: (error) => {
       toast({
@@ -161,7 +164,7 @@ const ProjectReports = () => {
   const generatePdfMutation = useMutation({
     mutationFn: async (reportId: number) => {
       setIsGenerating(true);
-      return apiRequest(`/api/projects/${projectId}/reports/${reportId}/generate-pdf`, {
+      return apiRequest(`/api/project-reports/${reportId}/pdf`, {
         method: 'POST'
       });
     },
@@ -170,7 +173,7 @@ const ProjectReports = () => {
         title: 'PDF Generated',
         description: 'Report PDF has been generated successfully.',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/project-reports', projectId] });
       setIsGenerating(false);
     },
     onError: (error) => {
@@ -186,7 +189,7 @@ const ProjectReports = () => {
   // Delete a report
   const deleteReportMutation = useMutation({
     mutationFn: async (reportId: number) => {
-      return apiRequest(`/api/projects/${projectId}/reports/${reportId}`, {
+      return apiRequest(`/api/project-reports/${reportId}`, {
         method: 'DELETE'
       });
     },

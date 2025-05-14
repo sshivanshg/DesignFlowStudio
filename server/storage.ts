@@ -2969,6 +2969,10 @@ function convertKeysToCamelCase(obj: any): any {
 export class StorageAdapter implements IStorage {
   private drizzleStorage = new DrizzleStorage();
   
+  // Database access
+  getDb() {
+    return this.drizzleStorage.getDb();
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const user = await this.drizzleStorage.getUser(id);

@@ -41,11 +41,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 
 /**
- * AuthRedirect component - handles the root path redirection:
- * - If user is authenticated, redirects to dashboard 
- * - If user is not authenticated, redirects to login
+ * LoginRedirect component - makes the login page the default route
+ * If the user is already logged in, redirects to the dashboard
+ * Otherwise, shows the login page
  */
-function AuthRedirect() {
+function LoginRedirect() {
   const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
   const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
@@ -58,13 +58,15 @@ function AuthRedirect() {
     if (isLoading) return;
 
     if (user) {
-      // User is logged in, redirect to dashboard
+      // User is already logged in, redirect to dashboard
       setLocation("/dashboard");
-    } else {
-      // User is not logged in, redirect to login page
-      setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
+
+  // If not logged in, show the login page
+  if (!user && !isLoading) {
+    return <Login />;
+  }
 
   // Show loading state while checking authentication
   return (
@@ -205,9 +207,9 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
-      {/* Default route - make login the default */}
+      {/* Default route - redirect based on auth status */}
       <Route path="/">
-        <AuthRedirect />
+        <LoginRedirect />
       </Route>
       
       <Route path="/crm">

@@ -34,8 +34,15 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function RecentProjects() {
-  const { data: projects, isLoading } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
+  const { data: recentProjects, isLoading } = useQuery<Project[]>({
+    queryKey: ['/api/dashboard/recent-projects'],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/recent-projects');
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent projects');
+      }
+      return response.json();
+    }
   });
 
   return (
@@ -89,8 +96,8 @@ export default function RecentProjects() {
                     </td>
                   </tr>
                 ))
-              ) : projects && projects.length > 0 ? (
-                projects.slice(0, 3).map((project) => (
+              ) : recentProjects && recentProjects.length > 0 ? (
+                recentProjects.map((project) => (
                   <tr key={project.id}>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="flex items-center">

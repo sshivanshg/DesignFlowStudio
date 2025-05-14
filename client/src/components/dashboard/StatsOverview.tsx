@@ -17,16 +17,15 @@ interface Stat {
 }
 
 export default function StatsOverview() {
-  // In a real application, we would fetch this data from the API
+  // Fetch real dashboard stats from our API
   const { data: stats, isLoading } = useQuery({
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
-      return {
-        activeProjects: 12,
-        revenue: '₹240,560',
-        pendingProposals: 8,
-        interactions: 56
-      };
+      const response = await fetch('/api/dashboard/stats');
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard stats');
+      }
+      return response.json();
     }
   });
 

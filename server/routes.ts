@@ -109,6 +109,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // If not authenticated, return 401 Unauthorized
     res.status(401).json({ message: "Unauthorized. Please log in to access this resource." });
   };
+  
+  // Role-based access control middleware
+  const hasRole = (roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+      // First check if the user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized. Please log in to access this resource." });
+      }
+      
+      // Check if the user has the required role
+      const userRole = (req.user as any)?.role;
+      
+      if (!userRole) {
+        return res.status(403).json({ message: "User role not found." });
+      }
+      
+      // If user is admin, always allow access to any role-protected route
+      if (userRole === 'admin') {
+        return next();
+      }
+      
+      // Check if the user's role is in the list of allowed roles
+      if (roles.includes(userRole)) {
+        return next();
+      }
+      
+      // If not, return 403 Forbidden
+      return res.status(403).json({ 
+        message: "Access denied. You don't have permission to access this resource.",
+        requiredRoles: roles,
+        yourRole: userRole
+      });
+    };
+  };
 
   // Auth routes
   app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
@@ -476,8 +510,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Client routes
-  app.get("/api/clients", isAuthenticated, async (req, res) => {
+  // Client routes - accessible to all roles
+  app.get("/api/clients", isAuthenticated, hasRole(['admin', 'designer', 'sales']), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const clients = await storage.getClients(userId);
@@ -577,8 +611,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lead routes
-  app.get("/api/leads", isAuthenticated, async (req, res) => {
+  // Lead routes - for sales and admin roles only
+  app.get("/api/leads", isAuthenticated, hasRole(['admin', 'sales']), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       
@@ -1459,8 +1493,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Proposal routes
-  app.get("/api/proposals", isAuthenticated, async (req, res) => {
+  // Proposal routes - accessible to designers and admin
+  app.get("/api/proposals", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const proposals = await storage.getProposals(userId);
@@ -1583,8 +1617,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Moodboard routes
-  app.get("/api/moodboards", isAuthenticated, async (req, res) => {
+  // Moodboard routes - accessible to designers and admin
+  app.get("/api/moodboards", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const moodboards = await storage.getMoodboards();
       res.json(moodboards);
@@ -1744,8 +1778,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Estimate routes
-  app.get("/api/estimates", isAuthenticated, async (req, res) => {
+  // User Management routes - admin only
+  app.get("/api/users", isAuthenticated, hasRole(['admin']), async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+  
+  app.get("/api/users/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Error fetching user" });
+    }
+  });
+  
+  app.patch("/api/users/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const userData = req.body;
+      
+      // Prevent role escalation if updating self (can't change your own role)
+      if ((req.user as any).id === userId && userData.role) {
+        return res.status(403).json({ 
+          message: "Cannot change your own role"
+        });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Error updating user" });
+    }
+  });
+  
+  app.delete("/api/users/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Prevent deleting yourself
+      if ((req.user as any).id === userId) {
+        return res.status(403).json({ 
+          message: "Cannot delete your own account" 
+        });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const deleted = await storage.deleteUser(userId);
+      
+      if (deleted) {
+        return res.json({ success: true });
+      }
+      
+      res.status(500).json({ message: "Error deleting user" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Error deleting user" });
+    }
+  });
+
+  // Estimate routes - accessible to admin and designer roles
+  app.get("/api/estimates", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       // For testing purposes, get all estimates regardless of user
       // In production, this should be filtered by user ID

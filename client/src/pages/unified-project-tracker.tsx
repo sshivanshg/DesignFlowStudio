@@ -136,6 +136,24 @@ type ReportFormValues = z.infer<typeof reportSchema>;
 type TaskFormValues = z.infer<typeof taskSchema>;
 type RoomFormValues = z.infer<typeof roomSchema>;
 
+type Room = {
+  id: string | number;
+  name: string;
+  type: string;
+  status: string;
+  progress: number;
+  tasks?: Task[];
+};
+
+type Task = {
+  id: string | number;
+  name: string;
+  status: string;
+  dueDate?: string;
+  assignedTo?: number;
+  description?: string;
+};
+
 type ProjectReport = {
   id: number;
   project_id: number;
@@ -704,7 +722,7 @@ export default function UnifiedProjectTracker() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium">Loading projects...</p>
           <p className="text-sm text-muted-foreground">Please wait while we fetch your data</p>
         </div>
@@ -822,7 +840,7 @@ export default function UnifiedProjectTracker() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium">Loading project details...</p>
           <p className="text-sm text-muted-foreground">Please wait while we prepare your project data</p>
         </div>
@@ -838,8 +856,8 @@ export default function UnifiedProjectTracker() {
           <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
           <p className="text-lg font-medium">Project not found</p>
           <p className="text-sm text-muted-foreground mb-4">The project you're looking for does not exist or you don't have access</p>
-          <Button onClick={() => navigate('/unified-project-tracker')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <Button onClick={() => window.location.href = '/unified-project-tracker'}>
+            <ChevronLeft className="h-4 w-4 mr-2" />
             Back to Projects
           </Button>
         </div>
@@ -957,9 +975,9 @@ export default function UnifiedProjectTracker() {
           {/* Rooms display */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {project?.rooms && Array.isArray(project.rooms) && project.rooms
-              .filter(room => statusFilter === 'all' || room.status.toLowerCase() === statusFilter.toLowerCase())
-              .filter(room => searchQuery === '' || room.name.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map((room: any) => (
+              .filter(room => statusFilter === 'all' || (room.status && room.status.toLowerCase() === statusFilter.toLowerCase()))
+              .filter(room => searchQuery === '' || (room.name && room.name.toLowerCase().includes(searchQuery.toLowerCase())))
+              .map((room) => (
                 <Card key={room.id} className="overflow-hidden">
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">

@@ -3143,57 +3143,153 @@ export class DrizzleStorage implements IStorage {
 
   // Project Logs methods
   async getProjectLogs(): Promise<ProjectLog[]> {
-    return await db.select().from(projectLogs);
+    try {
+      return await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      }).from(projectLogs);
+    } catch (error) {
+      console.error("Error fetching project logs:", error);
+      return [];
+    }
   }
 
   async getProjectLogsByProject(projectId: number): Promise<ProjectLog[]> {
-    return await db.select()
+    try {
+      return await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      })
       .from(projectLogs)
       .where(eq(projectLogs.project_id, projectId));
+    } catch (error) {
+      console.error(`Error fetching project logs for project ${projectId}:`, error);
+      return [];
+    }
   }
 
   async getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]> {
-    // Convert date to start and end of day to capture all logs for that day
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-    
-    return await db.select()
-      .from(projectLogs)
-      .where(
-        and(
-          eq(projectLogs.project_id, projectId),
-          gte(projectLogs.created_at, startDate),
-          lte(projectLogs.created_at, endDate)
-        )
-      );
+    try {
+      // Convert date to start and end of day to capture all logs for that day
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+      
+      return await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      })
+        .from(projectLogs)
+        .where(
+          and(
+            eq(projectLogs.project_id, projectId),
+            gte(projectLogs.created_at, startDate),
+            lte(projectLogs.created_at, endDate)
+          )
+        );
+    } catch (error) {
+      console.error(`Error fetching project logs for project ${projectId} on date ${date}:`, error);
+      return [];
+    }
   }
 
   async getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]> {
-    return await db.select()
-      .from(projectLogs)
-      .where(
-        and(
-          eq(projectLogs.project_id, projectId),
-          gte(projectLogs.created_at, startDate),
-          lte(projectLogs.created_at, endDate)
-        )
-      );
+    try {
+      return await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      })
+        .from(projectLogs)
+        .where(
+          and(
+            eq(projectLogs.project_id, projectId),
+            gte(projectLogs.created_at, startDate),
+            lte(projectLogs.created_at, endDate)
+          )
+        );
+    } catch (error) {
+      console.error(`Error fetching project logs for project ${projectId} between ${startDate} and ${endDate}:`, error);
+      return [];
+    }
   }
 
   async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
-    return await db.select()
-      .from(projectLogs)
-      .where(eq(projectLogs.room_id, roomId));
+    try {
+      return await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      })
+        .from(projectLogs)
+        .where(eq(projectLogs.room_id, roomId));
+    } catch (error) {
+      console.error(`Error fetching project logs for room ${roomId}:`, error);
+      return [];
+    }
   }
 
   async getProjectLog(id: number): Promise<ProjectLog | undefined> {
-    const result = await db.select()
-      .from(projectLogs)
-      .where(eq(projectLogs.id, id));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: projectLogs.id,
+        created_at: projectLogs.created_at,
+        updated_at: projectLogs.updated_at,
+        project_id: projectLogs.project_id,
+        user_id: projectLogs.user_id,
+        text: projectLogs.text,
+        room_id: projectLogs.room_id,
+        log_type: projectLogs.log_type,
+        photo_url: projectLogs.photo_url,
+        photo_caption: projectLogs.photo_caption
+      })
+        .from(projectLogs)
+        .where(eq(projectLogs.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching project log ${id}:`, error);
+      return undefined;
+    }
   }
 
   async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {

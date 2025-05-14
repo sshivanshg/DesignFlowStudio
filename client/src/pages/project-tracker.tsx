@@ -113,7 +113,7 @@ export default function ProjectTracker() {
   });
 
   // Fetch project details query (including rooms, tasks, etc)
-  const { data: projectDetails } = useQuery({
+  const { data: projectDetails, refetch: refetchProjectDetails } = useQuery({
     queryKey: ['/api/projects', selectedProject],
     queryFn: async () => {
       if (!selectedProject) return null;
@@ -944,24 +944,13 @@ export default function ProjectTracker() {
                                     description: "Task status updated successfully",
                                   });
                                   
-                                  // Update the projectDetails state directly for immediate UI change
-                                  setProjectDetails(prevDetails => {
-                                    if (!prevDetails) return prevDetails;
-                                    
-                                    return {
-                                      ...prevDetails,
-                                      tasks: prevDetails.tasks.map((task: any) => 
-                                        task.id === selectedTask.id 
-                                          ? { ...task, status: editTaskStatus } 
-                                          : task
-                                      )
-                                    };
-                                  });
-                                  
-                                  // Also invalidate to ensure fresh data on next fetch
+                                  // Invalidate and refetch the project details to update the UI
                                   queryClient.invalidateQueries({ 
                                     queryKey: ['/api/projects', selectedProject] 
                                   });
+                                  
+                                  // Force an immediate refetch
+                                  refetchProjectDetails();
                                   
                                   // Close the dialog
                                   setEditTaskOpen(false);

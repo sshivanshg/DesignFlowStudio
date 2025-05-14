@@ -868,9 +868,13 @@ export default function UnifiedProjectTracker() {
           <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
           <p className="text-lg font-medium">Project not found</p>
           <p className="text-sm text-muted-foreground mb-4">The project you're looking for does not exist or you don't have access</p>
-          <Button onClick={() => window.location.href = '/unified-project-tracker'}>
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to Projects
+          <Button asChild>
+            <Link href="/unified-project-tracker">
+              <div className="flex items-center">
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back to Projects
+              </div>
+            </Link>
           </Button>
         </div>
       </div>
@@ -1738,7 +1742,7 @@ export default function UnifiedProjectTracker() {
                     className="w-full"
                   />
                   <span className="min-w-10 text-right">
-                    {roomForm.watch('progress') || selectedRoom?.progress || 0}%
+                    {roomForm.getValues('progress') || selectedRoom?.progress || 0}%
                   </span>
                 </div>
               </div>

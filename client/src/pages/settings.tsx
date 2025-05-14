@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,18 +10,40 @@ import { Link } from "wouter";
 import { LogOut, Settings as SettingsIcon, Users, Shield } from "lucide-react";
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  // Use both auth systems during the transition
+  const { user: firebaseUser, logout: firebaseLogout } = useAuth();
+  const { user: supabaseUser, signOut: supabaseLogout } = useSupabaseAuth();
+  
+  // Prefer Supabase user but fallback to Firebase
+  const user = supabaseUser || firebaseUser;
+  
   const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
+      // Server-side logout
       await apiRequest("POST", "/api/auth/logout", {});
+      
+      // Clear client-side cache
       queryClient.clear();
-      logout();
+      
+      // Sign out from Supabase
+      if (supabaseLogout) {
+        await supabaseLogout();
+      }
+      
+      // Fallback to Firebase logout (legacy)
+      if (firebaseLogout) {
+        firebaseLogout();
+      }
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out"
       });
+      
+      // Force redirect to login page for clean state
+      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed", error);
       toast({

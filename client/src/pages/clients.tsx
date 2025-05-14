@@ -61,13 +61,7 @@ export default function Clients() {
   // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: (data: ClientFormValues) => {
-      return apiRequest("/api/clients", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/clients", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
@@ -296,7 +290,13 @@ export default function Clients() {
                     </div>
                     <div className="flex items-center gap-2">
                       <ClientPortalAccess 
-                        client={client} 
+                        client={{
+                          id: client.id,
+                          name: client.name,
+                          email: client.email,
+                          portal_access: client.portal_access === null ? false : client.portal_access,
+                          last_login: client.last_login
+                        }} 
                         onClientUpdate={() => {
                           queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
                         }}

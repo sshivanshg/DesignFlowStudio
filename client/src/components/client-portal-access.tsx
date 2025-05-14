@@ -43,13 +43,7 @@ export default function ClientPortalAccess({ client, onClientUpdate }: ClientPor
   // Toggle portal access
   const togglePortalMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      return apiRequest(`/api/clients/${client.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ portal_access: enabled }),
-      });
+      return apiRequest('PATCH', `/api/clients/${client.id}`, { portal_access: enabled });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
@@ -78,15 +72,9 @@ export default function ClientPortalAccess({ client, onClientUpdate }: ClientPor
   // Generate login token and send email
   const generateTokenMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/client-portal/generate-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          clientId: client.id,
-          clientEmail: client.email
-        }),
+      return apiRequest('POST', '/api/client-portal/generate-token', { 
+        clientId: client.id,
+        clientEmail: client.email
       });
     },
     onSuccess: () => {
@@ -151,7 +139,8 @@ export default function ClientPortalAccess({ client, onClientUpdate }: ClientPor
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="font-medium">Status</span>
-              <Badge variant={client.portal_access ? "success" : "outline"}>
+              <Badge variant={client.portal_access ? "default" : "outline"} 
+                className={client.portal_access ? "bg-green-500 hover:bg-green-600" : ""}>
                 {client.portal_access ? "Enabled" : "Disabled"}
               </Badge>
             </div>

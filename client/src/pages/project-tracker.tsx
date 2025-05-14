@@ -89,6 +89,12 @@ export default function ProjectTracker() {
   const [selectedRoomNotes, setSelectedRoomNotes] = useState<any[]>([]);
   const [selectedRoomName, setSelectedRoomName] = useState("");
   
+  // Room edit states
+  const [editRoomOpen, setEditRoomOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [editRoomName, setEditRoomName] = useState("");
+  const [editRoomType, setEditRoomType] = useState("");
+  
   // Task edit states
   const [editTaskOpen, setEditTaskOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -615,6 +621,19 @@ export default function ProjectTracker() {
                                 </div>
                               </div>
                               <div className="flex mt-3 space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedRoom(room);
+                                    setEditRoomName(room.name || '');
+                                    setEditRoomType(room.type || 'room');
+                                    setEditRoomOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                                  Edit Room
+                                </Button>
                                 <Button 
                                   variant="outline"
                                   size="sm"

@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerDashboardRoutes } from "./routes/dashboard";
 import { 
   insertUserSchema, 
   insertClientSchema, 
@@ -3496,6 +3497,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error seeding estimate configurations" });
     }
   });
+
+  // Register dashboard routes
+  registerDashboardRoutes(app, storage, isAuthenticated);
 
   return httpServer;
 }

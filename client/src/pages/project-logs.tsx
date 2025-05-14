@@ -786,7 +786,7 @@ export default function ProjectLogs() {
 
                       <div className="space-y-4 mt-4">
                         {filteredLogs.length > 0 ? (
-                          filteredLogs.map((log) => (
+                          filteredLogs.map((log: any) => (
                             <Card key={log.id} className="overflow-hidden">
                               <CardHeader className="pb-0">
                                 <div className="flex justify-between items-start">
@@ -863,20 +863,29 @@ export default function ProjectLogs() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredReports.map((report) => (
+                            {filteredReports.map((report: any) => (
                               <TableRow key={report.id}>
-                                <TableCell className="font-medium">{report.title}</TableCell>
+                                <TableCell className="font-medium">
+                                  Report #{report.id}
+                                </TableCell>
                                 <TableCell>
                                   <Badge variant="outline">
-                                    {report.type === 'weekly' ? 'Weekly' : 'Monthly'}
+                                    {report.report_type === 'weekly' ? 'Weekly' : 
+                                     report.report_type === 'monthly' ? 'Monthly' : 'Custom'}
                                   </Badge>
                                 </TableCell>
-                                <TableCell>{format(report.date, 'MMM d, yyyy')}</TableCell>
+                                <TableCell>{format(new Date(report.created_at || new Date()), 'MMM d, yyyy')}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button variant="ghost" size="sm">
-                                    <Download className="h-4 w-4 mr-1" />
-                                    Download
-                                  </Button>
+                                  <a 
+                                    href={`/api/project-reports/${report.id}/pdf`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Button variant="ghost" size="sm">
+                                      <Download className="h-4 w-4 mr-1" />
+                                      Download
+                                    </Button>
+                                  </a>
                                 </TableCell>
                               </TableRow>
                             ))}

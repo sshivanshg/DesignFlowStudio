@@ -2949,8 +2949,28 @@ export class DrizzleStorage implements IStorage {
   
   // Company settings methods
   async getCompanySettings(): Promise<CompanySettings | undefined> {
-    const result = await db.select().from(companySettings).limit(1);
-    return result[0];
+    try {
+      const result = await db.select({
+        id: companySettings.id,
+        name: companySettings.name,
+        logo: companySettings.logo,
+        primary_color: companySettings.primaryColor,
+        secondary_color: companySettings.secondaryColor,
+        enabled_features: companySettings.enabledFeatures,
+        plan_limits: companySettings.planLimits,
+        address: companySettings.address,
+        phone: companySettings.phone,
+        email: companySettings.email,
+        website: companySettings.website,
+        created_at: companySettings.createdAt,
+        updated_at: companySettings.updatedAt
+      }).from(companySettings).limit(1);
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error fetching company settings:", error);
+      return undefined;
+    }
   }
   
   async updateCompanySettings(settings: Partial<CompanySettings>): Promise<CompanySettings | undefined> {

@@ -17,7 +17,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
   };
   
   // Get the icon component dynamically
-  const IconComponent = LucideIcons[typeInfo.icon as keyof typeof LucideIcons] || LucideIcons.Activity;
+  const IconComponent = (LucideIcons as any)[typeInfo.icon] || LucideIcons.Activity;
   
   // Format date
   const createdAtDate = activity.createdAt ? new Date(activity.createdAt) : new Date();
@@ -33,7 +33,8 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
         <div className="flex justify-between items-start">
           <div className="space-y-0.5">
             <div className="text-sm text-gray-900 leading-none">
-              {formatActivityMessage(activity)}
+              <span className="font-medium">{activity.type.split('_')[0]}</span>{' '}
+              <span className="text-gray-500 font-normal">{formatActivityMessage(activity)}</span>
             </div>
             <div 
               className="text-xs text-gray-500" 
@@ -43,10 +44,10 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
             </div>
           </div>
         </div>
-        {activity.metadata && Object.keys(activity.metadata).length > 0 && (
+        {activity.metadata && typeof activity.metadata === 'object' && Object.keys(activity.metadata as object).length > 0 && (
           <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-md">
-            {activity.metadata.comment && (
-              <div className="italic">"{activity.metadata.comment}"</div>
+            {(activity.metadata as any)?.comment && (
+              <div className="italic">"{(activity.metadata as any).comment}"</div>
             )}
           </div>
         )}

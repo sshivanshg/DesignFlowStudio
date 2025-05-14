@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Activity } from '@shared/schema';
@@ -66,93 +67,32 @@ export const ACTIVITY_TYPES = {
 };
 
 // Helper function to format activity message
-export function formatActivityMessage(activity: ActivityType): React.ReactNode {
+export function formatActivityMessage(activity: ActivityType): string {
   const clientName = activity.clientName || `Client ${activity.client_id || 'Unknown'}`;
   const projectName = activity.projectName || `Project ${activity.project_id || 'Unknown'}`;
   
   switch (activity.type) {
     case 'client_added':
-      return (
-        <>
-          <span className="font-medium">New client</span>{' '}
-          <span className="text-gray-500 font-normal">{clientName} was added</span>
-        </>
-      );
+      return `New client ${clientName} was added`;
     case 'client_updated':
-      return (
-        <>
-          <span className="font-medium">{clientName}</span>{' '}
-          <span className="text-gray-500 font-normal">information was updated</span>
-        </>
-      );
+      return `${clientName} information was updated`;
     case 'project_created':
-      return (
-        <>
-          <span className="font-medium">New project</span>{' '}
-          <span className="text-gray-500 font-normal">created for {clientName}</span>
-        </>
-      );
+      return `New project created for ${clientName}`;
     case 'proposal_created':
-      return (
-        <>
-          <span className="font-medium">Proposal</span>{' '}
-          <span className="text-gray-500 font-normal">created for {clientName}</span>
-        </>
-      );
+      return `Proposal created for ${clientName}`;
     case 'proposal_approved':
-      return (
-        <>
-          <span className="font-medium">{clientName}</span>{' '}
-          <span className="text-gray-500 font-normal">approved the proposal</span>
-          {activity.project_id && (
-            <span className="text-gray-500 font-normal"> for {projectName}</span>
-          )}
-        </>
-      );
+      return `${clientName} approved the proposal${activity.project_id ? ` for ${projectName}` : ''}`;
     case 'estimate_created':
-      return (
-        <>
-          <span className="font-medium">Estimate</span>{' '}
-          <span className="text-gray-500 font-normal">created for {clientName}</span>
-        </>
-      );
+      return `Estimate created for ${clientName}`;
     case 'comment_added':
-      return (
-        <>
-          <span className="font-medium">{clientName}</span>{' '}
-          <span className="text-gray-500 font-normal">left a comment</span>
-          {activity.project_id && (
-            <span className="text-gray-500 font-normal"> on {projectName}</span>
-          )}
-        </>
-      );
+      return `${clientName} left a comment${activity.project_id ? ` on ${projectName}` : ''}`;
     case 'changes_requested':
-      return (
-        <>
-          <span className="font-medium">{clientName}</span>{' '}
-          <span className="text-gray-500 font-normal">requested changes</span>
-          {activity.project_id && (
-            <span className="text-gray-500 font-normal"> to {projectName}</span>
-          )}
-        </>
-      );
+      return `${clientName} requested changes${activity.project_id ? ` to ${projectName}` : ''}`;
     case 'lead_converted':
-      return (
-        <>
-          <span className="font-medium">Lead converted</span>{' '}
-          <span className="text-gray-500 font-normal">to client {clientName}</span>
-        </>
-      );
+      return `Lead converted to client ${clientName}`;
     case 'portal_access_granted':
-      return (
-        <>
-          <span className="font-medium">{clientName}</span>{' '}
-          <span className="text-gray-500 font-normal">was granted portal access</span>
-        </>
-      );
+      return `${clientName} was granted portal access`;
     default:
-      return (
-        <span className="text-gray-500 font-normal">{activity.description}</span>
-      );
+      return activity.description || 'Activity recorded';
   }
 }

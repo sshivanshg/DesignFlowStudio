@@ -8,6 +8,8 @@ import {
   estimates, Estimate, InsertEstimate,
   estimateConfigs, EstimateConfig, InsertEstimateConfig,
   activities, Activity, InsertActivity,
+  projectLogs, ProjectLog, InsertProjectLog,
+  projectReports, ProjectReport, InsertProjectReport,
   whatsappMessages, WhatsappMessage, InsertWhatsappMessage
 } from "@shared/schema";
 import { eq, and, desc, sql as drizzleSql } from "drizzle-orm";
@@ -149,6 +151,24 @@ export interface IStorage {
   // Analytics methods
   getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]>;
   createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics>;
+  
+  // Project Logs methods
+  getProjectLogs(projectId: number): Promise<ProjectLog[]>;
+  getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]>;
+  getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]>;
+  getProjectLogsByRoom(projectId: number, roomId: string): Promise<ProjectLog[]>;
+  getProjectLog(id: number): Promise<ProjectLog | undefined>;
+  createProjectLog(log: InsertProjectLog): Promise<ProjectLog>;
+  updateProjectLog(id: number, log: Partial<ProjectLog>): Promise<ProjectLog | undefined>;
+  deleteProjectLog(id: number): Promise<boolean>;
+  
+  // Project Reports methods
+  getProjectReports(projectId: number): Promise<ProjectReport[]>;
+  getProjectReport(id: number): Promise<ProjectReport | undefined>;
+  createProjectReport(report: InsertProjectReport): Promise<ProjectReport>;
+  updateProjectReport(id: number, report: Partial<ProjectReport>): Promise<ProjectReport | undefined>;
+  deleteProjectReport(id: number): Promise<boolean>;
+  generateProjectReportPdf(id: number): Promise<string | undefined>; // Returns PDF URL
 }
 
 export class MemStorage implements IStorage {

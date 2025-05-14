@@ -16,12 +16,16 @@ import {
   insertTemplateCategorySchema,
   insertAnalyticsSchema,
   insertCompanySettingsSchema,
+  insertProjectLogSchema,
+  insertProjectReportSchema,
   User,
   Lead,
   analytics,
   companySettings,
   templateCategories,
-  templates
+  templates,
+  projectLogs,
+  projectReports
 } from "@shared/schema";
 import { json, lte, gte, and, eq, asc, desc } from "drizzle-orm/pg-core";
 import { z } from "zod";

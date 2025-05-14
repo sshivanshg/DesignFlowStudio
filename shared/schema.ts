@@ -324,6 +324,60 @@ export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
+// Project logs schema
+export const projectLogs = pgTable("project_logs", {
+  id: serial("id").primaryKey(),
+  project_id: integer("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  user_id: integer("user_id").references(() => users.id),
+  text: text("text").notNull(),
+  room_id: text("room_id"),
+  log_type: text("log_type").default("note"), // note or photo
+  photo_url: text("photo_url"),
+  photo_caption: text("photo_caption"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    projectIdx: index("log_project_idx").on(table.project_id),
+    userIdx: index("log_user_idx").on(table.user_id),
+    roomIdx: index("log_room_idx").on(table.room_id),
+    createdAtIdx: index("log_created_at_idx").on(table.created_at),
+  }
+});
+
+export const insertProjectLogSchema = createInsertSchema(projectLogs).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+
+// Project reports schema
+export const projectReports = pgTable("project_reports", {
+  id: serial("id").primaryKey(),
+  project_id: integer("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  user_id: integer("user_id").references(() => users.id),
+  report_type: text("report_type").default("weekly"), // weekly, monthly, custom
+  start_date: timestamp("start_date"),
+  end_date: timestamp("end_date"),
+  includes_photos: boolean("includes_photos").default(true),
+  includes_notes: boolean("includes_notes").default(true),
+  pdf_url: text("pdf_url"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    projectIdx: index("report_project_idx").on(table.project_id),
+    userIdx: index("report_user_idx").on(table.user_id),
+    createdAtIdx: index("report_created_at_idx").on(table.created_at),
+  }
+});
+
+export const insertProjectReportSchema = createInsertSchema(projectReports).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+
 // WhatsApp message logs
 export const whatsappMessages = pgTable("whatsapp_messages", {
   id: varchar("id", { length: 50 }).primaryKey(), // Custom message ID
@@ -353,6 +407,12 @@ export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).
   createdAt: true,
   updatedAt: true,
 });
+
+export type ProjectLog = typeof projectLogs.$inferSelect;
+export type InsertProjectLog = z.infer<typeof insertProjectLogSchema>;
+
+export type ProjectReport = typeof projectReports.$inferSelect;
+export type InsertProjectReport = z.infer<typeof insertProjectReportSchema>;
 
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;

@@ -610,26 +610,6 @@ export default function UnifiedProjectTracker() {
     });
   }, [projectLogs, searchQuery, dateFilter]);
   
-  // Loading states
-  if (!projectId && projectsLoading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-  
-  if (projectId && projectLoading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <Skeleton className="h-12 w-full mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-  
   // Create new project mutation
   const createProjectMutation = useMutation({
     mutationFn: (data: any) => {
@@ -678,6 +658,26 @@ export default function UnifiedProjectTracker() {
       }
     });
   };
+  
+  // Loading states
+  if (!projectId && projectsLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+  
+  if (projectId && projectLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-12 w-full mb-4" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
   
   // Display projects list if no project is selected
   if (!projectId) {

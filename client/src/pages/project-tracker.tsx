@@ -424,7 +424,7 @@ export default function ProjectTracker() {
                     <div className="flex space-x-2">
                       <Link href={`/project-reports/${selectedProject}`}>
                         <Button variant="outline" size="sm">
-                          <FileText className="h-4 w-4 mr-1" />
+                          <FileTextIcon className="h-4 w-4 mr-1" />
                           Reports
                         </Button>
                       </Link>

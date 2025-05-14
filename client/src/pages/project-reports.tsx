@@ -104,7 +104,7 @@ const ProjectReports = () => {
   // Query project reports
   const { data: reports, isLoading: isLoadingReports } = useQuery({
     queryKey: ['/api/project-reports', projectId],
-    queryFn: () => apiRequest(`/api/project-reports/${projectId}`),
+    queryFn: () => apiRequest(`/api/project-reports?project_id=${projectId}`),
     enabled: !!projectId,
   });
   
@@ -198,7 +198,7 @@ const ProjectReports = () => {
         title: 'Report deleted',
         description: 'Report has been deleted successfully.',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/project-reports', projectId] });
     },
     onError: (error) => {
       toast({

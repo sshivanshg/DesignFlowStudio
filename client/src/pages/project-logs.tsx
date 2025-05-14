@@ -151,32 +151,27 @@ export default function ProjectLogs() {
   // Generate report mutation
   const generateReportMutation = useMutation({
     mutationFn: (data: ReportFormValues) => {
-      // For now, simulate success for demo purposes since the API endpoint doesn't exist yet
-      // Normally this would be: return apiRequest("POST", `/api/projects/${selectedProject}/reports`, data);
-      
-      return new Promise<any>((resolve) => {
-        console.log("Would generate report with data:", data);
-        // Simulate API delay
-        setTimeout(() => {
-          resolve({ 
-            success: true, 
-            message: "Report generated successfully",
-            reportUrl: `https://example.com/reports/project-${selectedProject}-report.pdf`
-          });
-        }, 800);
+      return apiRequest("POST", `/api/project-reports`, {
+        project_id: parseInt(selectedProject),
+        report_type: data.reportType,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        includes_photos: data.includePhotos,
+        includes_notes: data.includeNotes
       });
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/project-reports/${selectedProject}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       toast({
         title: "Report Generated",
         description: "Project report has been generated successfully.",
       });
       
-      // In a real implementation, we would open the report in a new window
-      // if (data?.reportUrl) {
-      //   window.open(data.reportUrl, '_blank');
-      // }
+      // Open the report PDF in a new window if available
+      if (data?.pdf_url) {
+        window.open(`/api/project-reports/${data.id}/pdf`, '_blank');
+      }
       
       setIsGenerateReportDialogOpen(false);
       reportForm.reset();
@@ -185,7 +180,7 @@ export default function ProjectLogs() {
       console.error("Report generation error:", error);
       toast({
         title: "Error",
-        description: "Failed to generate report. The report API endpoint isn't fully implemented yet.",
+        description: "Failed to generate report. Please try again.",
         variant: "destructive",
       });
     },
@@ -200,143 +195,66 @@ export default function ProjectLogs() {
     generateReportMutation.mutate(values);
   };
 
-  // Fetch projects query - would be real data in production
-  const { isLoading, error, data: projects } = useQuery({
+  // Fetch projects data
+  const { isLoading: projectsLoading, error: projectsError, data: projects } = useQuery({
     queryKey: ['/api/projects'],
     queryFn: async () => {
       return fetch('/api/projects').then(res => res.json());
     },
   });
-
-  // Mock data for initial design
-  const mockProjects = [
-    { id: 1, name: "Modern Apartment Redesign", client: "John & Sarah Miller", progress: 65 },
-    { id: 2, name: "Coastal Beach House", client: "Robert Thompson", progress: 30 },
-    { id: 3, name: "Corporate Office Renovation", client: "Acme Corp", progress: 90 },
-    { id: 4, name: "Mountain Cabin Remodel", client: "David & Lisa Johnson", progress: 10 },
-  ];
-
-  // Mock log entries for demonstration
-  const mockLogs = [
-    { 
-      id: 1, 
-      projectId: 1, 
-      date: subDays(new Date(), 1), 
-      type: "photo", 
-      roomName: "Living Room",
-      title: "Flooring installation progress", 
-      description: "Completed 70% of hardwood flooring installation in the living room",
-      images: ["living-room-1.jpg", "living-room-2.jpg"],
-      creator: "Jane Smith"
+  
+  // Fetch project logs based on selected project
+  const { 
+    isLoading: logsLoading, 
+    error: logsError, 
+    data: projectLogs 
+  } = useQuery({
+    queryKey: [`/api/project-logs/${selectedProject}`],
+    queryFn: async () => {
+      if (!selectedProject) return [];
+      return fetch(`/api/project-logs/${selectedProject}`).then(res => res.json());
     },
-    { 
-      id: 2, 
-      projectId: 1, 
-      date: subDays(new Date(), 2), 
-      type: "note", 
-      roomName: "Kitchen",
-      title: "Countertop material selection", 
-      description: "Client selected quartz for kitchen countertops instead of marble due to maintenance concerns",
-      images: [],
-      creator: "Mark Wilson"
+    enabled: !!selectedProject,
+  });
+  
+  // Fetch project reports based on selected project
+  const { 
+    isLoading: reportsLoading, 
+    error: reportsError, 
+    data: projectReports 
+  } = useQuery({
+    queryKey: [`/api/project-reports/${selectedProject}`],
+    queryFn: async () => {
+      if (!selectedProject) return [];
+      return fetch(`/api/project-reports/${selectedProject}`).then(res => res.json());
     },
-    { 
-      id: 3, 
-      projectId: 1, 
-      date: subDays(new Date(), 3), 
-      type: "photo", 
-      roomName: "Master Bathroom",
-      title: "Tile installation", 
-      description: "Started installing herringbone pattern tile in the master bathroom. Will complete tomorrow.",
-      images: ["bathroom-1.jpg", "bathroom-2.jpg", "bathroom-3.jpg"],
-      creator: "Jane Smith"
-    },
-    { 
-      id: 4, 
-      projectId: 1, 
-      date: subDays(new Date(), 5), 
-      type: "note", 
-      roomName: "General",
-      title: "Construction timeline update", 
-      description: "Due to material delivery delays, we're adjusting the timeline by 3 days. Client has been notified and understands.",
-      images: [],
-      creator: "John Doe"
-    },
-    { 
-      id: 5, 
-      projectId: 2, 
-      date: subDays(new Date(), 1), 
-      type: "photo", 
-      roomName: "Deck",
-      title: "Deck framing complete", 
-      description: "Completed the framing for the oceanside deck. Ready for decking installation tomorrow.",
-      images: ["deck-1.jpg", "deck-2.jpg"],
-      creator: "Mark Wilson"
-    },
-  ];
-
-  const mockReports = [
-    { 
-      id: 1, 
-      projectId: 1, 
-      title: "Weekly Progress Report", 
-      date: subDays(new Date(), 7), 
-      type: "weekly", 
-      url: "/reports/project-1-week-3.pdf" 
-    },
-    { 
-      id: 2, 
-      projectId: 1, 
-      title: "Weekly Progress Report", 
-      date: subDays(new Date(), 14), 
-      type: "weekly", 
-      url: "/reports/project-1-week-2.pdf" 
-    },
-    { 
-      id: 3, 
-      projectId: 1, 
-      title: "Weekly Progress Report", 
-      date: subDays(new Date(), 21), 
-      type: "weekly", 
-      url: "/reports/project-1-week-1.pdf" 
-    },
-    { 
-      id: 4, 
-      projectId: 1, 
-      title: "Monthly Summary Report", 
-      date: subDays(new Date(), 7), 
-      type: "monthly", 
-      url: "/reports/project-1-month-1.pdf" 
-    },
-  ];
+    enabled: !!selectedProject,
+  });
 
   // Filter logs based on selected project and search query
-  const filteredLogs = mockLogs.filter(log => {
-    const matchesProject = selectedProject ? log.projectId.toString() === selectedProject : true;
+  const filteredLogs = projectLogs ? projectLogs.filter(log => {
     const matchesSearch = searchQuery === '' || 
-      log.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.roomName.toLowerCase().includes(searchQuery.toLowerCase());
+      log.text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.photo_caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.room_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Date filtering
     let matchesDate = true;
     if (dateFilter === 'today') {
-      matchesDate = format(log.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+      matchesDate = format(new Date(log.created_at), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
     } else if (dateFilter === 'week') {
       const oneWeekAgo = subDays(new Date(), 7);
-      matchesDate = log.date >= oneWeekAgo;
+      matchesDate = new Date(log.created_at) >= oneWeekAgo;
     } else if (dateFilter === 'month') {
       const oneMonthAgo = subDays(new Date(), 30);
-      matchesDate = log.date >= oneMonthAgo;
+      matchesDate = new Date(log.created_at) >= oneMonthAgo;
     }
     
-    return matchesProject && matchesSearch && matchesDate;
-  });
+    return matchesSearch && matchesDate;
+  }) : [];
 
   // Filter reports based on selected project
-  const filteredReports = mockReports.filter(report => {
-    return selectedProject ? report.projectId.toString() === selectedProject : true;
-  });
+  const filteredReports = projectReports || [];
 
   // Get room options from mock or real data
   const getRoomOptions = () => {

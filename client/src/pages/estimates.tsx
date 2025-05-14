@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
+import { useSupabaseAuth } from '@/hooks/use-supabase-auth';
 import { 
   Table,
   TableBody,
@@ -55,9 +57,17 @@ export default function EstimatesPage() {
     key: 'createdAt',
     direction: 'desc'
   });
+  
+  // Use both auth systems during transition period
+  const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
+  const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
+  
+  // Prefer Supabase user if available, otherwise fallback to Firebase user
+  const user = supabaseUser || firebaseUser;
+  const isAuthLoading = supabaseLoading || firebaseLoading;
 
-  // Fetch estimates
-  const { data: estimates, isLoading, isError } = useQuery({
+  // Fetch estimates - only fetch when authentication is complete
+  const { data: estimates, isLoading: isDataLoading, isError } = useQuery({
     queryKey: ['/api/estimates'],
     queryFn: async () => {
       try {
@@ -71,8 +81,12 @@ export default function EstimatesPage() {
         console.error("Error fetching estimates:", error);
         throw error;
       }
-    }
+    },
+    enabled: !!user // Only run query when user is authenticated
   });
+  
+  // Combined loading state from both auth and data fetching
+  const isLoading = isAuthLoading || isDataLoading;
 
   // Handle sort
   const handleSort = (key: string) => {

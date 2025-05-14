@@ -311,17 +311,18 @@ export default function UnifiedProjectTracker() {
   // Generate report mutation
   const generateReportMutation = useMutation({
     mutationFn: (data: ReportFormValues) => {
-      return apiRequest(`/api/project-reports`, {
+      return fetch(`/api/project-reports`, {
         method: 'POST',
-        data: {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ...data,
           start_date: data.startDate,
           end_date: data.endDate,
           includes_photos: data.includePhotos,
           includes_notes: data.includeNotes,
           project_id: parseInt(projectId)
-        }
-      });
+        })
+      }).then(res => res.json());
     },
     onSuccess: () => {
       toast({
@@ -337,9 +338,9 @@ export default function UnifiedProjectTracker() {
   const generatePdfMutation = useMutation({
     mutationFn: async (reportId: number) => {
       setIsGenerating(true);
-      return apiRequest(`/api/project-reports/${reportId}/pdf`, {
+      return fetch(`/api/project-reports/${reportId}/pdf`, {
         method: 'POST'
-      });
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       toast({
@@ -354,9 +355,9 @@ export default function UnifiedProjectTracker() {
   // Delete a report
   const deleteReportMutation = useMutation({
     mutationFn: async (reportId: number) => {
-      return apiRequest(`/api/project-reports/${reportId}`, {
+      return fetch(`/api/project-reports/${reportId}`, {
         method: 'DELETE'
-      });
+      }).then(res => res.json());
     },
     onSuccess: () => {
       toast({
@@ -459,10 +460,11 @@ export default function UnifiedProjectTracker() {
   // Update project report settings
   const updateProjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/projects/${projectId}`, {
+      return fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
-        data
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(res => res.json());
     },
     onSuccess: () => {
       toast({

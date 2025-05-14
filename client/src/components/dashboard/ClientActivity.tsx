@@ -154,9 +154,10 @@ export default function ClientActivity() {
                         {formatActivityMessage(activity)}
                       </p>
                       
-                      {activity.type === 'comment_added' && activity.metadata?.comment && (
+                      {activity.type === 'comment_added' && activity.metadata && typeof activity.metadata === 'object' && 
+                       'comment' in (activity.metadata as any) && (
                         <p className="text-xs bg-gray-50 text-gray-600 rounded p-2 mt-1 italic">
-                          "{activity.metadata.comment}"
+                          "{(activity.metadata as any).comment}"
                         </p>
                       )}
                       

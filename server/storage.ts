@@ -2465,7 +2465,24 @@ export class DrizzleStorage implements IStorage {
     try {
       // For now, return all estimates since we're not filtering by userId yet
       // In production, we would want to add this filter
-      return await db.select().from(estimates);
+      return await db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        milestoneBreakdown: estimates.milestoneBreakdown,
+        pdfURL: estimates.pdfURL,
+        sharedLink: estimates.sharedLink,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt
+      }).from(estimates);
     } catch (error) {
       console.error("Database error in getEstimates:", error);
       return []; // Return empty array on error instead of failing
@@ -2474,7 +2491,24 @@ export class DrizzleStorage implements IStorage {
   
   async getEstimate(id: number): Promise<Estimate | undefined> {
     try {
-      const result = await db.select().from(estimates).where(eq(estimates.id, id));
+      const result = await db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        milestoneBreakdown: estimates.milestoneBreakdown,
+        pdfURL: estimates.pdfURL,
+        sharedLink: estimates.sharedLink,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt
+      }).from(estimates).where(eq(estimates.id, id));
       return result[0];
     } catch (error) {
       console.error(`Database error in getEstimate for id ${id}:`, error);
@@ -2483,10 +2517,32 @@ export class DrizzleStorage implements IStorage {
   }
   
   async getEstimatesByProjectId(projectId: number): Promise<Estimate[]> {
-    const project = await this.getProject(projectId);
-    if (!project) return [];
-    
-    return db.select().from(estimates).where(eq(estimates.client_id, project.client_id));
+    try {
+      const project = await this.getProject(projectId);
+      if (!project) return [];
+      
+      return db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        milestoneBreakdown: estimates.milestoneBreakdown,
+        pdfURL: estimates.pdfURL,
+        sharedLink: estimates.sharedLink,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt
+      }).from(estimates).where(eq(estimates.client_id, project.client_id));
+    } catch (error) {
+      console.error(`Error fetching estimates for project ${projectId}:`, error);
+      return [];
+    }
   }
   
   async createEstimate(estimate: InsertEstimate): Promise<Estimate> {

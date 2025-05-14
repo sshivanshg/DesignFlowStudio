@@ -32,7 +32,7 @@ const getInitials = (name: string) => {
 
 // Function to format the activity message
 const formatActivityMessage = (activity: Activity) => {
-  const clientName = `Client ${activity.clientId}`;
+  const clientName = `Client ${activity.client_id || 'Unknown'}`;
   
   switch (activity.type) {
     case 'proposal_approved':
@@ -40,8 +40,8 @@ const formatActivityMessage = (activity: Activity) => {
         <>
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">approved the proposal</span>
-          {activity.projectId && (
-            <span className="text-gray-500 font-normal"> for Project {activity.projectId}</span>
+          {activity.project_id && (
+            <span className="text-gray-500 font-normal"> for Project {activity.project_id}</span>
           )}
         </>
       );
@@ -50,8 +50,8 @@ const formatActivityMessage = (activity: Activity) => {
         <>
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">left a comment</span>
-          {activity.projectId && (
-            <span className="text-gray-500 font-normal"> on Project {activity.projectId}</span>
+          {activity.project_id && (
+            <span className="text-gray-500 font-normal"> on Project {activity.project_id}</span>
           )}
         </>
       );
@@ -60,8 +60,8 @@ const formatActivityMessage = (activity: Activity) => {
         <>
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">requested changes</span>
-          {activity.projectId && (
-            <span className="text-gray-500 font-normal"> to Project {activity.projectId}</span>
+          {activity.project_id && (
+            <span className="text-gray-500 font-normal"> to Project {activity.project_id}</span>
           )}
         </>
       );
@@ -70,8 +70,8 @@ const formatActivityMessage = (activity: Activity) => {
         <>
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">viewed the moodboard</span>
-          {activity.projectId && (
-            <span className="text-gray-500 font-normal"> for Project {activity.projectId}</span>
+          {activity.project_id && (
+            <span className="text-gray-500 font-normal"> for Project {activity.project_id}</span>
           )}
         </>
       );
@@ -96,8 +96,24 @@ export default function ClientActivity() {
     }
   });
 
-  const formatTimeAgo = (date: Date | string) => {
-    return formatDistanceToNow(new Date(date), { addSuffix: true });
+  const formatTimeAgo = (date: Date | string | null) => {
+    if (!date) return 'Recently';
+    
+    try {
+      // Safely attempt to parse the date
+      const parsedDate = new Date(date);
+      
+      // Check if the date is valid before formatting
+      if (isNaN(parsedDate.getTime())) {
+        console.warn('Invalid date value:', date);
+        return 'Recently';
+      }
+      
+      return formatDistanceToNow(parsedDate, { addSuffix: true });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Recently';
+    }
   };
   
   return (
@@ -127,10 +143,10 @@ export default function ClientActivity() {
                   <div className="flex items-start space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback 
-                        style={{ backgroundColor: stringToColor(`Client ${activity.clientId}`) }}
+                        style={{ backgroundColor: stringToColor(`Client ${activity.client_id || 'Unknown'}`) }}
                         className="text-white"
                       >
-                        {getInitials(`Client ${activity.clientId}`)}
+                        {getInitials(`Client ${activity.client_id || 'Unknown'}`)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -145,7 +161,7 @@ export default function ClientActivity() {
                       )}
                       
                       <p className="text-xs text-gray-500 mt-1">
-                        {activity.createdAt ? formatTimeAgo(activity.createdAt) : 'Recently'}
+                        {formatTimeAgo(activity.createdAt)}
                       </p>
                     </div>
                   </div>

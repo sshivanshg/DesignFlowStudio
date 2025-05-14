@@ -187,7 +187,7 @@ export default function ProjectLogs() {
   });
   
   // Handlers for form submissions
-  const handleAddLog = (values: LogFormValues) => {
+  const handleAddLog = (values: any) => {
     addLogMutation.mutate(values);
   };
   
@@ -232,7 +232,7 @@ export default function ProjectLogs() {
   });
 
   // Filter logs based on selected project and search query
-  const filteredLogs = projectLogs ? projectLogs.filter(log => {
+  const filteredLogs = projectLogs ? projectLogs.filter((log: any) => {
     const matchesSearch = searchQuery === '' || 
       log.text?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.photo_caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -686,7 +686,7 @@ export default function ProjectLogs() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {projects && projects.map((project) => (
+              {projects && projects.map((project: any) => (
                 <div
                   key={project.id}
                   className={`p-3 border rounded-md cursor-pointer transition-colors ${
@@ -732,7 +732,7 @@ export default function ProjectLogs() {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle>
-                        {projects && projects.find(p => p.id.toString() === selectedProject)?.name || 'Project Details'}
+                        {projects && projects.find((p: any) => p.id.toString() === selectedProject)?.name || 'Project Details'}
                       </CardTitle>
                       <CardDescription>
                         Project ID: {selectedProject || 'N/A'}

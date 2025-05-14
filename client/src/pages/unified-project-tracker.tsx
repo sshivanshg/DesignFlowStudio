@@ -287,13 +287,14 @@ export default function UnifiedProjectTracker() {
   // Create log entry mutation
   const addLogMutation = useMutation({
     mutationFn: (data: LogFormValues) => {
-      return apiRequest(`/api/project-logs`, {
+      return fetch(`/api/project-logs`, {
         method: 'POST',
-        data: {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ...data,
           project_id: parseInt(projectId)
-        }
-      });
+        })
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-logs', projectId] });
@@ -414,15 +415,16 @@ export default function UnifiedProjectTracker() {
   // Add task mutation
   const addTaskMutation = useMutation({
     mutationFn: (data: TaskFormValues) => {
-      return apiRequest(`/api/projects/${projectId}/tasks`, {
+      return fetch(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
-        data: {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ...data,
           id: Date.now().toString(), // Generate a temporary ID
           created_at: new Date().toISOString(),
           completed: false
-        }
-      });
+        })
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
@@ -438,10 +440,11 @@ export default function UnifiedProjectTracker() {
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: (data: any) => {
-      return apiRequest(`/api/projects/${projectId}/tasks/${data.id}`, {
+      return fetch(`/api/projects/${projectId}/tasks/${data.id}`, {
         method: 'PATCH',
-        data: data
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });

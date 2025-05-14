@@ -299,8 +299,7 @@ export class MemStorage implements IStorage {
     
     // Update the report with the PDF URL
     report.pdf_url = pdfUrl;
-    report.status = "completed";
-    report.updatedAt = new Date();
+    report.updated_at = new Date();
     this.projectReports.set(id, report);
     
     return pdfUrl;

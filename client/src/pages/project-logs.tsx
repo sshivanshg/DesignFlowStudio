@@ -123,18 +123,13 @@ export default function ProjectLogs() {
   // Create log entry mutation
   const addLogMutation = useMutation({
     mutationFn: (data: LogFormValues) => {
-      // For now, simulate success for demo purposes since the API endpoint doesn't exist yet
-      // Normally this would be: return apiRequest("POST", `/api/projects/${selectedProject}/logs`, data);
-      
-      return new Promise<any>((resolve) => {
-        console.log("Would send to API:", data);
-        // Simulate API delay
-        setTimeout(() => {
-          resolve({ success: true, message: "Log added successfully" });
-        }, 500);
+      return apiRequest("POST", `/api/project-logs`, {
+        ...data,
+        project_id: parseInt(selectedProject),
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/project-logs/${selectedProject}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       toast({
         title: "Log Added",
@@ -147,7 +142,7 @@ export default function ProjectLogs() {
       console.error("Log entry error:", error);
       toast({
         title: "Error",
-        description: "Failed to add log entry. The project API endpoint isn't fully implemented yet.",
+        description: "Failed to add log entry. Please try again.",
         variant: "destructive",
       });
     },

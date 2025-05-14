@@ -1032,6 +1032,137 @@ export default function ProjectTracker() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    
+                    {/* Edit Room Dialog */}
+                    <Dialog open={editRoomOpen} onOpenChange={setEditRoomOpen}>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit Room</DialogTitle>
+                          <DialogDescription>
+                            Update room details below.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="room-name" className="text-right">
+                              Name
+                            </label>
+                            <Input
+                              id="room-name"
+                              value={editRoomName}
+                              onChange={(e) => setEditRoomName(e.target.value)}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="room-type" className="text-right">
+                              Type
+                            </label>
+                            <Select
+                              value={editRoomType}
+                              onValueChange={(value) => setEditRoomType(value)}
+                            >
+                              <SelectTrigger id="room-type" className="col-span-3">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="room">Room</SelectItem>
+                                <SelectItem value="area">Area</SelectItem>
+                                <SelectItem value="zone">Zone</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setEditRoomOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (!editRoomName.trim()) {
+                                toast({
+                                  title: "Error",
+                                  description: "Room name is required",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              
+                              if (!projectDetails || !selectedProject || !selectedRoom) {
+                                toast({
+                                  title: "Error",
+                                  description: "Could not update room. Missing data.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              
+                              // Update the room
+                              const updatedRooms = projectDetails.rooms.map((room: any) => {
+                                if (room.id === selectedRoom.id) {
+                                  return {
+                                    ...room,
+                                    name: editRoomName,
+                                    type: editRoomType
+                                  };
+                                }
+                                return room;
+                              });
+                              
+                              // Update project details
+                              const updatedProjectDetails = {
+                                ...projectDetails,
+                                rooms: updatedRooms
+                              };
+                              
+                              // Save to API
+                              fetch(`/api/projects/${selectedProject}`, {
+                                method: "PUT",
+                                headers: {
+                                  "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify(updatedProjectDetails)
+                              })
+                                .then(response => {
+                                  if (!response.ok) {
+                                    throw new Error("Failed to update room");
+                                  }
+                                  return response.json();
+                                })
+                                .then(() => {
+                                  // Refresh project data
+                                  refetchProjectDetails();
+                                  
+                                  // Show success message
+                                  toast({
+                                    title: "Success",
+                                    description: "Room updated successfully",
+                                  });
+                                  
+                                  // Close dialog
+                                  setEditRoomOpen(false);
+                                })
+                                .catch(error => {
+                                  console.error("Error updating room:", error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to update room: " + error.message,
+                                    variant: "destructive",
+                                  });
+                                });
+                            }}
+                          >
+                            Save Changes
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
 
                     <TabsContent value="tasks" className="pt-4">
                       <div className="flex justify-between mb-4">

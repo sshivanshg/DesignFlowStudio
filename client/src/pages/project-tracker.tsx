@@ -89,8 +89,26 @@ export default function ProjectTracker() {
   
   // Create project mutation
   const createProjectMutation = useMutation({
-    mutationFn: (projectData: typeof newProject) => 
-      apiRequest('/api/projects', 'POST', projectData),
+    mutationFn: async (projectData: typeof newProject) => {
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(projectData),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error creating project:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       setIsNewProjectDialogOpen(false);

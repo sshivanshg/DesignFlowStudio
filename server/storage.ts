@@ -3001,8 +3001,22 @@ export class StorageAdapter implements IStorage {
   
   // Lead methods
   async getLeads(userId: number): Promise<Lead[]> {
-    const leads = await this.drizzleStorage.getLeads(userId);
-    return leads.map(lead => convertKeysToCamelCase(lead));
+    try {
+      const leads = await this.drizzleStorage.getLeads(userId);
+      
+      // Add the missing followUpDate field
+      return leads.map(lead => {
+        const camelCaseLead = convertKeysToCamelCase(lead);
+        // Add missing field with null value if it doesn't exist
+        if (!camelCaseLead.hasOwnProperty('followUpDate')) {
+          camelCaseLead.followUpDate = null;
+        }
+        return camelCaseLead;
+      });
+    } catch (error) {
+      console.error("Error in getLeads:", error);
+      throw error;
+    }
   }
   
   async getLeadsByStage(stage: string): Promise<Lead[]> {
@@ -3016,15 +3030,41 @@ export class StorageAdapter implements IStorage {
   }
   
   async createLead(lead: InsertLead): Promise<Lead> {
-    const snakeCaseLead = convertKeysToSnakeCase(lead);
-    const createdLead = await this.drizzleStorage.createLead(snakeCaseLead);
-    return convertKeysToCamelCase(createdLead);
+    try {
+      // Convert keys to snake case
+      const snakeCaseLead = convertKeysToSnakeCase(lead);
+      
+      // Remove the followUpDate/follow_up_date field since it doesn't exist in the database yet
+      const { follow_up_date, ...leadData } = snakeCaseLead;
+      
+      console.log("Creating lead with data:", leadData);
+      
+      // Create lead without the problematic field
+      const createdLead = await this.drizzleStorage.createLead(leadData);
+      return convertKeysToCamelCase(createdLead);
+    } catch (error) {
+      console.error("Error in storage adapter createLead:", error);
+      throw error;
+    }
   }
   
   async updateLead(id: number, lead: Partial<Lead>): Promise<Lead | undefined> {
-    const snakeCaseLead = convertKeysToSnakeCase(lead);
-    const updatedLead = await this.drizzleStorage.updateLead(id, snakeCaseLead);
-    return updatedLead ? convertKeysToCamelCase(updatedLead) : undefined;
+    try {
+      // Convert keys to snake case
+      const snakeCaseLead = convertKeysToSnakeCase(lead);
+      
+      // Remove the followUpDate/follow_up_date field since it doesn't exist in the database yet
+      const { follow_up_date, ...leadData } = snakeCaseLead;
+      
+      console.log("Updating lead with data:", leadData);
+      
+      // Update lead without the problematic field
+      const updatedLead = await this.drizzleStorage.updateLead(id, leadData);
+      return updatedLead ? convertKeysToCamelCase(updatedLead) : undefined;
+    } catch (error) {
+      console.error("Error in storage adapter updateLead:", error);
+      throw error;
+    }
   }
   
   async deleteLead(id: number): Promise<boolean> {

@@ -415,11 +415,18 @@ export default function ProjectTracker() {
                               return;
                             }
                             
+                            // Show room creation dialog
+                            const roomType = prompt("Select room type (living, bedroom, kitchen, bathroom, office):", "living");
+                            if (!roomType) return; // User canceled
+                            
+                            const roomName = prompt("Enter room name:", "New Room");
+                            if (!roomName) return; // User canceled
+                            
                             // Add a new room to the project
                             const newRoom = {
                               id: Date.now().toString(), // Generate a unique ID
-                              name: "New Room",
-                              type: "room",
+                              name: roomName,
+                              type: roomType.toLowerCase(),
                               progress: 0,
                               tasks: 0,
                               completedTasks: 0
@@ -448,7 +455,7 @@ export default function ProjectTracker() {
                               queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
                               toast({
                                 title: "Room added",
-                                description: "New room has been added successfully",
+                                description: `New room "${roomName}" has been added successfully`,
                               });
                             })
                             .catch(error => {
@@ -541,19 +548,73 @@ export default function ProjectTracker() {
                               return;
                             }
                             
-                            // Add a new task to the project
-                            const roomId = projectDetails.rooms && 
-                                          Array.isArray(projectDetails.rooms) && 
-                                          projectDetails.rooms.length > 0 ? 
-                                          projectDetails.rooms[0].id : null;
-                                          
+                            // Show task creation dialog
+                            const taskName = prompt("Enter task name:", "New Task");
+                            if (!taskName) return; // User canceled
+                            
+                            // Select room from available rooms
+                            let roomOptions = "Available rooms:\n";
+                            let roomIdMap: Record<number, string> = {};
+                            
+                            if (projectDetails.rooms && Array.isArray(projectDetails.rooms) && projectDetails.rooms.length > 0) {
+                              projectDetails.rooms.forEach((room: any, index: number) => {
+                                roomOptions += `${index + 1}. ${room.name} (${room.type})\n`;
+                                roomIdMap[index + 1] = room.id;
+                              });
+                            } else {
+                              toast({
+                                title: "Warning",
+                                description: "No rooms found. Please add a room first.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            const roomSelection = prompt(roomOptions + "\nEnter room number:", "1");
+                            if (!roomSelection) return; // User canceled
+                            
+                            const selectedRoomIndex = parseInt(roomSelection);
+                            const roomId = roomIdMap[selectedRoomIndex];
+                            if (!roomId) {
+                              toast({
+                                title: "Error",
+                                description: "Invalid room selection.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Get task status
+                            const statusOptions = "Task status:\n1. Not Started\n2. In Progress\n3. Completed\n4. On Hold";
+                            const statusSelection = prompt(statusOptions + "\nEnter status number:", "1");
+                            if (!statusSelection) return; // User canceled
+                            
+                            const statusMap: Record<string, string> = {
+                              "1": "not_started",
+                              "2": "in_progress",
+                              "3": "completed",
+                              "4": "on_hold"
+                            };
+                            
+                            const status = statusSelection in statusMap ? statusMap[statusSelection] : "not_started";
+                            
+                            // Get due date
+                            const today = new Date();
+                            const nextWeek = new Date(today);
+                            nextWeek.setDate(today.getDate() + 7);
+                            
+                            const defaultDueDate = nextWeek.toISOString().split('T')[0];
+                            const dueDate = prompt("Enter due date (YYYY-MM-DD):", defaultDueDate);
+                            if (!dueDate) return; // User canceled
+                            
+                            // Create new task
                             const newTask = {
                               id: Date.now().toString(),
-                              name: "New Task",
-                              status: "not_started",
+                              name: taskName,
+                              status: status,
                               roomId: roomId,
                               assignedTo: "",
-                              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week from now
+                              dueDate: dueDate,
                             };
                             
                             // Prepare updated tasks array
@@ -579,7 +640,7 @@ export default function ProjectTracker() {
                               queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
                               toast({
                                 title: "Task added",
-                                description: "New task has been added successfully",
+                                description: `New task "${taskName}" has been added successfully`,
                               });
                             })
                             .catch(error => {
@@ -706,13 +767,31 @@ export default function ProjectTracker() {
                               return;
                             }
                             
+                            // Prompt for log text
+                            const logText = prompt("Enter progress note:", "");
+                            if (!logText) return; // User canceled
+                            
+                            // Select log type
+                            const logTypeOptions = "Select log type:\n1. Note\n2. Progress Update\n3. Issue\n4. Communication";
+                            const logTypeSelection = prompt(logTypeOptions + "\nEnter type number:", "1");
+                            if (!logTypeSelection) return; // User canceled
+                            
+                            const logTypeMap: Record<string, string> = {
+                              "1": "note",
+                              "2": "progress",
+                              "3": "issue",
+                              "4": "communication"
+                            };
+                            
+                            const logType = logTypeSelection in logTypeMap ? logTypeMap[logTypeSelection] : "note";
+                            
                             // Create a new log entry
                             const date = new Date();
                             const newLog = {
                               id: Date.now().toString(),
                               date: date.toISOString(),
-                              text: "New progress note",
-                              type: "note"
+                              text: logText,
+                              type: logType
                             };
                             
                             // Prepare updated logs array

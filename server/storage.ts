@@ -1853,16 +1853,89 @@ export class DrizzleStorage implements IStorage {
   
   // Project methods
   async getProjects(userId: number): Promise<Project[]> {
-    return db.select().from(projects);
+    try {
+      return await db.select({
+        id: projects.id,
+        name: projects.name,
+        client_id: projects.client_id,
+        description: projects.description,
+        location: projects.location,
+        status: projects.status,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        budget: projects.budget,
+        progress: projects.progress,
+        rooms: projects.rooms,
+        tasks: projects.tasks,
+        photos: projects.photos,
+        logs: projects.logs,
+        lastReportDate: projects.lastReportDate,
+        reportSettings: projects.reportSettings,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt
+      }).from(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      return [];
+    }
   }
   
   async getProject(id: number): Promise<Project | undefined> {
-    const result = await db.select().from(projects).where(eq(projects.id, id));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: projects.id,
+        name: projects.name,
+        client_id: projects.client_id,
+        description: projects.description,
+        location: projects.location,
+        status: projects.status,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        budget: projects.budget,
+        progress: projects.progress,
+        rooms: projects.rooms,
+        tasks: projects.tasks,
+        photos: projects.photos,
+        logs: projects.logs,
+        lastReportDate: projects.lastReportDate,
+        reportSettings: projects.reportSettings,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt
+      }).from(projects).where(eq(projects.id, id));
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching project with id ${id}:`, error);
+      return undefined;
+    }
   }
   
   async getProjectsByClientId(clientId: number): Promise<Project[]> {
-    return db.select().from(projects).where(eq(projects.client_id, clientId));
+    try {
+      return await db.select({
+        id: projects.id,
+        name: projects.name,
+        client_id: projects.client_id,
+        description: projects.description,
+        location: projects.location,
+        status: projects.status,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        budget: projects.budget,
+        progress: projects.progress,
+        rooms: projects.rooms,
+        tasks: projects.tasks,
+        photos: projects.photos,
+        logs: projects.logs,
+        lastReportDate: projects.lastReportDate,
+        reportSettings: projects.reportSettings,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt
+      }).from(projects).where(eq(projects.client_id, clientId));
+    } catch (error) {
+      console.error(`Error fetching projects for client ${clientId}:`, error);
+      return [];
+    }
   }
   
   async createProject(project: InsertProject): Promise<Project> {

@@ -1865,8 +1865,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/estimates", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       // For testing purposes, get all estimates regardless of user
-      // In production, this should be filtered by user ID
-      const estimates = await storage.getEstimates(null);
+      // We're passing the user ID but the storage implementation doesn't filter by it currently
+      const userId = (req.user as any)?.id || 0;
+      const estimates = await storage.getEstimates(userId);
       console.log("Fetched estimates:", estimates);
       res.json(estimates || []);  // Ensure we always return an array even if undefined
     } catch (error) {

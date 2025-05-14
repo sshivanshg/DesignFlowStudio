@@ -3046,13 +3046,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/template-categories/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const category = await storage.getTemplateCategory(id);
@@ -3066,13 +3062,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/template-categories", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/template-categories", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const category = await storage.createTemplateCategory(req.body);
       res.status(201).json(category);
@@ -3082,13 +3074,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/admin/template-categories/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const category = await storage.updateTemplateCategory(id, req.body);
@@ -3102,13 +3090,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/template-categories/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/admin/template-categories/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const success = await storage.deleteTemplateCategory(id);
@@ -3123,13 +3107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Templates
-  app.get("/api/admin/templates", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/templates", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const type = req.query.type as string | undefined;
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
@@ -3141,13 +3121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/templates/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const template = await storage.getTemplate(id);
@@ -3161,13 +3137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/templates/default/:type", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/templates/default/:type", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const type = req.params.type;
       const template = await storage.getDefaultTemplate(type);
@@ -3181,13 +3153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/templates", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/templates", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const template = await storage.createTemplate(req.body);
       res.status(201).json(template);
@@ -3197,13 +3165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/admin/templates/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const template = await storage.updateTemplate(id, req.body);
@@ -3217,13 +3181,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/templates/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/admin/templates/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const success = await storage.deleteTemplate(id);
@@ -3237,13 +3197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/templates/:id/set-default", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/templates/:id/set-default", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const id = parseInt(req.params.id);
       const type = req.body.type;
@@ -3259,7 +3215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Management
-  app.get("/api/admin/users", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/users", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       // Need to ensure this is admin only
       const user = req.user as User;
@@ -3275,7 +3231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/users", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/users", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       // Need to ensure this is admin only
       const user = req.user as User;
@@ -3291,7 +3247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/users/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/admin/users/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       // Need to ensure this is admin only
       const user = req.user as User;
@@ -3311,7 +3267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/users/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/admin/users/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       // Need to ensure this is admin only
       const user = req.user as User;
@@ -3332,13 +3288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics
-  app.get("/api/admin/analytics", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/analytics", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const metric = req.query.metric as string | undefined;
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
@@ -3352,13 +3304,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/analytics", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/analytics", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const entry = await storage.createAnalyticsEntry(req.body);
       res.status(201).json(entry);

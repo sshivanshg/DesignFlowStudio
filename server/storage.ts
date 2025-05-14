@@ -2283,8 +2283,21 @@ export class DrizzleStorage implements IStorage {
       // First check if the proposals table exists
       console.log("Checking for proposals table...");
       
-      // Return all proposals for simplicity and to avoid filter issues
-      const result = await db.select().from(proposals);
+      // Use a more specific select statement to avoid column issues
+      const result = await db.select({
+        id: proposals.id,
+        client_id: proposals.client_id,
+        lead_id: proposals.lead_id,
+        created_by: proposals.created_by,
+        title: proposals.title,
+        status: proposals.status,
+        dataJSON: proposals.dataJSON,
+        pdfURL: proposals.pdfURL,
+        sharedLink: proposals.sharedLink,
+        clientApproved: proposals.clientApproved,
+        createdAt: proposals.createdAt,
+        updatedAt: proposals.updatedAt
+      }).from(proposals);
       
       console.log(`Successfully retrieved ${result.length} proposals`);
       return result;
@@ -2302,8 +2315,27 @@ export class DrizzleStorage implements IStorage {
   }
   
   async getProposal(id: number): Promise<Proposal | undefined> {
-    const result = await db.select().from(proposals).where(eq(proposals.id, id));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: proposals.id,
+        client_id: proposals.client_id,
+        lead_id: proposals.lead_id,
+        created_by: proposals.created_by,
+        title: proposals.title,
+        status: proposals.status,
+        dataJSON: proposals.dataJSON,
+        pdfURL: proposals.pdfURL,
+        sharedLink: proposals.sharedLink,
+        clientApproved: proposals.clientApproved,
+        createdAt: proposals.createdAt,
+        updatedAt: proposals.updatedAt
+      }).from(proposals).where(eq(proposals.id, id));
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching proposal with id ${id}:`, error);
+      return undefined;
+    }
   }
   
   async getProposalsByProjectId(projectId: number): Promise<Proposal[]> {

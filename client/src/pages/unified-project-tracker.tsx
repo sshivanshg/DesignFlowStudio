@@ -699,6 +699,19 @@ export default function UnifiedProjectTracker() {
     );
   }
   
+  // Check for loading state first (authentication and data loading)
+  if (isAuthLoading || projectsLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg font-medium">Loading projects...</p>
+          <p className="text-sm text-muted-foreground">Please wait while we fetch your data</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Display projects list if no project is selected
   if (!projectId) {
     return (

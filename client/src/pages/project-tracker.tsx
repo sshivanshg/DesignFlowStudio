@@ -919,10 +919,36 @@ export default function ProjectTracker() {
                                 return task;
                               });
                               
-                              // Update the project details with the updated tasks
+                              // Calculate updated room metrics based on the task status change
+                              const updatedRooms = projectDetails.rooms.map((room: any) => {
+                                // Get tasks for this room
+                                const roomTasks = updatedTasks.filter((task: any) => task.roomId === room.id);
+                                
+                                // Count total and completed tasks
+                                const totalTasks = roomTasks.length;
+                                const completedTasks = roomTasks.filter(
+                                  (task: any) => task.status === 'completed' || task.status === 'in_progress'
+                                ).length;
+                                
+                                // Calculate progress percentage
+                                const progress = totalTasks > 0 
+                                  ? Math.round((completedTasks / totalTasks) * 100) 
+                                  : 0;
+                                
+                                // Return updated room with new counts and progress
+                                return {
+                                  ...room,
+                                  tasks: totalTasks,
+                                  completedTasks: completedTasks,
+                                  progress: progress
+                                };
+                              });
+                              
+                              // Update the project details with the updated tasks and rooms
                               const updatedProjectDetails = {
                                 ...projectDetails,
                                 tasks: updatedTasks,
+                                rooms: updatedRooms,
                               };
                               
                               // Save to API
@@ -944,13 +970,25 @@ export default function ProjectTracker() {
                                     description: "Task status updated successfully",
                                   });
                                   
-                                  // Invalidate and refetch the project details to update the UI
+                                  // Invalidate all project-related queries to ensure full UI refresh
                                   queryClient.invalidateQueries({ 
-                                    queryKey: ['/api/projects', selectedProject] 
+                                    queryKey: ['/api/projects'] 
                                   });
                                   
-                                  // Force an immediate refetch
+                                  // Force immediate refetch of the specific project details
                                   refetchProjectDetails();
+                                  
+                                  // Update the task filter status for immediate UI update if we're on the tasks tab
+                                  if (view === 'tasks') {
+                                    // Temporarily set to 'all' and back to current filter to force refresh
+                                    const currentFilter = statusFilter;
+                                    setStatusFilter('all');
+                                    
+                                    // Use setTimeout to ensure the state update happens in the next tick
+                                    setTimeout(() => {
+                                      setStatusFilter(currentFilter);
+                                    }, 100);
+                                  }
                                   
                                   // Close the dialog
                                   setEditTaskOpen(false);

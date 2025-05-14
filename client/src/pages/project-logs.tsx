@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -10,6 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { 
   Select,
   SelectContent,
@@ -39,17 +47,132 @@ import {
   MessageSquare, 
   Plus, 
   Search,
-  AlertTriangle 
+  AlertTriangle,
+  Upload
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, subDays } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+// Form validation schemas
+const logEntrySchema = z.object({
+  text: z.string().min(5, { message: "Log entry must be at least 5 characters" }),
+  roomId: z.string().optional(),
+  photoUrl: z.string().optional(),
+  photoCaption: z.string().optional(),
+  type: z.enum(["note", "photo"]),
+});
+
+const reportSchema = z.object({
+  reportType: z.enum(["weekly", "monthly", "custom"]),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  includePhotos: z.boolean().default(true),
+  includeNotes: z.boolean().default(true),
+});
+
+type LogFormValues = z.infer<typeof logEntrySchema>;
+type ReportFormValues = z.infer<typeof reportSchema>;
 
 export default function ProjectLogs() {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [view, setView] = useState<string>('logs');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [isAddLogDialogOpen, setIsAddLogDialogOpen] = useState(false);
+  const [isGenerateReportDialogOpen, setIsGenerateReportDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Form setup for log entry
+  const logForm = useForm<LogFormValues>({
+    resolver: zodResolver(logEntrySchema),
+    defaultValues: {
+      text: "",
+      type: "note",
+    },
+  });
+  
+  // Form setup for report generation
+  const reportForm = useForm<ReportFormValues>({
+    resolver: zodResolver(reportSchema),
+    defaultValues: {
+      reportType: "weekly",
+      includePhotos: true,
+      includeNotes: true,
+    },
+  });
+  
+  // Create log entry mutation
+  const addLogMutation = useMutation({
+    mutationFn: (data: LogFormValues) => {
+      return apiRequest("POST", `/api/projects/${selectedProject}/logs`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Log Added",
+        description: "Project log entry has been added successfully.",
+      });
+      setIsAddLogDialogOpen(false);
+      logForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add log entry. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Generate report mutation
+  const generateReportMutation = useMutation({
+    mutationFn: (data: ReportFormValues) => {
+      return apiRequest("POST", `/api/projects/${selectedProject}/reports`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Report Generated",
+        description: "Project report has been generated successfully.",
+      });
+      setIsGenerateReportDialogOpen(false);
+      reportForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handlers for form submissions
+  const handleAddLog = (values: LogFormValues) => {
+    addLogMutation.mutate(values);
+  };
+  
+  const handleGenerateReport = (values: ReportFormValues) => {
+    generateReportMutation.mutate(values);
+  };
 
   // Fetch projects query - would be real data in production
   const { isLoading, error, data: projects } = useQuery({
@@ -198,11 +321,11 @@ export default function ProjectLogs() {
         </div>
         {selectedProject && (
           <div className="flex space-x-2">
-            <Button>
+            <Button onClick={() => setIsAddLogDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Log Entry
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setIsGenerateReportDialogOpen(true)}>
               <FileText className="h-4 w-4 mr-2" />
               Generate Report
             </Button>

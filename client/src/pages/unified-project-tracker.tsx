@@ -370,15 +370,16 @@ export default function UnifiedProjectTracker() {
   const addRoomMutation = useMutation({
     mutationFn: (data: RoomFormValues) => {
       // The project has a rooms array in jsonb format
-      return apiRequest(`/api/projects/${projectId}/rooms`, {
+      return fetch(`/api/projects/${projectId}/rooms`, {
         method: 'POST',
-        data: {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ...data,
           id: Date.now().toString(), // Generate a temporary ID
           created_at: new Date().toISOString(),
           progress: 0
-        }
-      });
+        })
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
@@ -394,10 +395,11 @@ export default function UnifiedProjectTracker() {
   // Update room mutation
   const updateRoomMutation = useMutation({
     mutationFn: (data: any) => {
-      return apiRequest(`/api/projects/${projectId}/rooms/${data.id}`, {
+      return fetch(`/api/projects/${projectId}/rooms/${data.id}`, {
         method: 'PATCH',
-        data: data
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });

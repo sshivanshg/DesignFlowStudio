@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   Table, 
   TableBody, 
@@ -312,6 +313,18 @@ export default function ProjectLogs() {
     return selectedProject ? report.projectId.toString() === selectedProject : true;
   });
 
+  // Get room options from mock or real data
+  const getRoomOptions = () => {
+    // In real implementation, this would fetch rooms from the selected project
+    return [
+      { id: "living", label: "Living Room" },
+      { id: "kitchen", label: "Kitchen" },
+      { id: "master", label: "Master Bedroom" },
+      { id: "bathroom", label: "Bathroom" },
+      { id: "general", label: "General" },
+    ];
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -332,6 +345,350 @@ export default function ProjectLogs() {
           </div>
         )}
       </div>
+      
+      {/* Add Log Entry Dialog */}
+      <Dialog open={isAddLogDialogOpen} onOpenChange={setIsAddLogDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Add Log Entry</DialogTitle>
+            <DialogDescription>
+              Record progress, notes, or issues for the selected project.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...logForm}>
+            <form onSubmit={logForm.handleSubmit(handleAddLog)} className="space-y-4">
+              <FormField
+                control={logForm.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Log Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select log type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="note">
+                          <div className="flex items-center">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            <span>Note</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="photo">
+                          <div className="flex items-center">
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            <span>Photo with Note</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={logForm.control}
+                name="roomId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Room/Area</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select room or area" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {getRoomOptions().map(room => (
+                          <SelectItem key={room.id} value={room.id}>
+                            {room.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={logForm.control}
+                name="text"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Log Entry</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the progress, changes, or issues..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {logForm.watch("type") === "photo" && (
+                <div className="space-y-4">
+                  <FormField
+                    control={logForm.control}
+                    name="photoUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Photo</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                // In a real implementation, this would open a file picker
+                                // and upload the photo to your storage service
+                                field.onChange("https://example.com/sample-photo.jpg");
+                              }}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Photo
+                            </Button>
+                            {field.value && (
+                              <div className="text-sm text-green-600">Photo selected</div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Upload a photo showing progress or issues
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={logForm.control}
+                    name="photoCaption"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Photo Caption</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Add a caption for the photo"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddLogDialogOpen(false);
+                    logForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={addLogMutation.isPending}
+                >
+                  {addLogMutation.isPending ? "Adding..." : "Add Log Entry"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Generate Report Dialog */}
+      <Dialog open={isGenerateReportDialogOpen} onOpenChange={setIsGenerateReportDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Generate Project Report</DialogTitle>
+            <DialogDescription>
+              Create a report summarizing project progress and activities.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...reportForm}>
+            <form onSubmit={reportForm.handleSubmit(handleGenerateReport)} className="space-y-4">
+              <FormField
+                control={reportForm.control}
+                name="reportType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Report Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select report type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="weekly">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span>Weekly Report</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="monthly">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span>Monthly Report</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="custom">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span>Custom Date Range</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {reportForm.watch("reportType") === "custom" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={reportForm.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Button
+                          type="button"
+                          variant={"outline"}
+                          className={
+                            !field.value ? "text-muted-foreground" : ""
+                          }
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={reportForm.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>End Date</FormLabel>
+                        <Button
+                          type="button"
+                          variant={"outline"}
+                          className={
+                            !field.value ? "text-muted-foreground" : ""
+                          }
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-3 pt-2">
+                <FormField
+                  control={reportForm.control}
+                  name="includePhotos"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Include Photos</FormLabel>
+                        <FormDescription>
+                          Add project photos to the report
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={reportForm.control}
+                  name="includeNotes"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Include Notes</FormLabel>
+                        <FormDescription>
+                          Add log notes and comments to the report
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsGenerateReportDialogOpen(false);
+                    reportForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={generateReportMutation.isPending}
+                >
+                  {generateReportMutation.isPending ? "Generating..." : "Generate Report"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Project Selection */}

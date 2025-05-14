@@ -2013,6 +2013,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // AI-powered Smart Estimate generator route
+  app.post("/api/estimates/ai-generate", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
+    try {
+      // Verify we have the OpenAI API key
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables." 
+        });
+      }
+
+      const { generateSmartEstimate } = await import('./ai.js');
+      const requestData = req.body;
+
+      // Validate request data
+      if (!requestData.projectType || !requestData.roomTypes || !requestData.squareFootage || !requestData.quality) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Missing required fields. Please provide projectType, roomTypes, squareFootage, scope, and quality." 
+        });
+      }
+
+      // Generate the smart estimate using AI
+      const smartEstimate = await generateSmartEstimate(requestData);
+      
+      // Return the AI-generated estimate
+      res.json({
+        success: true,
+        data: smartEstimate
+      });
+    } catch (error) {
+      console.error("Error generating AI estimate:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Error generating AI estimate: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
+
   // Estimate Config routes
   // Estimate configuration routes - admin only
   app.get("/api/estimate-configs", isAuthenticated, hasRole(['admin']), async (req, res) => {

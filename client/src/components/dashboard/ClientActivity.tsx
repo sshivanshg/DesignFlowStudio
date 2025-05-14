@@ -31,8 +31,9 @@ const getInitials = (name: string) => {
 };
 
 // Function to format the activity message
-const formatActivityMessage = (activity: Activity) => {
-  const clientName = `Client ${activity.client_id || 'Unknown'}`;
+const formatActivityMessage = (activity: any) => {
+  const clientName = activity.clientName || `Client ${activity.client_id || 'Unknown'}`;
+  const projectName = activity.projectName || `Project ${activity.project_id || 'Unknown'}`;
   
   switch (activity.type) {
     case 'proposal_approved':
@@ -41,7 +42,7 @@ const formatActivityMessage = (activity: Activity) => {
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">approved the proposal</span>
           {activity.project_id && (
-            <span className="text-gray-500 font-normal"> for Project {activity.project_id}</span>
+            <span className="text-gray-500 font-normal"> for {projectName}</span>
           )}
         </>
       );
@@ -51,7 +52,7 @@ const formatActivityMessage = (activity: Activity) => {
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">left a comment</span>
           {activity.project_id && (
-            <span className="text-gray-500 font-normal"> on Project {activity.project_id}</span>
+            <span className="text-gray-500 font-normal"> on {projectName}</span>
           )}
         </>
       );
@@ -61,7 +62,7 @@ const formatActivityMessage = (activity: Activity) => {
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">requested changes</span>
           {activity.project_id && (
-            <span className="text-gray-500 font-normal"> to Project {activity.project_id}</span>
+            <span className="text-gray-500 font-normal"> to {projectName}</span>
           )}
         </>
       );
@@ -71,7 +72,7 @@ const formatActivityMessage = (activity: Activity) => {
           <span className="font-medium">{clientName}</span>{' '}
           <span className="text-gray-500 font-normal">viewed the moodboard</span>
           {activity.project_id && (
-            <span className="text-gray-500 font-normal"> for Project {activity.project_id}</span>
+            <span className="text-gray-500 font-normal"> for {projectName}</span>
           )}
         </>
       );
@@ -82,14 +83,14 @@ const formatActivityMessage = (activity: Activity) => {
 
 export default function ClientActivity() {
   const { data: activities, isLoading } = useQuery<Activity[]>({
-    queryKey: ['/api/activities'],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`${queryKey[0]}?limit=5`, {
+    queryKey: ['/api/dashboard/recent-activities'],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/recent-activities', {
         credentials: 'include',
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch activities');
+        throw new Error('Failed to fetch recent activities');
       }
       
       return response.json();
@@ -143,10 +144,10 @@ export default function ClientActivity() {
                   <div className="flex items-start space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback 
-                        style={{ backgroundColor: stringToColor(`Client ${activity.client_id || 'Unknown'}`) }}
+                        style={{ backgroundColor: stringToColor(activity.clientName || `Client ${activity.client_id || 'Unknown'}`) }}
                         className="text-white"
                       >
-                        {getInitials(`Client ${activity.client_id || 'Unknown'}`)}
+                        {getInitials(activity.clientName || `Client ${activity.client_id || 'Unknown'}`)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -154,10 +155,13 @@ export default function ClientActivity() {
                         {formatActivityMessage(activity)}
                       </p>
                       
-                      {activity.type === 'comment_added' && activity.metadata && typeof activity.metadata === 'object' && 
-                       'comment' in (activity.metadata as Record<string, unknown>) && (
+                      {activity.type === 'comment_added' && activity.metadata && (
                         <p className="text-xs bg-gray-50 text-gray-600 rounded p-2 mt-1 italic">
-                          "{String((activity.metadata as Record<string, unknown>).comment || '')}"
+                          "{typeof activity.metadata === 'object' && activity.metadata !== null && 'comment' in activity.metadata 
+                            ? String(activity.metadata.comment || '') 
+                            : typeof activity.metadata === 'string' 
+                              ? activity.metadata 
+                              : 'Comment details unavailable'}"
                         </p>
                       )}
                       

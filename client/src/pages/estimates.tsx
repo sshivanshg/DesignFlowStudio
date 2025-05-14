@@ -34,7 +34,8 @@ import {
   Loader2,
   Calculator,
   Share,
-  Trash 
+  Trash,
+  BrainCircuit
 } from 'lucide-react';
 
 // Status badge colors
@@ -160,10 +161,16 @@ export default function EstimatesPage() {
           <h1 className="text-2xl font-bold">Estimates</h1>
           <p className="text-muted-foreground">Manage and track all your project estimates</p>
         </div>
-        <Button onClick={() => navigate('/estimates/create')}>
-          <Calculator className="mr-2 h-4 w-4" />
-          Create Estimate
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate('/estimates/ai')} className="bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-200">
+            <BrainCircuit className="mr-2 h-4 w-4 text-blue-600" />
+            AI Smart Estimate
+          </Button>
+          <Button onClick={() => navigate('/estimates/create')}>
+            <Calculator className="mr-2 h-4 w-4" />
+            Create Estimate
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">

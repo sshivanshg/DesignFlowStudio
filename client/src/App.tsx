@@ -20,6 +20,7 @@ import MoodboardEditor from "@/pages/moodboard-editor";
 import Estimates from "@/pages/estimates";
 import Estimate from "@/pages/estimate";
 import EstimateCreate from "@/pages/estimate-create";
+import EstimateAI from "@/pages/estimate-ai";
 import Clients from "@/pages/clients";
 import Settings from "@/pages/settings";
 import AdminDashboard from "@/pages/settings/admin";
@@ -230,6 +231,14 @@ function Router() {
         <ProtectedRoute allowedRoles={["admin", "designer", "sales"]}>
           <AppLayout>
             <EstimateCreate />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/estimates/ai">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <AppLayout>
+            <EstimateAI />
           </AppLayout>
         </ProtectedRoute>
       </Route>

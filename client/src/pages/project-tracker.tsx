@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -39,6 +39,18 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 
 export default function ProjectTracker() {
@@ -46,6 +58,16 @@ export default function ProjectTracker() {
   const [view, setView] = useState<string>('rooms');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [newProject, setNewProject] = useState({
+    name: '',
+    location: '',
+    description: '',
+    status: 'planning'
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch projects query
   const { isLoading, error, data: projects } = useQuery({
@@ -63,6 +85,34 @@ export default function ProjectTracker() {
       return fetch(`/api/projects/${selectedProject}`).then(res => res.json());
     },
     enabled: !!selectedProject,
+  });
+  
+  // Create project mutation
+  const createProjectMutation = useMutation({
+    mutationFn: (projectData: typeof newProject) => 
+      apiRequest('/api/projects', 'POST', projectData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      setIsNewProjectDialogOpen(false);
+      setNewProject({
+        name: '',
+        location: '',
+        description: '',
+        status: 'planning'
+      });
+      toast({
+        title: "Project created",
+        description: "Your new project has been created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error creating project:", error);
+    }
   });
 
   // Mock data for initial design

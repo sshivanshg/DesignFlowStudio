@@ -961,8 +961,6 @@ export default function ProjectTracker() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-
-                    <TabsContent value="tasks" className="pt-4">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-lg font-medium">Tasks</h3>
                         <Button 

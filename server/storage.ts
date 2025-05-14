@@ -257,17 +257,15 @@ export class MemStorage implements IStorage {
   async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
     const newReport: ProjectReport = {
       id: this.projectReportId++,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      project_id: report.project_id || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+      project_id: report.project_id,
       user_id: report.user_id || null,
-      title: report.title || "Project Report",
       report_type: report.report_type || "weekly",
       start_date: report.start_date || null,
       end_date: report.end_date || null,
-      include_photos: report.include_photos ?? true,
-      include_logs: report.include_logs ?? true,
-      status: report.status || "draft",
+      includes_photos: report.includes_photos ?? true,
+      includes_notes: report.includes_notes ?? true,
       pdf_url: report.pdf_url || null,
     };
     this.projectReports.set(newReport.id, newReport);
@@ -281,7 +279,7 @@ export class MemStorage implements IStorage {
     const updatedReport: ProjectReport = {
       ...existingReport,
       ...report,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
     this.projectReports.set(id, updatedReport);
     return updatedReport;

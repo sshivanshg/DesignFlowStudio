@@ -115,31 +115,21 @@ export default function ProjectTracker() {
     }
   });
 
-  // Mock data for initial design
-  const mockProjects = [
-    { id: 1, name: "Modern Apartment Redesign", location: "New York, NY", progress: 65, status: "In Progress" },
-    { id: 2, name: "Coastal Beach House", location: "Malibu, CA", progress: 30, status: "In Progress" },
-    { id: 3, name: "Corporate Office Renovation", location: "Chicago, IL", progress: 90, status: "Almost Complete" },
-    { id: 4, name: "Mountain Cabin Remodel", location: "Aspen, CO", progress: 10, status: "Just Started" },
-  ];
-
-  const mockRooms = [
-    { id: 1, name: "Living Room", type: "living", progress: 75, tasks: 12, completedTasks: 9 },
-    { id: 2, name: "Master Bedroom", type: "bedroom", progress: 45, tasks: 8, completedTasks: 4 },
-    { id: 3, name: "Kitchen", type: "kitchen", progress: 60, tasks: 15, completedTasks: 9 },
-    { id: 4, name: "Bathroom", type: "bathroom", progress: 20, tasks: 10, completedTasks: 2 },
-    { id: 5, name: "Home Office", type: "office", progress: 90, tasks: 6, completedTasks: 5 },
-  ];
-
-  const mockTasks = [
-    { id: 1, roomId: 1, name: "Paint walls", status: "completed", dueDate: "2025-05-20", assignedTo: "John Doe" },
-    { id: 2, roomId: 1, name: "Install new flooring", status: "completed", dueDate: "2025-05-15", assignedTo: "Jane Smith" },
-    { id: 3, roomId: 1, name: "Hang curtains", status: "in_progress", dueDate: "2025-05-25", assignedTo: "John Doe" },
-    { id: 4, roomId: 2, name: "Assemble bed frame", status: "in_progress", dueDate: "2025-05-18", assignedTo: "Mark Wilson" },
-    { id: 5, roomId: 2, name: "Install lighting", status: "not_started", dueDate: "2025-05-30", assignedTo: "Jane Smith" },
-    { id: 6, roomId: 3, name: "Replace countertops", status: "in_progress", dueDate: "2025-05-22", assignedTo: "Mark Wilson" },
-    { id: 7, roomId: 3, name: "Install backsplash", status: "delayed", dueDate: "2025-05-10", assignedTo: "John Doe" },
-  ];
+  // Helper functions for project data
+  const getProjectProgress = (project: any) => {
+    if (!project) return 0;
+    return project.progress || 0;
+  };
+  
+  const getProjectStatus = (project: any) => {
+    if (!project) return "Planning";
+    return project.status || "Planning";
+  };
+  
+  const getProjectLocation = (project: any) => {
+    if (!project) return "";
+    return project.location || "No location specified";
+  };
 
   // Helper function to get badge color based on status
   const getStatusBadge = (status: string) => {
@@ -158,20 +148,46 @@ export default function ProjectTracker() {
   };
 
   // Filter tasks based on search query and status filter
-  const filteredTasks = mockTasks.filter(task => {
-    const matchesSearch = searchQuery === '' || 
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredTasks = projectDetails?.tasks ? 
+    (Array.isArray(projectDetails.tasks) ? projectDetails.tasks : []).filter((task: any) => {
+      const matchesSearch = searchQuery === '' || 
+        (task.name && task.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (task.assignedTo && task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    })
+    : [];
 
   // Get the room name for a given room ID
-  const getRoomName = (roomId: number) => {
-    const room = mockRooms.find(r => r.id === roomId);
+  const getRoomName = (roomId: string | number) => {
+    if (!projectDetails?.rooms || !Array.isArray(projectDetails.rooms)) return 'Unknown Room';
+    const room = projectDetails.rooms.find((r: any) => r.id === roomId);
     return room ? room.name : 'Unknown Room';
+  };
+
+  // Handle input changes for new project form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewProject(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle form submission
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProject.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Project name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    createProjectMutation.mutate(newProject);
   };
 
   return (
@@ -182,12 +198,90 @@ export default function ProjectTracker() {
           <p className="text-gray-500 mt-1">Track progress by room, manage tasks, and generate reports</p>
         </div>
         <div className="flex space-x-2">
-          <Button>
+          <Button onClick={() => setIsNewProjectDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
         </div>
       </div>
+      
+      {/* New Project Dialog */}
+      <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>
+              Add the details for your new project. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateProject}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Project Name*</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={newProject.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter project name"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  value={newProject.location}
+                  onChange={handleInputChange}
+                  placeholder="City, State"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={newProject.description}
+                  onChange={handleInputChange}
+                  placeholder="Project description..."
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  name="status" 
+                  value={newProject.status} 
+                  onValueChange={(value) => handleInputChange({ target: { name: 'status', value } } as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planning">Planning</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsNewProjectDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createProjectMutation.isPending}>
+                {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Project List */}
@@ -198,40 +292,55 @@ export default function ProjectTracker() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className={`p-3 border rounded-md cursor-pointer transition-colors ${
-                    selectedProject === project.id.toString() 
-                      ? 'border-primary bg-primary/5' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => setSelectedProject(project.id.toString())}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{project.name}</h3>
-                      <div className="flex items-center text-xs text-gray-500 mt-1">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {project.location}
+              {isLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin h-6 w-6 border-t-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500">Loading projects...</p>
+                </div>
+              ) : error ? (
+                <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-600">
+                  <p>Error loading projects. Please try again.</p>
+                </div>
+              ) : projects && projects.length > 0 ? (
+                projects.map((project: any) => (
+                  <div
+                    key={project.id}
+                    className={`p-3 border rounded-md cursor-pointer transition-colors ${
+                      selectedProject === project.id.toString() 
+                        ? 'border-primary bg-primary/5' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedProject(project.id.toString())}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{project.name}</h3>
+                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {getProjectLocation(project)}
+                        </div>
+                      </div>
+                      <Badge variant="outline">{getProjectStatus(project)}</Badge>
+                    </div>
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Progress</span>
+                        <span>{getProjectProgress(project)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full"
+                          style={{ width: `${getProjectProgress(project)}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <Badge variant="outline">{project.status}</Badge>
                   </div>
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>Progress</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                ))
+              ) : (
+                <div className="p-4 border border-gray-200 rounded-md text-center text-gray-500">
+                  <p>No projects found. Create your first project to get started.</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -245,14 +354,14 @@ export default function ProjectTracker() {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle>
-                        {mockProjects.find(p => p.id.toString() === selectedProject)?.name || 'Project Details'}
+                        {projectDetails?.name || 'Project Details'}
                       </CardTitle>
                       <CardDescription>
-                        {mockProjects.find(p => p.id.toString() === selectedProject)?.location || 'Location'}
+                        {getProjectLocation(projectDetails)}
                       </CardDescription>
                     </div>
                     <Badge variant="outline">
-                      {mockProjects.find(p => p.id.toString() === selectedProject)?.status || 'Status'}
+                      {getProjectStatus(projectDetails)}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -282,51 +391,63 @@ export default function ProjectTracker() {
                         </Button>
                       </div>
                       <div className="space-y-3">
-                        {mockRooms.map(room => (
-                          <div key={room.id} className="border rounded-md p-4">
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-start">
-                                <div className="rounded-full bg-gray-100 p-2 mr-3">
-                                  {room.type === 'living' && <Layers className="h-5 w-5 text-blue-500" />}
-                                  {room.type === 'bedroom' && <Layers className="h-5 w-5 text-purple-500" />}
-                                  {room.type === 'kitchen' && <Layers className="h-5 w-5 text-amber-500" />}
-                                  {room.type === 'bathroom' && <Layers className="h-5 w-5 text-emerald-500" />}
-                                  {room.type === 'office' && <Layers className="h-5 w-5 text-indigo-500" />}
+                        {!projectDetails ? (
+                          <div className="p-8 text-center">
+                            <p className="text-sm text-gray-500">Select a project to view rooms</p>
+                          </div>
+                        ) : projectDetails.rooms && Array.isArray(projectDetails.rooms) && projectDetails.rooms.length > 0 ? (
+                          projectDetails.rooms.map((room: any, index: number) => (
+                            <div key={room.id || index} className="border rounded-md p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-start">
+                                  <div className="rounded-full bg-gray-100 p-2 mr-3">
+                                    {room.type === 'living' && <Layers className="h-5 w-5 text-blue-500" />}
+                                    {room.type === 'bedroom' && <Layers className="h-5 w-5 text-purple-500" />}
+                                    {room.type === 'kitchen' && <Layers className="h-5 w-5 text-amber-500" />}
+                                    {room.type === 'bathroom' && <Layers className="h-5 w-5 text-emerald-500" />}
+                                    {room.type === 'office' && <Layers className="h-5 w-5 text-indigo-500" />}
+                                    {(!room.type || !['living', 'bedroom', 'kitchen', 'bathroom', 'office'].includes(room.type)) && 
+                                      <Layers className="h-5 w-5 text-gray-500" />}
+                                  </div>
+                                  <div>
+                                    <h3 className="font-medium">{room.name}</h3>
+                                    <div className="flex items-center mt-1">
+                                      <span className="text-xs text-gray-500 mr-3">
+                                        {room.completedTasks || 0} of {room.tasks || 0} tasks completed
+                                      </span>
+                                      <Badge variant="outline" className="text-xs">
+                                        {room.type || 'room'}
+                                      </Badge>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h3 className="font-medium">{room.name}</h3>
-                                  <div className="flex items-center mt-1">
-                                    <span className="text-xs text-gray-500 mr-3">
-                                      {room.completedTasks} of {room.tasks} tasks completed
-                                    </span>
-                                    <Badge variant="outline" className="text-xs">
-                                      {room.type}
-                                    </Badge>
+                                <div className="text-right">
+                                  <span className="text-sm font-medium">{room.progress || 0}%</span>
+                                  <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                                    <div
+                                      className="bg-primary h-2 rounded-full"
+                                      style={{ width: `${room.progress || 0}%` }}
+                                    ></div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <span className="text-sm font-medium">{room.progress}%</span>
-                                <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
-                                  <div
-                                    className="bg-primary h-2 rounded-full"
-                                    style={{ width: `${room.progress}%` }}
-                                  ></div>
-                                </div>
+                              <div className="flex mt-3 space-x-2">
+                                <Button variant="outline" size="sm">
+                                  <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                                  Tasks
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                  Add Note
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex mt-3 space-x-2">
-                              <Button variant="outline" size="sm">
-                                <ClipboardList className="h-3.5 w-3.5 mr-1" />
-                                Tasks
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                                Add Note
-                              </Button>
-                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 border border-gray-200 rounded-md text-center text-gray-500">
+                            <p>No rooms found. Add a room to get started.</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </TabsContent>
 

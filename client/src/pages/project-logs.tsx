@@ -686,7 +686,7 @@ export default function ProjectLogs() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockProjects.map((project) => (
+              {projects && projects.map((project) => (
                 <div
                   key={project.id}
                   className={`p-3 border rounded-md cursor-pointer transition-colors ${
@@ -732,10 +732,10 @@ export default function ProjectLogs() {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle>
-                        {mockProjects.find(p => p.id.toString() === selectedProject)?.name || 'Project Details'}
+                        {projects && projects.find(p => p.id.toString() === selectedProject)?.name || 'Project Details'}
                       </CardTitle>
                       <CardDescription>
-                        Client: {mockProjects.find(p => p.id.toString() === selectedProject)?.client || 'Client'}
+                        Project ID: {selectedProject || 'N/A'}
                       </CardDescription>
                     </div>
                   </div>
@@ -792,37 +792,45 @@ export default function ProjectLogs() {
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                      <Badge variant={log.type === 'photo' ? 'default' : 'outline'}>
-                                        {log.type === 'photo' ? (
+                                      <Badge variant={log.photo_url ? 'default' : 'outline'}>
+                                        {log.photo_url ? (
                                           <><ImageIcon className="h-3 w-3 mr-1" /> Photo</>
                                         ) : (
                                           <><MessageSquare className="h-3 w-3 mr-1" /> Note</>
                                         )}
                                       </Badge>
-                                      <Badge variant="outline">{log.roomName}</Badge>
+                                      {log.room_id && (
+                                        <Badge variant="outline">{log.room_id}</Badge>
+                                      )}
                                     </div>
-                                    <CardTitle className="text-base">{log.title}</CardTitle>
+                                    <CardTitle className="text-base">Log Entry #{log.id}</CardTitle>
                                     <div className="flex items-center text-xs text-gray-500 mt-1">
                                       <Calendar className="h-3 w-3 mr-1" />
-                                      {format(log.date, 'MMM d, yyyy')}
-                                      <span className="mx-2">•</span>
-                                      <span>{log.creator}</span>
+                                      {format(new Date(log.created_at), 'MMM d, yyyy')}
                                     </div>
                                   </div>
                                 </div>
                               </CardHeader>
                               <CardContent className="pb-3 pt-3">
-                                <p className="text-sm text-gray-700">{log.description}</p>
-                                {log.type === 'photo' && log.images.length > 0 && (
+                                <p className="text-sm text-gray-700">{log.text}</p>
+                                {log.photo_url && (
                                   <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
-                                    {log.images.map((image, index) => (
-                                      <div 
-                                        key={index} 
-                                        className="w-24 h-24 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0"
-                                      >
+                                    <div 
+                                      className="w-24 h-24 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0"
+                                    >
+                                      {log.photo_url.startsWith('http') ? (
+                                        <img 
+                                          src={log.photo_url} 
+                                          alt={log.photo_caption || 'Project photo'} 
+                                          className="h-full w-full object-cover rounded-md"
+                                        />
+                                      ) : (
                                         <ImageIcon className="h-8 w-8 text-gray-400" />
-                                      </div>
-                                    ))}
+                                      )}
+                                    </div>
+                                    {log.photo_caption && (
+                                      <p className="text-xs text-gray-500 mt-1">{log.photo_caption}</p>
+                                    )}
                                   </div>
                                 )}
                               </CardContent>

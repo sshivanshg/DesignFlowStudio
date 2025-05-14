@@ -149,6 +149,7 @@ type Task = {
   id: string | number;
   name: string;
   status: string;
+  roomId?: string | number;
   dueDate?: string;
   assignedTo?: number;
   description?: string;
@@ -211,8 +212,8 @@ export default function UnifiedProjectTracker() {
   const [newProjectDescription, setNewProjectDescription] = useState("");
   
   // Selected item states
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
     to: new Date()
@@ -530,7 +531,7 @@ export default function UnifiedProjectTracker() {
   };
   
   // Handle editing a room
-  const handleEditRoom = (values: any) => {
+  const handleEditRoom = (values: RoomFormValues) => {
     updateRoomMutation.mutate({
       ...selectedRoom,
       ...values
@@ -538,7 +539,7 @@ export default function UnifiedProjectTracker() {
   };
   
   // Handle editing a task
-  const handleEditTask = (values: any) => {
+  const handleEditTask = (values: TaskFormValues) => {
     updateTaskMutation.mutate({
       ...selectedTask,
       ...values
@@ -546,7 +547,7 @@ export default function UnifiedProjectTracker() {
   };
   
   // Open the edit room dialog and set the selected room
-  const openEditRoomDialog = (room: any) => {
+  const openEditRoomDialog = (room: Room) => {
     setSelectedRoom(room);
     roomForm.reset({
       name: room.name,
@@ -557,11 +558,11 @@ export default function UnifiedProjectTracker() {
   };
   
   // Open the edit task dialog and set the selected task
-  const openEditTaskDialog = (task: any) => {
+  const openEditTaskDialog = (task: Task) => {
     setSelectedTask(task);
     taskForm.reset({
       name: task.name,
-      roomId: task.roomId,
+      roomId: task.roomId as string,
       status: task.status,
       dueDate: task.dueDate,
       description: task.description || "",
@@ -603,18 +604,19 @@ export default function UnifiedProjectTracker() {
     return [];
   };
   
-  const getStatusBadgeColor = (status: string | undefined) => {
+  // Map status to valid badge variants
+  const getStatusBadgeColor = (status: string | undefined): "default" | "destructive" | "secondary" | "outline" => {
     if (!status) return 'default';
     
     switch (status.toLowerCase()) {
       case 'planned':
         return 'secondary';
       case 'in progress':
-        return 'blue';
+        return 'default';  // Changed from 'blue'
       case 'completed':
-        return 'green';
+        return 'outline';  // Changed from 'green'
       case 'on hold':
-        return 'yellow';
+        return 'destructive';  // Changed from 'yellow'
       case 'not_started':
         return 'secondary';
       default:

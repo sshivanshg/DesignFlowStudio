@@ -2638,38 +2638,182 @@ export class DrizzleStorage implements IStorage {
   }
   
   async getEstimatesByLeadId(leadId: number): Promise<Estimate[]> {
-    return db.select().from(estimates).where(eq(estimates.lead_id, leadId));
+    try {
+      return await db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        sharedLink: estimates.sharedLink,
+        note: estimates.note,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt,
+        pdfURL: estimates.pdfURL,
+        items: estimates.items,
+        milestoneBreakdown: estimates.milestoneBreakdown
+      }).from(estimates).where(eq(estimates.lead_id, leadId));
+    } catch (error) {
+      console.error(`Error fetching estimates for lead ${leadId}:`, error);
+      return [];
+    }
   }
   
   async getEstimatesByClientId(clientId: number): Promise<Estimate[]> {
-    return db.select().from(estimates).where(eq(estimates.client_id, clientId));
+    try {
+      return await db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        sharedLink: estimates.sharedLink,
+        note: estimates.note,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt,
+        pdfURL: estimates.pdfURL,
+        items: estimates.items,
+        milestoneBreakdown: estimates.milestoneBreakdown
+      }).from(estimates).where(eq(estimates.client_id, clientId));
+    } catch (error) {
+      console.error(`Error fetching estimates for client ${clientId}:`, error);
+      return [];
+    }
   }
   
   async getEstimateTemplates(): Promise<Estimate[]> {
-    return db.select().from(estimates).where(eq(estimates.isTemplate, true));
+    try {
+      return await db.select({
+        id: estimates.id,
+        client_id: estimates.client_id,
+        lead_id: estimates.lead_id,
+        title: estimates.title,
+        configJSON: estimates.configJSON,
+        subtotal: estimates.subtotal,
+        gst: estimates.gst,
+        total: estimates.total,
+        status: estimates.status,
+        isTemplate: estimates.isTemplate,
+        templateName: estimates.templateName,
+        sharedLink: estimates.sharedLink,
+        note: estimates.note,
+        createdAt: estimates.createdAt,
+        updatedAt: estimates.updatedAt,
+        pdfURL: estimates.pdfURL,
+        items: estimates.items,
+        milestoneBreakdown: estimates.milestoneBreakdown
+      }).from(estimates).where(eq(estimates.isTemplate, true));
+    } catch (error) {
+      console.error("Error fetching estimate templates:", error);
+      return [];
+    }
   }
   
   // EstimateConfig methods
   async getEstimateConfigs(): Promise<EstimateConfig[]> {
-    return db.select().from(estimateConfigs);
+    try {
+      return await db.select({
+        id: estimateConfigs.id,
+        name: estimateConfigs.name,
+        description: estimateConfigs.description,
+        configType: estimateConfigs.configType,
+        config: estimateConfigs.config,
+        isActive: estimateConfigs.isActive,
+        createdAt: estimateConfigs.createdAt,
+        updatedAt: estimateConfigs.updatedAt
+      }).from(estimateConfigs);
+    } catch (error) {
+      console.error("Error fetching estimate configs:", error);
+      return [];
+    }
   }
   
   async getActiveEstimateConfigs(): Promise<EstimateConfig[]> {
-    return db.select().from(estimateConfigs).where(eq(estimateConfigs.isActive, true));
+    try {
+      return await db.select({
+        id: estimateConfigs.id,
+        name: estimateConfigs.name,
+        description: estimateConfigs.description,
+        configType: estimateConfigs.configType,
+        config: estimateConfigs.config,
+        isActive: estimateConfigs.isActive,
+        createdAt: estimateConfigs.createdAt,
+        updatedAt: estimateConfigs.updatedAt
+      }).from(estimateConfigs).where(eq(estimateConfigs.isActive, true));
+    } catch (error) {
+      console.error("Error fetching active estimate configs:", error);
+      return [];
+    }
   }
   
   async getEstimateConfigsByType(configType: string): Promise<EstimateConfig[]> {
-    return db.select().from(estimateConfigs).where(eq(estimateConfigs.configType, configType));
+    try {
+      return await db.select({
+        id: estimateConfigs.id,
+        name: estimateConfigs.name,
+        description: estimateConfigs.description,
+        configType: estimateConfigs.configType,
+        config: estimateConfigs.config,
+        isActive: estimateConfigs.isActive,
+        createdAt: estimateConfigs.createdAt,
+        updatedAt: estimateConfigs.updatedAt
+      }).from(estimateConfigs).where(eq(estimateConfigs.configType, configType));
+    } catch (error) {
+      console.error(`Error fetching estimate configs for type ${configType}:`, error);
+      return [];
+    }
   }
   
   async getEstimateConfig(id: number): Promise<EstimateConfig | undefined> {
-    const result = await db.select().from(estimateConfigs).where(eq(estimateConfigs.id, id));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: estimateConfigs.id,
+        name: estimateConfigs.name,
+        description: estimateConfigs.description,
+        configType: estimateConfigs.configType,
+        config: estimateConfigs.config,
+        isActive: estimateConfigs.isActive,
+        createdAt: estimateConfigs.createdAt,
+        updatedAt: estimateConfigs.updatedAt
+      }).from(estimateConfigs).where(eq(estimateConfigs.id, id));
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching estimate config with id ${id}:`, error);
+      return undefined;
+    }
   }
   
   async getEstimateConfigByName(name: string): Promise<EstimateConfig | undefined> {
-    const result = await db.select().from(estimateConfigs).where(eq(estimateConfigs.name, name));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: estimateConfigs.id,
+        name: estimateConfigs.name,
+        description: estimateConfigs.description,
+        configType: estimateConfigs.configType,
+        config: estimateConfigs.config,
+        isActive: estimateConfigs.isActive,
+        createdAt: estimateConfigs.createdAt,
+        updatedAt: estimateConfigs.updatedAt
+      }).from(estimateConfigs).where(eq(estimateConfigs.name, name));
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching estimate config with name ${name}:`, error);
+      return undefined;
+    }
   }
   
   async createEstimateConfig(config: InsertEstimateConfig): Promise<EstimateConfig> {

@@ -3,9 +3,11 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
+import { ClearTestMode } from "./clear-test-mode";
 
 import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
@@ -120,6 +122,17 @@ function Router() {
       
       <Route path="/clear-auth">
         <ClearAuth />
+      </Route>
+      
+      <Route path="/clear-test-mode">
+        <div className="flex h-screen items-center justify-center flex-col">
+          <ClearTestMode />
+          <h1 className="text-2xl font-bold mb-4">Test Mode Cleared</h1>
+          <p className="mb-4">All test role overrides have been removed.</p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Return to Login
+          </Button>
+        </div>
       </Route>
       
       {/* Client Portal Routes - No protection needed as they use their own token auth */}
@@ -282,6 +295,7 @@ function App() {
         <SupabaseAuthProvider>
           <AuthProvider>
             <SidebarProvider>
+              <ClearTestMode />
               <Toaster />
               <Router />
             </SidebarProvider>

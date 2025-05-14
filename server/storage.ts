@@ -1519,8 +1519,10 @@ export class MemStorage implements IStorage {
 export class DrizzleStorage implements IStorage {
   // Database access
   getDb() {
-    // Return the database client for direct SQL queries
-    return queryClient;
+    // Return the raw database client for direct SQL queries
+    // Import from db.js to get the correct Postgres client
+    const { dbClient } = require('./db.js');
+    return dbClient;
   }
   // User methods
   async getUser(id: number): Promise<User | undefined> {

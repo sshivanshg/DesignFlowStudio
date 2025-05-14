@@ -817,6 +817,36 @@ export default function UnifiedProjectTracker() {
     );
   }
   
+  // Show loading state for project detail view
+  if (isAuthLoading || projectLoading || logsLoading || reportsLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg font-medium">Loading project details...</p>
+          <p className="text-sm text-muted-foreground">Please wait while we prepare your project data</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check if project exists
+  if (!project) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
+          <p className="text-lg font-medium">Project not found</p>
+          <p className="text-sm text-muted-foreground mb-4">The project you're looking for does not exist or you don't have access</p>
+          <Button onClick={() => navigate('/unified-project-tracker')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Projects
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
   // Main project view
   return (
     <div className="container mx-auto p-6">

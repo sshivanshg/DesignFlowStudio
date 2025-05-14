@@ -155,9 +155,9 @@ export default function ClientActivity() {
                       </p>
                       
                       {activity.type === 'comment_added' && activity.metadata && typeof activity.metadata === 'object' && 
-                       'comment' in (activity.metadata as any) && (
+                       'comment' in (activity.metadata as Record<string, unknown>) && (
                         <p className="text-xs bg-gray-50 text-gray-600 rounded p-2 mt-1 italic">
-                          "{(activity.metadata as any).comment}"
+                          "{String((activity.metadata as Record<string, unknown>).comment || '')}"
                         </p>
                       )}
                       

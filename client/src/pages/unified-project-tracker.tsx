@@ -169,6 +169,11 @@ type ProjectReport = {
   updated_at: string;
 };
 
+type RoomOption = {
+  id: string;
+  label: string;
+};
+
 type ReportSettings = {
   autoGenerate: boolean;
   frequency: 'weekly' | 'biweekly' | 'monthly';
@@ -594,7 +599,7 @@ export default function UnifiedProjectTracker() {
   }, [project, settingsForm]);
   
   // Helper functions
-  const getRoomOptions = () => {
+  const getRoomOptions = (): RoomOption[] => {
     if (project?.rooms && Array.isArray(project.rooms)) {
       return project.rooms.map((room: Room) => ({
         id: room.id.toString(),

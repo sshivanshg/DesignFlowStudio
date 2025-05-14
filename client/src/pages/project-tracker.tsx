@@ -496,24 +496,57 @@ export default function ProjectTracker() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredTasks.map(task => (
-                            <TableRow key={task.id}>
-                              <TableCell className="font-medium">{task.name}</TableCell>
-                              <TableCell>{getRoomName(task.roomId)}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-500" />
-                                  {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                                </div>
-                              </TableCell>
-                              <TableCell>{getStatusBadge(task.status)}</TableCell>
-                              <TableCell>{task.assignedTo}</TableCell>
-                            </TableRow>
-                          ))}
-                          {filteredTasks.length === 0 && (
+                          {projectDetails ? (
+                            <>
+                              {filteredTasks.length > 0 ? (
+                                filteredTasks.map((task: any, index: number) => (
+                                  <TableRow key={task.id || index}>
+                                    <TableCell className="font-medium">{task.name}</TableCell>
+                                    <TableCell>{getRoomName(task.roomId)}</TableCell>
+                                    <TableCell>
+                                      {task.dueDate ? (
+                                        <div className="flex items-center">
+                                          <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-500" />
+                                          {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-400">No due date</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>{getStatusBadge(task.status || 'not_started')}</TableCell>
+                                    <TableCell>{task.assignedTo || 'Unassigned'}</TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                                    {statusFilter !== 'all' ? (
+                                      <div className="flex flex-col items-center">
+                                        <AlertTriangle className="h-5 w-5 text-gray-400 mb-1" />
+                                        No tasks matching the selected status filter
+                                      </div>
+                                    ) : searchQuery ? (
+                                      <div className="flex flex-col items-center">
+                                        <Search className="h-5 w-5 text-gray-400 mb-1" />
+                                        No tasks matching your search
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center">
+                                        <CheckCircle className="h-5 w-5 text-gray-400 mb-1" />
+                                        No tasks found for this project
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </>
+                          ) : (
                             <TableRow>
                               <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                                No tasks found. Try adjusting your filters.
+                                <div className="flex flex-col items-center">
+                                  <AlertTriangle className="h-5 w-5 text-gray-400 mb-1" />
+                                  Select a project to view tasks
+                                </div>
                               </TableCell>
                             </TableRow>
                           )}

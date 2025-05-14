@@ -27,6 +27,9 @@ const queryClient = postgres(process.env.DATABASE_URL!, {
 export const db = drizzle(queryClient);
 
 export interface IStorage {
+  // Database access
+  getDb(): any; // Return a database connection/client for direct queries
+  
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -172,6 +175,12 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  // Database access
+  getDb() {
+    // In-memory storage doesn't have a database connection
+    return null;
+  }
+  
   // Project Logs
   async getProjectLogs(): Promise<ProjectLog[]> {
     return Array.from(this.projectLogs.values());
@@ -1508,6 +1517,11 @@ export class MemStorage implements IStorage {
 
 // Drizzle DB implementation
 export class DrizzleStorage implements IStorage {
+  // Database access
+  getDb() {
+    // Return the database client for direct SQL queries
+    return queryClient;
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id));

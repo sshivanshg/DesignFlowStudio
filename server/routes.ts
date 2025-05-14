@@ -639,33 +639,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userId = (req.user as any).id;
       
-      // Create lead with modified object to handle missing follow_up_date column
-      // Attempt to create lead without followUpDate field
-      const leadData: any = {
+      console.log("Attempting to create lead with data:", {
         name,
-        phone: phone || null,
-        email: email || null,
-        source: source || null,
-        stage: stage || "new",
-        tag: tag || null,
-        assignedTo: userId,
-        notes: notes || null,
-      };
-      
-      // Only include followUpDate if it exists as a column (which we know it doesn't currently)
-      // This avoids the SQL error while still keeping the field in the data model
-      
-      const newLead = await storage.createLead(leadData);
-      
-      // Create activity for new lead
-      await storage.createActivity({
-        user_id: userId,
-        type: "lead_created",
-        description: `Added new lead: ${name}`,
-        metadata: { source, stage }
+        phone,
+        email,
+        source,
+        stage,
+        tag,
+        notes,
+        userId,
+        // No followUpDate included
       });
       
-      res.status(201).json(newLead);
+      // Try executing SQL directly rather than going through the ORM abstraction
+      // This gives us more control over the exact SQL statement being executed
+      try {
+        // NOTE: We're bypassing storage.createLead here to avoid the column error
+        // Insert directly to the leads table with only the columns we know exist
+        const query = `
+          INSERT INTO leads (name, phone, email, source, stage, tag, assigned_to, notes, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          RETURNING id, name, phone, email, source, stage, tag, assigned_to, notes, created_at, updated_at
+        `;
+        
+        const params = [
+          name,
+          phone || null,
+          email || null,
+          source || null,
+          stage || "new",
+          tag || null,
+          userId,
+          notes || null
+        ];
+        
+        const db = storage.getDb();
+        console.log("Executing direct SQL insert", { query, params });
+        
+        const result = await db.execute(query, params);
+        console.log("SQL insert result:", result);
+        
+        // Map the result to our Lead type with camelCase properties
+        const insertedLead = result.rows[0];
+        const newLead = {
+          id: insertedLead.id,
+          name: insertedLead.name,
+          phone: insertedLead.phone,
+          email: insertedLead.email,
+          source: insertedLead.source,
+          stage: insertedLead.stage,
+          tag: insertedLead.tag,
+          assignedTo: insertedLead.assigned_to,
+          notes: insertedLead.notes,
+          followUpDate: null, // Add the missing field with null value
+          createdAt: insertedLead.created_at,
+          updatedAt: insertedLead.updated_at
+        };
+        
+        // Create activity for new lead
+        await storage.createActivity({
+          user_id: userId,
+          type: "lead_created",
+          description: `Added new lead: ${name}`,
+          metadata: { source, stage }
+        });
+        
+        res.status(201).json(newLead);
+      } catch (sqlError) {
+        console.error("SQL error while creating lead:", sqlError);
+        throw new Error(`Failed to create lead: ${sqlError.message}`);
+      }
     } catch (error) {
       console.error("Error creating lead:", error);
       res.status(500).json({ message: "Error creating lead" });

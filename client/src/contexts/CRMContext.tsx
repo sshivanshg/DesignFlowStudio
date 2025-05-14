@@ -3,10 +3,9 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Lead stage definitions
 export const LEAD_STAGES = {
   NEW: "new",
-  CONTACTED: "contacted",
-  VISITED: "visited", 
-  QUOTED: "quoted",
-  CLOSED: "closed"
+  IN_DISCUSSION: "in_discussion",
+  WON: "won",
+  LOST: "lost"
 };
 
 // Valid lead tags

@@ -3009,11 +3009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company Settings - Admin only
   app.get("/api/admin/company-settings", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const settings = await storage.getCompanySettings();
       res.json(settings || { name: "My Company" });
@@ -3023,13 +3019,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/company-settings", isAuthenticated, async (req, res) => {
+  // Update company settings - admin only
+  app.put("/api/admin/company-settings", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const settings = await storage.updateCompanySettings(req.body);
       res.json(settings);
@@ -3039,14 +3032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Template Categories
-  app.get("/api/admin/template-categories", isAuthenticated, async (req, res) => {
+  // Template Categories - Admin only
+  app.get("/api/admin/template-categories", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       const type = req.query.type as string | undefined;
       const categories = await storage.getTemplateCategories(type);
@@ -3379,14 +3368,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Add an endpoint to seed estimate configurations
-  app.post("/api/seed/estimate-configs", isAuthenticated, async (req, res) => {
+  // Add an endpoint to seed estimate configurations - admin only
+  app.post("/api/seed/estimate-configs", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== "admin") {
-        return res.status(403).json({ message: "Only administrators can seed the database" });
-      }
+      // Admin role is verified by the hasRole middleware
       
       console.log("Starting to seed estimate configurations...");
       

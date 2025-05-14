@@ -178,6 +178,9 @@ export default function UnifiedProjectTracker() {
   const [isEditTaskDialogOpen, setIsEditTaskDialogOpen] = useState(false);
   const [isReportSettingsDialogOpen, setIsReportSettingsDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
   
   // Selected item states
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -253,7 +256,7 @@ export default function UnifiedProjectTracker() {
     isLoading: projectLoading 
   } = useQuery({
     queryKey: ['/api/projects', projectId],
-    queryFn: () => apiRequest(`/api/projects/${projectId}`),
+    queryFn: () => fetch(`/api/projects/${projectId}`).then(res => res.json()),
     enabled: !!projectId,
   });
   
@@ -263,7 +266,7 @@ export default function UnifiedProjectTracker() {
     isLoading: logsLoading 
   } = useQuery({
     queryKey: ['/api/project-logs', projectId],
-    queryFn: () => apiRequest(`/api/project-logs?project_id=${projectId}`),
+    queryFn: () => fetch(`/api/project-logs?project_id=${projectId}`).then(res => res.json()),
     enabled: !!projectId,
   });
   
@@ -273,7 +276,7 @@ export default function UnifiedProjectTracker() {
     isLoading: reportsLoading 
   } = useQuery({
     queryKey: ['/api/project-reports', projectId],
-    queryFn: () => apiRequest(`/api/project-reports?project_id=${projectId}`),
+    queryFn: () => fetch(`/api/project-reports?project_id=${projectId}`).then(res => res.json()),
     enabled: !!projectId,
   });
 
@@ -627,6 +630,54 @@ export default function UnifiedProjectTracker() {
     );
   }
   
+  // Create new project mutation
+  const createProjectMutation = useMutation({
+    mutationFn: (data: any) => {
+      return apiRequest('/api/projects', { 
+        method: 'POST',
+        data: data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Project Created",
+        description: "New project has been created successfully."
+      });
+      setIsNewProjectDialogOpen(false);
+      setNewProjectName("");
+      setNewProjectDescription("");
+    }
+  });
+  
+  // Handle creating a new project
+  const handleCreateProject = () => {
+    if (!newProjectName.trim()) {
+      toast({
+        title: "Error",
+        description: "Project name is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    createProjectMutation.mutate({
+      name: newProjectName,
+      description: newProjectDescription,
+      status: "planning",
+      progress: 0,
+      rooms: [],
+      tasks: [],
+      logs: [],
+      reportSettings: {
+        autoGenerate: false,
+        frequency: 'weekly',
+        includePhotos: true,
+        includeNotes: true
+      }
+    });
+  };
+  
   // Display projects list if no project is selected
   if (!projectId) {
     return (
@@ -636,11 +687,55 @@ export default function UnifiedProjectTracker() {
             <h1 className="text-3xl font-bold">Projects</h1>
             <p className="text-gray-500 mt-1">Select a project to manage rooms, tasks, logs, and reports</p>
           </div>
-          <Button>
+          <Button onClick={() => setIsNewProjectDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
         </div>
+        
+        {/* New Project Dialog */}
+        <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+              <DialogDescription>
+                Add a new project to start tracking rooms, tasks, and progress.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="projectName">Project Name</Label>
+                <Input
+                  id="projectName"
+                  placeholder="Enter project name"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="projectDescription">Description (Optional)</Label>
+                <Textarea
+                  id="projectDescription"
+                  placeholder="Enter project description"
+                  value={newProjectDescription}
+                  onChange={(e) => setNewProjectDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewProjectDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending}>
+                {createProjectMutation.isPending ? 'Creating...' : 'Create Project'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project: any) => (

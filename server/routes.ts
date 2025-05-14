@@ -825,8 +825,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Project routes
-  app.get("/api/projects", isAuthenticated, async (req, res) => {
+  // Project routes - accessible to all authenticated users
+  app.get("/api/projects", isAuthenticated, hasRole(['admin', 'designer', 'sales']), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const projects = await storage.getProjects(userId);
@@ -2774,7 +2774,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Design Assistant Routes
   
   // Generate design insights based on project details
-  app.post("/api/ai/design-insights", isAuthenticated, async (req, res) => {
+  // AI-powered routes - accessible to designers and admin
+  app.post("/api/ai/design-insights", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const insightRequest: DesignInsightRequest = req.body;
       
@@ -2802,7 +2803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Analyze client feedback
-  app.post("/api/ai/analyze-feedback", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/analyze-feedback", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const { feedback, client_id, project_id } = req.body;
       
@@ -2830,7 +2831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Generate moodboard suggestions
-  app.post("/api/ai/moodboard-suggestions", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/moodboard-suggestions", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const { style, colors, roomType, client_id, project_id } = req.body;
       
@@ -2985,13 +2986,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/whatsapp/retry-failed", isAuthenticated, async (req, res) => {
+  app.post("/api/whatsapp/retry-failed", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
-      // Check if user is an admin
-      const user = req.user as User;
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can retry failed messages" });
-      }
+      // Admin role check is handled by the hasRole middleware
       
       const result = await whatsAppService.retryFailedMessages();
       res.json(result);

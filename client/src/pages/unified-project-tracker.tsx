@@ -915,7 +915,7 @@ export default function UnifiedProjectTracker() {
                       </Badge>
                     </div>
                     <CardDescription>
-                      {room.type.charAt(0).toUpperCase() + room.type.slice(1)}
+                      {room.type ? `${room.type.charAt(0).toUpperCase()}${room.type.slice(1)}` : 'Unknown type'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-4 pt-2">

@@ -26,6 +26,7 @@ import Settings from "@/pages/settings";
 import AdminDashboard from "@/pages/settings/admin";
 import ProjectTracker from "@/pages/project-tracker";
 import ProjectLogs from "@/pages/project-logs";
+import ProjectReports from "@/pages/project-reports";
 
 // Client Portal Pages
 import ClientPortalLogin from "@/pages/client-portal-login";
@@ -271,6 +272,14 @@ function Router() {
         <ProtectedRoute allowedRoles={["admin", "designer"]}>
           <AppLayout>
             <ProjectLogs />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/project-reports/:projectId">
+        <ProtectedRoute allowedRoles={["admin", "designer"]}>
+          <AppLayout>
+            <ProjectReports />
           </AppLayout>
         </ProtectedRoute>
       </Route>

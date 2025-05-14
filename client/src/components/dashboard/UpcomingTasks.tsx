@@ -1,5 +1,15 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Task } from "@shared/schema";
+// Task type from projects table
+interface Task {
+  id: string | number;
+  title: string;
+  description?: string;
+  dueDate?: string | Date;
+  completed?: boolean;
+  assignedTo?: number;
+  projectId?: number;
+  projectName?: string;
+}
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,8 +18,15 @@ import { queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow, format } from "date-fns";
 
 export default function UpcomingTasks() {
-  const { data: tasks, isLoading } = useQuery<Task[]>({
-    queryKey: ['/api/tasks'],
+  const { data: tasks, isLoading } = useQuery<any[]>({
+    queryKey: ['/api/dashboard/upcoming-tasks'],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/upcoming-tasks');
+      if (!response.ok) {
+        throw new Error('Failed to fetch upcoming tasks');
+      }
+      return response.json();
+    }
   });
 
   const updateTaskMutation = useMutation({
@@ -18,7 +35,7 @@ export default function UpcomingTasks() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/upcoming-tasks'] });
     },
   });
 

@@ -287,17 +287,24 @@ function CRMDashboard() {
           
           <DndProvider backend={HTML5Backend}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[calc(100vh-320px)] mt-6">
-              {Object.entries(LEAD_STAGES).map(([stageName, stageKey]) => (
-                <LeadColumn
-                  key={stageKey}
-                  title={stageName.charAt(0) + stageName.slice(1).toLowerCase().replace('_', ' ')}
-                  stage={stageKey}
-                  leads={filteredLeadsByStage[stageKey] || []}
-                  onDrop={handleDrop}
-                  onEditLead={handleEditLead}
-                  onDeleteLead={handleDeleteLead}
-                />
-              ))}
+              {Object.entries(LEAD_STAGES).map(([stageName, stageKey]) => {
+                // Format the title: "NEW" -> "New", "IN_DISCUSSION" -> "In Discussion"
+                const formattedTitle = stageName === 'NEW' ? 'New' : 
+                                      stageName === 'IN_DISCUSSION' ? 'In Discussion' :
+                                      stageName === 'WON' ? 'Won' : 'Lost';
+                
+                return (
+                  <LeadColumn
+                    key={stageKey}
+                    title={formattedTitle}
+                    stage={stageKey}
+                    leads={filteredLeadsByStage[stageKey] || []}
+                    onDrop={handleDrop}
+                    onEditLead={handleEditLead}
+                    onDeleteLead={handleDeleteLead}
+                  />
+                );
+              })}
             </div>
           </DndProvider>
         </TabsContent>

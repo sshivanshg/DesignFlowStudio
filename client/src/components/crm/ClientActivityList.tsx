@@ -21,8 +21,18 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
   
   // Format date
   const createdAtDate = activity.createdAt ? new Date(activity.createdAt) : new Date();
-  const relativeTime = formatDistanceToNow(createdAtDate, { addSuffix: true });
-  const fullDate = format(createdAtDate, 'PPp'); // Localized date and time
+  
+  // Ensure valid date before formatting
+  let relativeTime = '';
+  let fullDate = '';
+  try {
+    relativeTime = formatDistanceToNow(createdAtDate, { addSuffix: true });
+    fullDate = format(createdAtDate, 'PPp'); // Localized date and time
+  } catch (e) {
+    console.warn('Invalid date value:', activity.createdAt);
+    relativeTime = 'recently';
+    fullDate = 'Unknown date';
+  }
   
   return (
     <div className="flex space-x-3 pb-4 last:pb-0 pt-4 first:pt-0 border-t first:border-0">

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LeadCard } from './LeadCard';
 import type { LeadType } from '@/hooks/useLeads';
+import { LEAD_STAGES } from '@/contexts/CRMContext';
 
 interface LeadColumnProps {
   title: string;

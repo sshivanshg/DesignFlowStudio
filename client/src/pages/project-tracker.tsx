@@ -926,120 +926,121 @@ export default function ProjectTracker() {
                           <Plus className="h-4 w-4 mr-1" />
                           Add Log Entry
                         </Button>
-                        
-                        {/* Add Log Dialog */}
-                        <Dialog open={addLogOpen} onOpenChange={setAddLogOpen}>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Add Progress Log</DialogTitle>
-                              <DialogDescription>
-                                Add a new log entry to track project progress
-                              </DialogDescription>
-                            </DialogHeader>
-                            
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="log-type" className="text-right">
-                                  Log Type
-                                </Label>
-                                <Select 
-                                  value={logType} 
-                                  onValueChange={setLogType}
-                                >
-                                  <SelectTrigger id="log-type" className="col-span-3">
-                                    <SelectValue placeholder="Select log type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="note">Note</SelectItem>
-                                    <SelectItem value="progress">Progress Update</SelectItem>
-                                    <SelectItem value="issue">Issue</SelectItem>
-                                    <SelectItem value="communication">Communication</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="log-text" className="text-right">
-                                  Log Details
-                                </Label>
-                                <textarea
-                                  id="log-text"
-                                  placeholder="Enter log details"
-                                  className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
-                                  value={logText}
-                                  onChange={(e) => setLogText(e.target.value)}
-                                />
-                              </div>
+                      </div>
+                      
+                      {/* Add Log Dialog */}
+                      <Dialog open={addLogOpen} onOpenChange={setAddLogOpen}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Progress Log</DialogTitle>
+                            <DialogDescription>
+                              Add a new log entry to track project progress
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="log-type" className="text-right">
+                                Log Type
+                              </Label>
+                              <Select 
+                                value={logType} 
+                                onValueChange={setLogType}
+                              >
+                                <SelectTrigger id="log-type" className="col-span-3">
+                                  <SelectValue placeholder="Select log type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="note">Note</SelectItem>
+                                  <SelectItem value="progress">Progress Update</SelectItem>
+                                  <SelectItem value="issue">Issue</SelectItem>
+                                  <SelectItem value="communication">Communication</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                             
-                            <DialogFooter>
-                              <Button
-                                onClick={() => {
-                                  if (!logText.trim()) {
-                                    toast({
-                                      title: "Error",
-                                      description: "Log text is required",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  
-                                  // Create a new log entry
-                                  const date = new Date();
-                                  const newLog = {
-                                    id: Date.now().toString(),
-                                    date: date.toISOString(),
-                                    text: logText,
-                                    type: logType
-                                  };
-                                  
-                                  // Prepare updated logs array
-                                  const updatedLogs = projectDetails.logs && Array.isArray(projectDetails.logs) 
-                                    ? [...projectDetails.logs, newLog]
-                                    : [newLog];
-                                  
-                                  // Update the project with the new log
-                                  fetch(`/api/projects/${selectedProject}`, {
-                                    method: 'PATCH',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                      logs: updatedLogs
-                                    }),
-                                  })
-                                  .then(response => {
-                                    if (!response.ok) throw new Error('Failed to add log');
-                                    return response.json();
-                                  })
-                                  .then(() => {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
-                                    toast({
-                                      title: "Log added",
-                                      description: "New progress log has been added successfully",
-                                    });
-                                    
-                                    // Reset form and close dialog
-                                    setLogText("");
-                                    setLogType("note");
-                                    setAddLogOpen(false);
-                                  })
-                                  .catch(error => {
-                                    console.error('Error adding log:', error);
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to add log. Please try again.",
-                                      variant: "destructive",
-                                    });
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="log-text" className="text-right">
+                                Log Details
+                              </Label>
+                              <textarea
+                                id="log-text"
+                                placeholder="Enter log details"
+                                className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
+                                value={logText}
+                                onChange={(e) => setLogText(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button
+                              onClick={() => {
+                                if (!logText.trim()) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Log text is required",
+                                    variant: "destructive",
                                   });
-                                }}
-                              >
-                                Add Log Entry
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+                                  return;
+                                }
+                                
+                                // Create a new log entry
+                                const date = new Date();
+                                const newLog = {
+                                  id: Date.now().toString(),
+                                  date: date.toISOString(),
+                                  text: logText,
+                                  type: logType
+                                };
+                                
+                                // Prepare updated logs array
+                                const updatedLogs = projectDetails.logs && Array.isArray(projectDetails.logs) 
+                                  ? [...projectDetails.logs, newLog]
+                                  : [newLog];
+                                
+                                // Update the project with the new log
+                                fetch(`/api/projects/${selectedProject}`, {
+                                  method: 'PATCH',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    logs: updatedLogs
+                                  }),
+                                })
+                                .then(response => {
+                                  if (!response.ok) throw new Error('Failed to add log');
+                                  return response.json();
+                                })
+                                .then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                  toast({
+                                    title: "Log added",
+                                    description: "New progress log has been added successfully",
+                                  });
+                                  
+                                  // Reset form and close dialog
+                                  setLogText("");
+                                  setLogType("note");
+                                  setAddLogOpen(false);
+                                })
+                                .catch(error => {
+                                  console.error('Error adding log:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to add log. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                });
+                              }}
+                            >
+                              Add Log Entry
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      
                       <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
                         <div className="flex items-start">
                           <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />

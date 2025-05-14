@@ -129,6 +129,7 @@ const roomSchema = z.object({
   name: z.string().min(3, { message: "Room name must be at least 3 characters" }),
   type: z.string(),
   status: z.string().default("planned"),
+  progress: z.number().min(0).max(100).default(0),
 });
 
 type LogFormValues = z.infer<typeof logEntrySchema>;
@@ -258,6 +259,7 @@ export default function UnifiedProjectTracker() {
       name: "",
       type: "living",
       status: "planned",
+      progress: 0,
     },
   });
   
@@ -559,7 +561,8 @@ export default function UnifiedProjectTracker() {
     roomForm.reset({
       name: room.name,
       type: room.type,
-      status: room.status
+      status: room.status,
+      progress: room.progress || 0
     });
     setIsEditRoomDialogOpen(true);
   };

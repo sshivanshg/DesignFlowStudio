@@ -933,15 +933,32 @@ export default function ProjectTracker() {
                                 },
                                 body: JSON.stringify(updatedProjectDetails),
                               })
-                                .then(() => {
+                                .then(response => {
+                                  if (!response.ok) {
+                                    throw new Error(`Error: ${response.status}`);
+                                  }
+                                  return response.json();
+                                })
+                                .then(updatedProject => {
                                   // Success toast
                                   toast({
                                     title: "Success",
                                     description: "Task status updated successfully",
                                   });
                                   
-                                  // Invalidate queries to refresh data
-                                  queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                  // Directly update the state for immediate UI update
+                                  const { data } = queryClient.getQueryState(['/api/projects', selectedProject]) || {};
+                                  if (data) {
+                                    queryClient.setQueryData(
+                                      ['/api/projects', selectedProject],
+                                      { ...data, tasks: updatedTasks }
+                                    );
+                                  }
+                                  
+                                  // Also invalidate to ensure fresh data on next fetch
+                                  queryClient.invalidateQueries({ 
+                                    queryKey: ['/api/projects', selectedProject] 
+                                  });
                                   
                                   // Close the dialog
                                   setEditTaskOpen(false);

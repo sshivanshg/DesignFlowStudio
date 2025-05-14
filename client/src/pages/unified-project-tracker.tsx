@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useAuth } from '@/hooks/use-auth';
@@ -215,6 +215,8 @@ export default function UnifiedProjectTracker() {
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
+  
+  // We'll handle this in the getRoomOptions function instead
   
   // Selected item states
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);

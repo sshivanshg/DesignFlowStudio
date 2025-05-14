@@ -79,6 +79,11 @@ export default function ProjectTracker() {
   const [logText, setLogText] = useState("");
   const [logType, setLogType] = useState("note");
   
+  // Room note states
+  const [addRoomNoteOpen, setAddRoomNoteOpen] = useState(false);
+  const [roomNoteText, setRoomNoteText] = useState("");
+  const [selectedRoomForNote, setSelectedRoomForNote] = useState<string>("");
+  
   const [newProject, setNewProject] = useState({
     name: '',
     location: '',
@@ -604,7 +609,23 @@ export default function ProjectTracker() {
                                   <ClipboardList className="h-3.5 w-3.5 mr-1" />
                                   Tasks
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    if (!projectDetails || !selectedProject) {
+                                      toast({
+                                        title: "Error",
+                                        description: "Please select a project first",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    
+                                    setSelectedRoomForNote(room.id);
+                                    setAddRoomNoteOpen(true);
+                                  }}
+                                >
                                   <MessageSquare className="h-3.5 w-3.5 mr-1" />
                                   Add Note
                                 </Button>
@@ -617,6 +638,118 @@ export default function ProjectTracker() {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Add Room Note Dialog */}
+                      <Dialog open={addRoomNoteOpen} onOpenChange={setAddRoomNoteOpen}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Room Note</DialogTitle>
+                            <DialogDescription>
+                              Add a note for this room to track important details.
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="room-note" className="text-right">
+                                Note
+                              </Label>
+                              <textarea
+                                id="room-note"
+                                placeholder="Enter room note details"
+                                className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
+                                value={roomNoteText}
+                                onChange={(e) => setRoomNoteText(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button
+                              onClick={() => {
+                                if (!roomNoteText.trim()) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Note text is required",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Find the room to update
+                                const roomIndex = projectDetails?.rooms?.findIndex(
+                                  r => r.id === selectedRoomForNote
+                                );
+                                
+                                if (roomIndex === undefined || roomIndex === -1 || !projectDetails?.rooms) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Room not found",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Create a copy of the rooms array
+                                const updatedRooms = [...(projectDetails.rooms || [])];
+                                
+                                // Update the room with the note
+                                updatedRooms[roomIndex] = {
+                                  ...updatedRooms[roomIndex],
+                                  notes: updatedRooms[roomIndex].notes 
+                                    ? [...updatedRooms[roomIndex].notes, { 
+                                        id: Date.now().toString(),
+                                        text: roomNoteText,
+                                        date: new Date().toISOString()
+                                      }]
+                                    : [{ 
+                                        id: Date.now().toString(),
+                                        text: roomNoteText,
+                                        date: new Date().toISOString()
+                                      }]
+                                };
+                                
+                                // Update the project with the new room data
+                                fetch(`/api/projects/${selectedProject}`, {
+                                  method: 'PATCH',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    rooms: updatedRooms
+                                  }),
+                                })
+                                .then(response => {
+                                  if (!response.ok) throw new Error('Failed to add note to room');
+                                  return response.json();
+                                })
+                                .then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                                  toast({
+                                    title: "Note added",
+                                    description: `Note has been added to the room successfully`,
+                                  });
+                                  
+                                  // Reset form and close dialog
+                                  setRoomNoteText("");
+                                  setSelectedRoomForNote("");
+                                  setAddRoomNoteOpen(false);
+                                })
+                                .catch(error => {
+                                  console.error('Error adding note to room:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to add note to room. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                });
+                              }}
+                            >
+                              Add Note
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </TabsContent>
 
                     <TabsContent value="tasks" className="pt-4">

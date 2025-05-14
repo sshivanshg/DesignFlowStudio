@@ -403,7 +403,64 @@ export default function ProjectTracker() {
                     <TabsContent value="rooms" className="pt-4">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-lg font-medium">Rooms & Zones</h3>
-                        <Button size="sm">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            if (!projectDetails || !selectedProject) {
+                              toast({
+                                title: "Error",
+                                description: "Please select a project first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Add a new room to the project
+                            const newRoom = {
+                              id: Date.now().toString(), // Generate a unique ID
+                              name: "New Room",
+                              type: "room",
+                              progress: 0,
+                              tasks: 0,
+                              completedTasks: 0
+                            };
+                            
+                            // Prepare updated rooms array
+                            const updatedRooms = projectDetails.rooms && Array.isArray(projectDetails.rooms) 
+                              ? [...projectDetails.rooms, newRoom]
+                              : [newRoom];
+                            
+                            // Update the project with the new room
+                            fetch(`/api/projects/${selectedProject}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                rooms: updatedRooms
+                              }),
+                            })
+                            .then(response => {
+                              if (!response.ok) throw new Error('Failed to add room');
+                              return response.json();
+                            })
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                              toast({
+                                title: "Room added",
+                                description: "New room has been added successfully",
+                              });
+                            })
+                            .catch(error => {
+                              console.error('Error adding room:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to add room. Please try again.",
+                                variant: "destructive",
+                              });
+                            });
+                          }}
+                        >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Room
                         </Button>
@@ -472,7 +529,69 @@ export default function ProjectTracker() {
                     <TabsContent value="tasks" className="pt-4">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-lg font-medium">Tasks</h3>
-                        <Button size="sm">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            if (!projectDetails || !selectedProject) {
+                              toast({
+                                title: "Error",
+                                description: "Please select a project first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Add a new task to the project
+                            const roomId = projectDetails.rooms && 
+                                          Array.isArray(projectDetails.rooms) && 
+                                          projectDetails.rooms.length > 0 ? 
+                                          projectDetails.rooms[0].id : null;
+                                          
+                            const newTask = {
+                              id: Date.now().toString(),
+                              name: "New Task",
+                              status: "not_started",
+                              roomId: roomId,
+                              assignedTo: "",
+                              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week from now
+                            };
+                            
+                            // Prepare updated tasks array
+                            const updatedTasks = projectDetails.tasks && Array.isArray(projectDetails.tasks) 
+                              ? [...projectDetails.tasks, newTask]
+                              : [newTask];
+                            
+                            // Update the project with the new task
+                            fetch(`/api/projects/${selectedProject}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                tasks: updatedTasks
+                              }),
+                            })
+                            .then(response => {
+                              if (!response.ok) throw new Error('Failed to add task');
+                              return response.json();
+                            })
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                              toast({
+                                title: "Task added",
+                                description: "New task has been added successfully",
+                              });
+                            })
+                            .catch(error => {
+                              console.error('Error adding task:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to add task. Please try again.",
+                                variant: "destructive",
+                              });
+                            });
+                          }}
+                        >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Task
                         </Button>
@@ -575,7 +694,63 @@ export default function ProjectTracker() {
                     <TabsContent value="logs" className="pt-4">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-lg font-medium">Progress Logs</h3>
-                        <Button size="sm">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            if (!projectDetails || !selectedProject) {
+                              toast({
+                                title: "Error",
+                                description: "Please select a project first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Create a new log entry
+                            const date = new Date();
+                            const newLog = {
+                              id: Date.now().toString(),
+                              date: date.toISOString(),
+                              text: "New progress note",
+                              type: "note"
+                            };
+                            
+                            // Prepare updated logs array
+                            const updatedLogs = projectDetails.logs && Array.isArray(projectDetails.logs) 
+                              ? [...projectDetails.logs, newLog]
+                              : [newLog];
+                            
+                            // Update the project with the new log
+                            fetch(`/api/projects/${selectedProject}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                logs: updatedLogs
+                              }),
+                            })
+                            .then(response => {
+                              if (!response.ok) throw new Error('Failed to add log');
+                              return response.json();
+                            })
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject] });
+                              toast({
+                                title: "Log added",
+                                description: "New progress log has been added successfully",
+                              });
+                            })
+                            .catch(error => {
+                              console.error('Error adding log:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to add log. Please try again.",
+                                variant: "destructive",
+                              });
+                            });
+                          }}
+                        >
                           <Plus className="h-4 w-4 mr-1" />
                           Add Log Entry
                         </Button>

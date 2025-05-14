@@ -181,24 +181,26 @@ export class MemStorage implements IStorage {
     return Array.from(this.projectLogs.values()).filter(log => log.project_id === projectId);
   }
 
-  async getProjectLogsByDate(date: Date): Promise<ProjectLog[]> {
+  async getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]> {
     // Compare just the date part, not time
     const dateString = date.toISOString().split('T')[0];
     return Array.from(this.projectLogs.values()).filter(log => {
-      const logDate = new Date(log.createdAt as Date);
+      if (log.project_id !== projectId) return false;
+      const logDate = new Date(log.created_at as Date);
       return logDate.toISOString().split('T')[0] === dateString;
     });
   }
 
-  async getProjectLogsByDateRange(startDate: Date, endDate: Date): Promise<ProjectLog[]> {
+  async getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]> {
     return Array.from(this.projectLogs.values()).filter(log => {
-      const logDate = new Date(log.createdAt as Date);
+      if (log.project_id !== projectId) return false;
+      const logDate = new Date(log.created_at as Date);
       return logDate >= startDate && logDate <= endDate;
     });
   }
 
   async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
-    return Array.from(this.projectLogs.values()).filter(log => log.room_id === roomId);
+    return Array.from(this.projectLogs.values()).filter(log => log.room_id && parseInt(log.room_id as string) === roomId);
   }
 
   async getProjectLog(id: number): Promise<ProjectLog | undefined> {
@@ -208,12 +210,13 @@ export class MemStorage implements IStorage {
   async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
     const newLog: ProjectLog = {
       id: this.projectLogId++,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      project_id: log.project_id || null,
+      created_at: new Date(),
+      updated_at: new Date(),
+      project_id: log.project_id,
       room_id: log.room_id || null,
       user_id: log.user_id || null,
       text: log.text || "",
+      log_type: log.log_type || null,
       photo_url: log.photo_url || null,
       photo_caption: log.photo_caption || null,
     };
@@ -228,7 +231,7 @@ export class MemStorage implements IStorage {
     const updatedLog: ProjectLog = {
       ...existingLog,
       ...log,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
     this.projectLogs.set(id, updatedLog);
     return updatedLog;
@@ -2729,6 +2732,161 @@ export class DrizzleStorage implements IStorage {
     }).returning();
     
     return result[0];
+  }
+
+  // Project Logs methods
+  async getProjectLogs(): Promise<ProjectLog[]> {
+    return await db.select().from(projectLogs);
+  }
+
+  async getProjectLogsByProject(projectId: number): Promise<ProjectLog[]> {
+    return await db.select()
+      .from(projectLogs)
+      .where(eq(projectLogs.project_id, projectId));
+  }
+
+  async getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]> {
+    // Convert date to start and end of day to capture all logs for that day
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+    
+    return await db.select()
+      .from(projectLogs)
+      .where(
+        and(
+          eq(projectLogs.project_id, projectId),
+          gte(projectLogs.created_at, startDate),
+          lte(projectLogs.created_at, endDate)
+        )
+      );
+  }
+
+  async getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]> {
+    return await db.select()
+      .from(projectLogs)
+      .where(
+        and(
+          eq(projectLogs.project_id, projectId),
+          gte(projectLogs.created_at, startDate),
+          lte(projectLogs.created_at, endDate)
+        )
+      );
+  }
+
+  async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
+    return await db.select()
+      .from(projectLogs)
+      .where(eq(projectLogs.room_id, roomId));
+  }
+
+  async getProjectLog(id: number): Promise<ProjectLog | undefined> {
+    const result = await db.select()
+      .from(projectLogs)
+      .where(eq(projectLogs.id, id));
+    return result[0];
+  }
+
+  async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
+    const result = await db.insert(projectLogs)
+      .values({
+        ...log,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+      .returning();
+    return result[0];
+  }
+
+  async updateProjectLog(id: number, log: Partial<InsertProjectLog>): Promise<ProjectLog | undefined> {
+    const result = await db.update(projectLogs)
+      .set({
+        ...log,
+        updated_at: new Date()
+      })
+      .where(eq(projectLogs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectLog(id: number): Promise<boolean> {
+    const result = await db.delete(projectLogs)
+      .where(eq(projectLogs.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Project Reports methods
+  async getProjectReports(): Promise<ProjectReport[]> {
+    return await db.select().from(projectReports);
+  }
+
+  async getProjectReportsByProject(projectId: number): Promise<ProjectReport[]> {
+    return await db.select()
+      .from(projectReports)
+      .where(eq(projectReports.project_id, projectId));
+  }
+
+  async getProjectReport(id: number): Promise<ProjectReport | undefined> {
+    const result = await db.select()
+      .from(projectReports)
+      .where(eq(projectReports.id, id));
+    return result[0];
+  }
+
+  async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
+    const result = await db.insert(projectReports)
+      .values({
+        ...report,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+      .returning();
+    return result[0];
+  }
+
+  async updateProjectReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport | undefined> {
+    const result = await db.update(projectReports)
+      .set({
+        ...report,
+        updated_at: new Date()
+      })
+      .where(eq(projectReports.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectReport(id: number): Promise<boolean> {
+    const result = await db.delete(projectReports)
+      .where(eq(projectReports.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async generateProjectReportPdf(id: number): Promise<string | undefined> {
+    try {
+      // Get the report
+      const report = await this.getProjectReport(id);
+      if (!report) return undefined;
+      
+      // In a real implementation, this would use a PDF generation library
+      // to create a PDF based on the report data and logs
+      
+      // For now, we'll simulate creating a PDF
+      const pdfUrl = `/reports/report-${id}-${Date.now()}.pdf`;
+      
+      // Update the report with the PDF URL
+      await this.updateProjectReport(id, {
+        pdf_url: pdfUrl
+      });
+      
+      return pdfUrl;
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      return undefined;
+    }
   }
 }
 

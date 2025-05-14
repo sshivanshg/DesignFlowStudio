@@ -1520,9 +1520,8 @@ export class DrizzleStorage implements IStorage {
   // Database access
   getDb() {
     // Return the raw database client for direct SQL queries
-    // Import from db.js to get the correct Postgres client
-    const { dbClient } = require('./db.js');
-    return dbClient;
+    // We'll use the queryClient defined at the top of this file
+    return queryClient;
   }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
@@ -1667,14 +1666,27 @@ export class DrizzleStorage implements IStorage {
           .map(([key, value]) => `${key} = $${key}`)
           .join(', ');
         
-        const rawSQL = `UPDATE users SET ${setClause} WHERE id = $id RETURNING *`;
+        // Use the postgres client directly for this operation
+        const client = this.getDb();
+        
+        // Prepare parameters as an array for the postgres query
+        const params = Object.values(updateData);
+        params.push(id);
+        
+        // Create placeholders for the SQL query ($1, $2, etc.)
+        const placeholders = Object.keys(updateData).map((_, i) => `$${i + 1}`);
+        const setClausePlaceholders = Object.keys(updateData)
+          .map((key, i) => `${key} = $${i + 1}`)
+          .join(', ');
+        
+        const rawSQL = `UPDATE users SET ${setClausePlaceholders} WHERE id = $${params.length} RETURNING *`;
         console.log("Raw SQL:", rawSQL);
+        console.log("SQL Params:", params);
         
-        // Prepare parameters with $ prefixes
-        const sqlParams = { ...updateData, id };
-        console.log("SQL Params:", { ...sqlParams, password: sqlParams.password ? "[REDACTED]" : undefined });
-        
-        const result = await db.query(rawSQL, sqlParams);
+        // Execute the query using the postgres client
+        const result = await client`
+          ${rawSQL}
+        `;
         
         if (result && result.length > 0) {
           console.log("User updated successfully with raw SQL");

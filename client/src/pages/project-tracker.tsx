@@ -937,23 +937,26 @@ export default function ProjectTracker() {
                                   if (!response.ok) {
                                     throw new Error(`Error: ${response.status}`);
                                   }
-                                  return response.json();
-                                })
-                                .then(updatedProject => {
+                                  // Manually update UI state
                                   // Success toast
                                   toast({
                                     title: "Success",
                                     description: "Task status updated successfully",
                                   });
                                   
-                                  // Directly update the state for immediate UI update
-                                  const { data } = queryClient.getQueryState(['/api/projects', selectedProject]) || {};
-                                  if (data) {
-                                    queryClient.setQueryData(
-                                      ['/api/projects', selectedProject],
-                                      { ...data, tasks: updatedTasks }
-                                    );
-                                  }
+                                  // Update the projectDetails state directly for immediate UI change
+                                  setProjectDetails(prevDetails => {
+                                    if (!prevDetails) return prevDetails;
+                                    
+                                    return {
+                                      ...prevDetails,
+                                      tasks: prevDetails.tasks.map((task: any) => 
+                                        task.id === selectedTask.id 
+                                          ? { ...task, status: editTaskStatus } 
+                                          : task
+                                      )
+                                    };
+                                  });
                                   
                                   // Also invalidate to ensure fresh data on next fetch
                                   queryClient.invalidateQueries({ 

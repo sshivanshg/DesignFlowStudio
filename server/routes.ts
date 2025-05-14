@@ -2013,7 +2013,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Estimate Config routes
-  app.get("/api/estimate-configs", isAuthenticated, async (req, res) => {
+  // Estimate configuration routes - admin only
+  app.get("/api/estimate-configs", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       const configType = req.query.configType as string;
       let configs;
@@ -2032,7 +2033,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Specific route for active configs - must be before the :id route
-  app.get("/api/estimate-configs/active", isAuthenticated, async (req, res) => {
+  // Active estimate configs can be accessed by designers and admin for creating estimates
+  app.get("/api/estimate-configs/active", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       console.log("Fetching active estimate configs");
       // Get all configs and filter for active ones
@@ -2045,7 +2047,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+  // Single config accessible to admin and designers
+  app.get("/api/estimate-configs/:id", isAuthenticated, hasRole(['admin', 'designer']), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const config = await storage.getEstimateConfig(id);
@@ -2061,7 +2064,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/estimate-configs", isAuthenticated, async (req, res) => {
+  // Create estimate config - admin only
+  app.post("/api/estimate-configs", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       const configData = req.body;
       const newConfig = await storage.createEstimateConfig(configData);
@@ -2072,7 +2076,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+  // Update estimate config - admin only
+  app.put("/api/estimate-configs/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const configData = req.body;
@@ -2090,7 +2095,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/estimate-configs/:id", isAuthenticated, async (req, res) => {
+  // Delete estimate config - admin only
+  app.delete("/api/estimate-configs/:id", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteEstimateConfig(id);
@@ -3000,7 +3006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Admin Dashboard Routes
   // Company Settings
-  app.get("/api/admin/company-settings", isAuthenticated, async (req, res) => {
+  // Company Settings - Admin only
+  app.get("/api/admin/company-settings", isAuthenticated, hasRole(['admin']), async (req, res) => {
     try {
       // Check if user is an admin
       const user = req.user as User;

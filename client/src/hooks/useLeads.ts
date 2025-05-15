@@ -1,7 +1,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { LEAD_STAGES } from '@/contexts/CRMContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
+import { useSupabaseAuth } from '@/hooks/use-supabase-auth';
 import type { Lead } from '@shared/schema';
 
 // Lead interface used on the frontend (camelCase)
@@ -21,19 +22,28 @@ export interface LeadType {
 }
 
 export function useLeads() {
-  const { user } = useAuth();
+  // Use both auth systems during transition period
+  const { user: firebaseUser, isLoading: firebaseLoading } = useAuth();
+  const { user: supabaseUser, isLoading: supabaseLoading } = useSupabaseAuth();
+  
+  // Prefer Supabase user if available, otherwise fallback to Firebase user
+  const user = supabaseUser || firebaseUser;
+  const isAuthLoading = supabaseLoading || firebaseLoading;
 
   // Fetch all leads for the current user
   const {
     data: leads = [] as LeadType[],
-    isLoading,
+    isLoading: isDataLoading,
     isError,
     error,
-  } = useQuery({
+  } = useQuery<LeadType[]>({
     queryKey: ['/api/leads'],
     enabled: !!user,
     // No need to define queryFn as the default fetcher is already set up
   });
+  
+  // Combined loading state from both auth and data fetching
+  const isLoading = isAuthLoading || isDataLoading;
 
   // Get leads grouped by stage
   const leadsByStage = Object.fromEntries(

@@ -265,11 +265,11 @@ export function LeadCard({ lead, onEdit, onDelete }: LeadCardProps) {
       
       <CardFooter className="p-3 pt-0 flex justify-between items-center text-xs text-muted-foreground">
         <div className="flex items-center">
-          {hasFollowUp && (
+          {hasFollowUp && lead.followUpDate && (
             <div className="flex items-center">
               <Calendar className="h-3.5 w-3.5 mr-1" />
               <span className={isFollowUpOverdue ? 'text-red-500 font-medium' : ''}>
-                {formatDistanceToNow(new Date(lead.followUpDate!), { addSuffix: true })}
+                {formatDistanceToNow(new Date(lead.followUpDate), { addSuffix: true })}
               </span>
               {isFollowUpOverdue && (
                 <AlertCircle className="h-3.5 w-3.5 ml-1 text-red-500" />

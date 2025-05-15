@@ -2441,17 +2441,53 @@ export class DrizzleStorage implements IStorage {
   }
   
   async createProposal(proposal: InsertProposal): Promise<Proposal> {
-    const result = await db.insert(proposals).values(proposal).returning();
-    return result[0];
+    try {
+      // Filter the proposal object to only include columns that exist in the database
+      // Based on the actual database columns we checked
+      const filteredProposal = {
+        client_id: proposal.client_id,
+        lead_id: proposal.lead_id,
+        created_by: proposal.created_by,
+        data_json: proposal.dataJSON,
+        pdf_url: proposal.pdfURL,
+        status: proposal.status,
+        shared_link: proposal.sharedLink
+      };
+      
+      console.log("Creating proposal with filtered data:", filteredProposal);
+      const result = await db.insert(proposals).values(filteredProposal).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating proposal:", error);
+      throw new Error(`Error creating proposal: ${error.message}`);
+    }
   }
   
   async updateProposal(id: number, proposalData: Partial<Proposal>): Promise<Proposal | undefined> {
-    const result = await db
-      .update(proposals)
-      .set(proposalData)
-      .where(eq(proposals.id, id))
-      .returning();
-    return result[0];
+    try {
+      // Filter the proposal object to only include columns that exist in the database
+      const filteredData: any = {};
+      
+      // Only copy fields that exist in the database
+      if (proposalData.client_id !== undefined) filteredData.client_id = proposalData.client_id;
+      if (proposalData.lead_id !== undefined) filteredData.lead_id = proposalData.lead_id;
+      if (proposalData.created_by !== undefined) filteredData.created_by = proposalData.created_by;
+      if (proposalData.dataJSON !== undefined) filteredData.data_json = proposalData.dataJSON;
+      if (proposalData.pdfURL !== undefined) filteredData.pdf_url = proposalData.pdfURL;
+      if (proposalData.status !== undefined) filteredData.status = proposalData.status;
+      if (proposalData.sharedLink !== undefined) filteredData.shared_link = proposalData.sharedLink;
+      
+      console.log("Updating proposal with filtered data:", filteredData);
+      const result = await db
+        .update(proposals)
+        .set(filteredData)
+        .where(eq(proposals.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error(`Error updating proposal ${id}:`, error);
+      return undefined;
+    }
   }
   
   async deleteProposal(id: number): Promise<boolean> {

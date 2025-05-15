@@ -803,7 +803,7 @@ export default function UnifiedProjectTracker() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project: any) => (
-            <Link key={project.id} href={`/unified-project-tracker/${project.id}`}>
+            <Link key={project.id} to={`/unified-project-tracker/${project.id}`}>
               <Card className="cursor-pointer hover:shadow-md transition-shadow duration-200">
                 <CardHeader className="pb-2">
                   <CardTitle>{project.name}</CardTitle>
@@ -869,7 +869,7 @@ export default function UnifiedProjectTracker() {
           <p className="text-lg font-medium">Project not found</p>
           <p className="text-sm text-muted-foreground mb-4">The project you're looking for does not exist or you don't have access</p>
           <Button asChild>
-            <Link href="/unified-project-tracker">
+            <Link to="/unified-project-tracker">
               <div className="flex items-center">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Back to Projects

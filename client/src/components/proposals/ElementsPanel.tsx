@@ -56,7 +56,7 @@ function ElementsPanel({ onAddElement }: ElementsPanelProps) {
       <h2 className="font-semibold text-lg mb-4">Add Elements</h2>
       <div className="space-y-3">
         {elements.map((element, index) => (
-          <React.Fragment key={element.type}>
+          <div key={element.type}>
             <div
               className="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => onAddElement(element.type)}
@@ -70,7 +70,7 @@ function ElementsPanel({ onAddElement }: ElementsPanelProps) {
               </div>
             </div>
             {index < elements.length - 1 && <Separator />}
-          </React.Fragment>
+          </div>
         ))}
       </div>
       

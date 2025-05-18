@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useLocation } from 'wouter';
@@ -106,7 +106,7 @@ function CRMDashboard() {
     // Apply search filter
     if (activeFilters.search) {
       const searchLowerCase = activeFilters.search.toLowerCase();
-      
+
       // Filter each stage
       Object.keys(filtered).forEach(stage => {
         filtered[stage] = filtered[stage].filter((lead: LeadType) => 
@@ -142,10 +142,10 @@ function CRMDashboard() {
         filtered[stage] = filtered[stage].filter((lead: LeadType) => {
           const leadDate = lead.createdAt ? new Date(lead.createdAt) : null;
           if (!leadDate) return false;
-          
+
           const isAfterFrom = !activeFilters.dateFrom || leadDate >= activeFilters.dateFrom;
           const isBeforeTo = !activeFilters.dateTo || leadDate <= activeFilters.dateTo;
-          
+
           return isAfterFrom && isBeforeTo;
         });
       });
@@ -225,7 +225,7 @@ function CRMDashboard() {
   // Handle updating a lead
   const handleUpdateLead = async (data: Partial<LeadType>) => {
     if (!selectedLead) return;
-    
+
     try {
       await updateLead.mutateAsync({
         id: selectedLead.id,
@@ -252,6 +252,13 @@ function CRMDashboard() {
   const initialTab = clientIdParam ? 'clients' : 'leads';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  // Update activeTab when clientIdParam changes
+  useEffect(() => {
+    if (clientIdParam) {
+      setActiveTab('clients');
+    }
+  }, [clientIdParam]);
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
@@ -274,7 +281,7 @@ function CRMDashboard() {
           </div>
         </div>
       </div>
-      
+
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="leads">Pipeline</TabsTrigger>
@@ -284,7 +291,7 @@ function CRMDashboard() {
 
         <TabsContent value="leads">
           <LeadFilters />
-          
+
           <DndProvider backend={HTML5Backend}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[calc(100vh-320px)] mt-6">
               {Object.entries(LEAD_STAGES).map(([stageName, stageKey]) => {
@@ -292,7 +299,7 @@ function CRMDashboard() {
                 const formattedTitle = stageName === 'NEW' ? 'New' : 
                                       stageName === 'IN_DISCUSSION' ? 'In Discussion' :
                                       stageName === 'WON' ? 'Won' : 'Lost';
-                
+
                 return (
                   <LeadColumn
                     key={stageKey}
@@ -308,7 +315,7 @@ function CRMDashboard() {
             </div>
           </DndProvider>
         </TabsContent>
-        
+
         <TabsContent value="clients">
           <div className="flex gap-6">
             <div className="w-2/3">
@@ -353,7 +360,7 @@ function CRMDashboard() {
                   )}
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-md">Leads by Stage</CardTitle>
@@ -372,7 +379,7 @@ function CRMDashboard() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="analytics">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
@@ -391,7 +398,7 @@ function CRMDashboard() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-md">Lead Source Distribution</CardTitle>
@@ -401,7 +408,7 @@ function CRMDashboard() {
                   {LEAD_SOURCES.map((source: string) => {
                     const count = leads.filter(lead => lead.source === source).length;
                     const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
-                    
+
                     return (
                       <div key={source} className="space-y-1">
                         <div className="flex justify-between text-sm">
@@ -420,7 +427,7 @@ function CRMDashboard() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-md">Recent Conversions</CardTitle>
@@ -452,7 +459,7 @@ function CRMDashboard() {
           </div>
         </TabsContent>
       </Tabs>
-      
+
       {/* Add Lead Dialog */}
       <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
         <DialogContent className="sm:max-w-md">
@@ -468,7 +475,7 @@ function CRMDashboard() {
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Lead Dialog */}
       <Dialog open={isEditLeadOpen} onOpenChange={setIsEditLeadOpen}>
         <DialogContent className="sm:max-w-md">

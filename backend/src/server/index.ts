@@ -1,12 +1,40 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import MemoryStore from 'memorystore';
+import config from '../config';
+import routes from '../routes';
+import { errorHandler } from '../middleware/errorHandler';
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { scheduleWeeklyReports } from "./projectReports";
 
 const app = express();
+
+// Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+const MemoryStoreSession = MemoryStore(session);
+app.use(
+  session({
+    secret: config.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStoreSession({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    }),
+  })
+);
+
+// Routes
+app.use('/api', routes);
+
+// Error handling
+app.use(errorHandler);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -31,7 +59,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(logLine);
     }
   });
 
@@ -39,46 +67,32 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Register all routes and get the server instance
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Global error handler
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+      console.error(err);
+    });
 
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5001
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5001;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    // reusePort: false,
-  }, () => {
-    log(`serving on port ${port}`);
-    
-    // Schedule weekly report generation (runs on startup and daily thereafter)
+    // Initialize weekly reports
     scheduleWeeklyReports(storage)
-      .then(() => log('Weekly report scheduling initialized'))
+      .then(() => console.log('Weekly report scheduling initialized'))
       .catch(err => console.error('Error initializing weekly report scheduling:', err));
-    
-    // Schedule daily checks for report generation
+
+    // Schedule daily checks
     setInterval(() => {
       scheduleWeeklyReports(storage)
-        .then(() => log('Daily report check complete'))
+        .then(() => console.log('Daily report check complete'))
         .catch(err => console.error('Error in daily report check:', err));
     }, 24 * 60 * 60 * 1000); // 24 hours
-  });
+
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 })();

@@ -3,6 +3,10 @@ import { db } from './db';
 import { clients, User } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { IStorage } from './storage';
+import { Express, Router } from 'express';
+import { Request, Response } from 'express';
+import { storage } from '../config/storage.config';
+import { isClientAuthenticated } from '../middleware/auth.middleware';
 
 // Store auth tokens with expiration times (24 hours)
 const clientTokens: Record<string, { clientId: number, expires: Date }> = {};
@@ -89,4 +93,57 @@ export async function sendClientLoginEmail(clientEmail: string, token: string): 
   
   // Here you would typically use an email service like SendGrid or Nodemailer
   // to send the actual email with the login link
+}
+
+export function registerClientAuthRoutes() {
+  const router = Router();
+
+  // Client authentication routes
+  router.post('/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      const client = await storage.authenticateClient(email, password);
+      
+      if (!client) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      req.session.clientId = client.id;
+      res.json({ client });
+    } catch (error) {
+      res.status(500).json({ message: 'Error during client login', error });
+    }
+  });
+
+  router.post('/register', async (req: Request, res: Response) => {
+    try {
+      const { email, password, name, company } = req.body;
+      const client = await storage.createClient({ email, password, name, company });
+      
+      req.session.clientId = client.id;
+      res.status(201).json({ client });
+    } catch (error) {
+      res.status(500).json({ message: 'Error during client registration', error });
+    }
+  });
+
+  router.post('/logout', isClientAuthenticated, (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Error during logout', error: err });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  router.get('/me', isClientAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const client = await storage.getClientById(req.session.clientId);
+      res.json({ client });
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching client data', error });
+    }
+  });
+
+  return router;
 }

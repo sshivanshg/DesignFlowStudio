@@ -1,30 +1,30 @@
-import { 
-  users, User, InsertUser, 
-  clients, Client, InsertClient,
-  leads, Lead, InsertLead,
-  projects, Project, InsertProject,
-  proposals, Proposal, InsertProposal,
-  moodboards, Moodboard, InsertMoodboard,
-  estimates, Estimate, InsertEstimate,
-  estimateConfigs, EstimateConfig, InsertEstimateConfig,
-  activities, Activity, InsertActivity,
-  projectLogs, ProjectLog, InsertProjectLog,
-  projectReports, ProjectReport, InsertProjectReport,
-  whatsappMessages, WhatsappMessage, InsertWhatsappMessage
-} from "@shared/schema";
-import { eq, and, desc, sql as drizzleSql } from "drizzle-orm";
+import { Express, Request, Response, NextFunction } from 'express';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { eq, and, or, desc, asc, sql } from 'drizzle-orm';
+import { Storage } from '@google-cloud/storage';
+import { v4 as uuidv4 } from 'uuid';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { format } from 'date-fns';
+import { 
+  users, leads, clients, projects, proposals, moodboards, estimates, 
+  activities, companySettings, templateCategories, templates, analytics,
+  whatsappMessages, estimateConfigs, projectLogs, projectReports
+} from '../shared/schema';
+import type { 
+  User, Lead, Client, Project, Proposal, Moodboard, Estimate, 
+  Activity, CompanySettings, TemplateCategory, Template, Analytics,
+  WhatsappMessage, EstimateConfig, ProjectLog, ProjectReport,
+  InsertUser, InsertLead, InsertClient, InsertProject, InsertProposal,
+  InsertMoodboard, InsertEstimate, InsertActivity, InsertTemplateCategory,
+  InsertTemplate, InsertAnalytics, InsertEstimateConfig, InsertProjectLog,
+  InsertProjectReport
+} from '../shared/schema';
 
 // Initialize a direct PostgreSQL connection
-// This works with any Postgres database, including Supabase
-const queryClient = postgres(process.env.DATABASE_URL!, {
-  max: 10, // Connection pool size
-  ssl: 'require', // Enable SSL for secure connections
-  connect_timeout: 10, // Increase timeout to give connection time to establish
-});
-
-export const db = drizzle(queryClient);
+const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/designflow';
+const client = postgres(connectionString);
+const db = drizzle(client);
 
 export interface IStorage {
   // Database access
@@ -174,145 +174,8 @@ export interface IStorage {
   generateProjectReportPdf(id: number): Promise<string | undefined>; // Returns PDF URL
 }
 
+// Single MemStorage implementation
 export class MemStorage implements IStorage {
-  // Database access
-  getDb() {
-    // In-memory storage doesn't have a database connection
-    return null;
-  }
-  
-  // Project Logs
-  async getProjectLogs(): Promise<ProjectLog[]> {
-    return Array.from(this.projectLogs.values());
-  }
-
-  async getProjectLogsByProject(projectId: number): Promise<ProjectLog[]> {
-    return Array.from(this.projectLogs.values()).filter(log => log.project_id === projectId);
-  }
-
-  async getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]> {
-    // Compare just the date part, not time
-    const dateString = date.toISOString().split('T')[0];
-    return Array.from(this.projectLogs.values()).filter(log => {
-      if (log.project_id !== projectId) return false;
-      const logDate = new Date(log.created_at as Date);
-      return logDate.toISOString().split('T')[0] === dateString;
-    });
-  }
-
-  async getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]> {
-    return Array.from(this.projectLogs.values()).filter(log => {
-      if (log.project_id !== projectId) return false;
-      const logDate = new Date(log.created_at as Date);
-      return logDate >= startDate && logDate <= endDate;
-    });
-  }
-
-  async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
-    return Array.from(this.projectLogs.values()).filter(log => log.room_id && parseInt(log.room_id as string) === roomId);
-  }
-
-  async getProjectLog(id: number): Promise<ProjectLog | undefined> {
-    return this.projectLogs.get(id);
-  }
-
-  async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
-    const newLog: ProjectLog = {
-      id: this.projectLogId++,
-      created_at: new Date(),
-      updated_at: new Date(),
-      project_id: log.project_id,
-      room_id: log.room_id || null,
-      user_id: log.user_id || null,
-      text: log.text || "",
-      log_type: log.log_type || null,
-      photo_url: log.photo_url || null,
-      photo_caption: log.photo_caption || null,
-    };
-    this.projectLogs.set(newLog.id, newLog);
-    return newLog;
-  }
-
-  async updateProjectLog(id: number, log: Partial<InsertProjectLog>): Promise<ProjectLog | undefined> {
-    const existingLog = this.projectLogs.get(id);
-    if (!existingLog) return undefined;
-
-    const updatedLog: ProjectLog = {
-      ...existingLog,
-      ...log,
-      updated_at: new Date(),
-    };
-    this.projectLogs.set(id, updatedLog);
-    return updatedLog;
-  }
-
-  async deleteProjectLog(id: number): Promise<boolean> {
-    return this.projectLogs.delete(id);
-  }
-
-  // Project Reports
-  async getProjectReports(): Promise<ProjectReport[]> {
-    return Array.from(this.projectReports.values());
-  }
-
-  async getProjectReportsByProject(projectId: number): Promise<ProjectReport[]> {
-    return Array.from(this.projectReports.values()).filter(report => report.project_id === projectId);
-  }
-
-  async getProjectReport(id: number): Promise<ProjectReport | undefined> {
-    return this.projectReports.get(id);
-  }
-
-  async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
-    const newReport: ProjectReport = {
-      id: this.projectReportId++,
-      created_at: new Date(),
-      updated_at: new Date(),
-      project_id: report.project_id,
-      user_id: report.user_id || null,
-      report_type: report.report_type || "weekly",
-      start_date: report.start_date || null,
-      end_date: report.end_date || null,
-      includes_photos: report.includes_photos ?? true,
-      includes_notes: report.includes_notes ?? true,
-      pdf_url: report.pdf_url || null,
-    };
-    this.projectReports.set(newReport.id, newReport);
-    return newReport;
-  }
-
-  async updateProjectReport(id: number, report: Partial<InsertProjectReport>): Promise<ProjectReport | undefined> {
-    const existingReport = this.projectReports.get(id);
-    if (!existingReport) return undefined;
-
-    const updatedReport: ProjectReport = {
-      ...existingReport,
-      ...report,
-      updated_at: new Date(),
-    };
-    this.projectReports.set(id, updatedReport);
-    return updatedReport;
-  }
-
-  async deleteProjectReport(id: number): Promise<boolean> {
-    return this.projectReports.delete(id);
-  }
-
-  async generateProjectReportPdf(id: number): Promise<string | undefined> {
-    const report = this.projectReports.get(id);
-    if (!report) return undefined;
-    
-    // In a real implementation, this would generate a PDF
-    // For now, we'll simulate a PDF URL
-    const pdfUrl = `/reports/report-${id}-${Date.now()}.pdf`;
-    
-    // Update the report with the PDF URL
-    report.pdf_url = pdfUrl;
-    report.updated_at = new Date();
-    this.projectReports.set(id, report);
-    
-    return pdfUrl;
-  }
   private users: Map<number, User>;
   private leads: Map<number, Lead>;
   private clients: Map<number, Client>;
@@ -327,6 +190,8 @@ export class MemStorage implements IStorage {
   private templateCategories: Map<number, any>;
   private templates: Map<number, any>;
   private analytics: Map<number, any>;
+  private whatsappMessages: Map<string, WhatsappMessage>;
+  private estimateConfigs: Map<number, EstimateConfig>;
   
   private userId: number;
   private leadId: number;
@@ -341,11 +206,7 @@ export class MemStorage implements IStorage {
   private templateCategoryId: number;
   private templateId: number;
   private analyticsId: number;
-  private whatsappMessages: Map<string, WhatsappMessage>;
-
-  // Add estimateConfig map
-  private estimateConfigs = new Map<number, EstimateConfig>();
-  private estimateConfigId = 1;
+  private estimateConfigId: number;
 
   constructor() {
     this.users = new Map();
@@ -355,87 +216,71 @@ export class MemStorage implements IStorage {
     this.proposals = new Map();
     this.moodboards = new Map();
     this.estimates = new Map();
-    this.estimateConfigs = new Map();
     this.projectLogs = new Map();
     this.projectReports = new Map();
     this.activities = new Map();
-    this.whatsappMessages = new Map();
     this.templateCategories = new Map();
     this.templates = new Map();
     this.analytics = new Map();
-    
-    // Initialize company settings with defaults
-    this.companySettings = {
-      id: 1,
-      name: "Design Studio",
-      logo: null,
-      primaryColor: "#6366f1",
-      secondaryColor: "#8b5cf6",
-      enabledFeatures: {
-        crm: true,
-        proposals: true,
-        moodboards: true,
-        estimates: true,
-        whatsapp: true,
-        tasks: true
-      },
-      planLimits: {
-        free: {
-          maxUsers: 2,
-          maxClients: 10,
-          maxProjects: 5,
-          maxProposals: 10,
-          maxStorage: 100, // MB
-        },
-        pro: {
-          maxUsers: 5,
-          maxClients: 50,
-          maxProjects: 20,
-          maxProposals: 100,
-          maxStorage: 1000, // MB
-        },
-        enterprise: {
-          maxUsers: -1, // unlimited
-          maxClients: -1, // unlimited
-          maxProjects: -1, // unlimited
-          maxProposals: -1, // unlimited
-          maxStorage: 10000, // MB
-        }
-      },
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    this.whatsappMessages = new Map();
+    this.estimateConfigs = new Map();
     
     this.userId = 1;
     this.leadId = 1;
     this.clientId = 1;
     this.projectId = 1;
     this.proposalId = 1;
-    this.templateCategoryId = 1;
-    this.templateId = 1;
-    this.analyticsId = 1;
     this.moodboardId = 1;
     this.estimateId = 1;
-    this.estimateConfigId = 1;
     this.projectLogId = 1;
     this.projectReportId = 1;
     this.activityId = 1;
+    this.templateCategoryId = 1;
+    this.templateId = 1;
+    this.analyticsId = 1;
+    this.estimateConfigId = 1;
+    
+    // Initialize with default company settings
+    this.companySettings = {
+      limits: {
+        free: {
+          projects: 3,
+          clients: 5,
+          leads: 10,
+          storage: 1000, // MB
+          teamMembers: 1
+        },
+        pro: {
+          projects: 20,
+          clients: 50,
+          leads: 200,
+          storage: 10000, // MB
+          teamMembers: 5
+        },
+        enterprise: {
+          projects: -1, // unlimited
+          clients: -1,
+          leads: -1,
+          storage: -1,
+          teamMembers: -1
+        }
+      }
+    };
     
     // Add a default user for testing
     this.createUser({
-      username: "demo",
-      password: "password",
-      email: "demo@example.com",
-      fullName: "Sophia Martinez",
-      name: "Sophia Martinez", // Add name field to match schema
-      role: "admin",
-      company: "InteriDesign Studio",
-      phone: null,
-      avatar: null,
-      firebaseUid: null,
-      supabaseUid: null,
-      activePlan: "pro"
+      username: 'admin',
+      email: 'admin@example.com',
+      password: 'admin123',
+      role: 'admin',
+      firstName: 'Admin',
+      lastName: 'User'
     });
+  }
+
+  // Database access
+  getDb() {
+    return null;
   }
 
   // User methods
@@ -477,13 +322,11 @@ export class MemStorage implements IStorage {
     const id = this.userId++;
     const now = new Date();
     
-    // Ensure all required fields have values
     const user: User = { 
       ...insertUser, 
       id, 
       createdAt: now,
       updatedAt: now,
-      // Set defaults for missing optional fields
       role: insertUser.role || "designer",
       phone: insertUser.phone || null,
       activePlan: insertUser.activePlan || "free",
@@ -893,7 +736,6 @@ export class MemStorage implements IStorage {
 
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
-    // In Postgres storage, proposals have created_by field instead of userId
     return Array.from(this.proposals.values()).filter(
       (proposal) => proposal.created_by === userId,
     );
@@ -904,7 +746,6 @@ export class MemStorage implements IStorage {
   }
 
   async getProposalsByProjectId(projectId: number): Promise<Proposal[]> {
-    // In Postgres storage, proposals have lead_id field instead of projectId
     return Array.from(this.proposals.values()).filter(
       (proposal) => proposal.lead_id === projectId,
     );
@@ -967,7 +808,6 @@ export class MemStorage implements IStorage {
       const id = this.moodboardId++;
       const now = new Date();
       
-      // Set default sections if not provided
       if (!insertMoodboard.sections) {
         insertMoodboard.sections = {
           colorPalette: { title: "Color Palette", items: [] },
@@ -1026,7 +866,6 @@ export class MemStorage implements IStorage {
       const existingMoodboard = await this.getMoodboard(id);
       if (!existingMoodboard) return undefined;
       
-      // Create a new moodboard based on the existing one
       const newMoodboard: InsertMoodboard = {
         client_id: existingMoodboard.client_id,
         name: `${existingMoodboard.name} (Copy)`,
@@ -1047,8 +886,6 @@ export class MemStorage implements IStorage {
 
   // Estimate methods
   async getEstimates(userId: number): Promise<Estimate[]> {
-    // Return all estimates since we don't have a user_id in the estimates schema
-    // In a real app, we would add the user_id to the schema or filter by created_by
     return Array.from(this.estimates.values());
   }
 
@@ -1362,13 +1199,8 @@ export class MemStorage implements IStorage {
   
   // Template category methods
   async getTemplateCategories(type?: string): Promise<TemplateCategory[]> {
-    const categories = [...this.templateCategories.values()];
-    
-    if (type) {
-      return categories.filter(category => category.type === type);
-    }
-    
-    return categories;
+    return Array.from(this.templateCategories.values())
+      .filter(category => !type || category.type === type);
   }
   
   async getTemplateCategory(id: number): Promise<TemplateCategory | undefined> {
@@ -1376,30 +1208,27 @@ export class MemStorage implements IStorage {
   }
   
   async createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory> {
+    const id = this.templateCategoryId++;
+    const now = new Date();
     const newCategory: TemplateCategory = {
-      id: this.templateCategoryId++,
       ...category,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      id,
+      createdAt: now,
+      updatedAt: now
     };
-    
-    this.templateCategories.set(newCategory.id, newCategory);
+    this.templateCategories.set(id, newCategory);
     return newCategory;
   }
   
   async updateTemplateCategory(id: number, category: Partial<TemplateCategory>): Promise<TemplateCategory | undefined> {
-    const existingCategory = this.templateCategories.get(id);
+    const existingCategory = await this.getTemplateCategory(id);
+    if (!existingCategory) return undefined;
     
-    if (!existingCategory) {
-      return undefined;
-    }
-    
-    const updatedCategory: TemplateCategory = {
+    const updatedCategory = {
       ...existingCategory,
       ...category,
       updatedAt: new Date()
     };
-    
     this.templateCategories.set(id, updatedCategory);
     return updatedCategory;
   }
@@ -1410,17 +1239,12 @@ export class MemStorage implements IStorage {
   
   // Template methods
   async getTemplates(type?: string, categoryId?: number): Promise<Template[]> {
-    const templates = [...this.templates.values()];
-    
-    if (type && categoryId) {
-      return templates.filter(template => template.type === type && template.categoryId === categoryId);
-    } else if (type) {
-      return templates.filter(template => template.type === type);
-    } else if (categoryId) {
-      return templates.filter(template => template.categoryId === categoryId);
-    }
-    
-    return templates;
+    return Array.from(this.templates.values())
+      .filter(template => {
+        if (type && template.type !== type) return false;
+        if (categoryId && template.categoryId !== categoryId) return false;
+        return true;
+      });
   }
   
   async getTemplate(id: number): Promise<Template | undefined> {
@@ -1428,35 +1252,32 @@ export class MemStorage implements IStorage {
   }
   
   async getDefaultTemplate(type: string): Promise<Template | undefined> {
-    const templates = [...this.templates.values()];
-    return templates.find(template => template.type === type && template.isDefault);
+    return Array.from(this.templates.values())
+      .find(template => template.type === type && template.isDefault === true);
   }
   
   async createTemplate(template: InsertTemplate): Promise<Template> {
+    const id = this.templateId++;
+    const now = new Date();
     const newTemplate: Template = {
-      id: this.templateId++,
       ...template,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      id,
+      createdAt: now,
+      updatedAt: now
     };
-    
-    this.templates.set(newTemplate.id, newTemplate);
+    this.templates.set(id, newTemplate);
     return newTemplate;
   }
   
   async updateTemplate(id: number, template: Partial<Template>): Promise<Template | undefined> {
-    const existingTemplate = this.templates.get(id);
+    const existingTemplate = await this.getTemplate(id);
+    if (!existingTemplate) return undefined;
     
-    if (!existingTemplate) {
-      return undefined;
-    }
-    
-    const updatedTemplate: Template = {
+    const updatedTemplate = {
       ...existingTemplate,
       ...template,
       updatedAt: new Date()
     };
-    
     this.templates.set(id, updatedTemplate);
     return updatedTemplate;
   }
@@ -1466,56 +1287,168 @@ export class MemStorage implements IStorage {
   }
   
   async setDefaultTemplate(id: number, type: string): Promise<boolean> {
-    // First, unset any existing default templates for this type
-    const templates = [...this.templates.values()];
-    const defaultTemplates = templates.filter(template => template.type === type && template.isDefault);
+    const template = await this.getTemplate(id);
+    if (!template) return false;
     
-    for (const defaultTemplate of defaultTemplates) {
-      await this.updateTemplate(defaultTemplate.id, { isDefault: false });
-    }
+    // Remove default status from other templates of the same type
+    Array.from(this.templates.values())
+      .filter(t => t.type === type && t.id !== id)
+      .forEach(t => {
+        t.isDefault = false;
+        this.templates.set(t.id, t);
+      });
     
-    // Then set the new default template
-    const template = this.templates.get(id);
-    if (!template || template.type !== type) {
-      return false;
-    }
-    
-    await this.updateTemplate(id, { isDefault: true });
+    // Set this template as default
+    template.isDefault = true;
+    this.templates.set(id, template);
     return true;
   }
   
   // Analytics methods
   async getAnalytics(metric?: string, startDate?: Date, endDate?: Date): Promise<Analytics[]> {
-    let analytics = [...this.analytics.values()];
-    
-    if (metric) {
-      analytics = analytics.filter(entry => entry.metric === metric);
-    }
-    
-    if (startDate) {
-      analytics = analytics.filter(entry => entry.date >= startDate);
-    }
-    
-    if (endDate) {
-      analytics = analytics.filter(entry => entry.date <= endDate);
-    }
-    
-    return analytics;
+    return Array.from(this.analytics.values())
+      .filter(entry => {
+        if (metric && entry.metric !== metric) return false;
+        if (startDate && entry.createdAt < startDate) return false;
+        if (endDate && entry.createdAt > endDate) return false;
+        return true;
+      });
   }
   
   async createAnalyticsEntry(entry: InsertAnalytics): Promise<Analytics> {
+    const id = this.analyticsId++;
+    const now = new Date();
     const newEntry: Analytics = {
-      id: this.analyticsId++,
       ...entry,
-      createdAt: new Date()
+      id,
+      createdAt: now
     };
-    
-    this.analytics.set(newEntry.id, newEntry);
+    this.analytics.set(id, newEntry);
     return newEntry;
+  }
+  
+  // Project Logs methods
+  async getProjectLogs(projectId: number): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values())
+      .filter(log => log.project_id === projectId);
+  }
+  
+  async getProjectLogsByDate(projectId: number, date: Date): Promise<ProjectLog[]> {
+    const dateString = date.toISOString().split('T')[0];
+    return Array.from(this.projectLogs.values())
+      .filter(log => {
+        if (log.project_id !== projectId) return false;
+        const logDate = new Date(log.created_at as Date);
+        return logDate.toISOString().split('T')[0] === dateString;
+      });
+  }
+  
+  async getProjectLogsByDateRange(projectId: number, startDate: Date, endDate: Date): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values())
+      .filter(log => {
+        if (log.project_id !== projectId) return false;
+        const logDate = new Date(log.created_at as Date);
+        return logDate >= startDate && logDate <= endDate;
+      });
+  }
+  
+  async getProjectLogsByRoom(projectId: number, roomId: string): Promise<ProjectLog[]> {
+    return Array.from(this.projectLogs.values())
+      .filter(log => log.project_id === projectId && log.room_id === roomId);
+  }
+  
+  async getProjectLog(id: number): Promise<ProjectLog | undefined> {
+    return this.projectLogs.get(id);
+  }
+  
+  async createProjectLog(log: InsertProjectLog): Promise<ProjectLog> {
+    const id = this.projectLogId++;
+    const now = new Date();
+    const newLog: ProjectLog = {
+      ...log,
+      id,
+      created_at: now,
+      updated_at: now
+    };
+    this.projectLogs.set(id, newLog);
+    return newLog;
+  }
+  
+  async updateProjectLog(id: number, log: Partial<ProjectLog>): Promise<ProjectLog | undefined> {
+    const existingLog = await this.getProjectLog(id);
+    if (!existingLog) return undefined;
+    
+    const updatedLog = {
+      ...existingLog,
+      ...log,
+      updated_at: new Date()
+    };
+    this.projectLogs.set(id, updatedLog);
+    return updatedLog;
+  }
+  
+  async deleteProjectLog(id: number): Promise<boolean> {
+    return this.projectLogs.delete(id);
+  }
+  
+  // Project Reports methods
+  async getProjectReports(projectId: number): Promise<ProjectReport[]> {
+    return Array.from(this.projectReports.values())
+      .filter(report => report.project_id === projectId);
+  }
+  
+  async getProjectReport(id: number): Promise<ProjectReport | undefined> {
+    return this.projectReports.get(id);
+  }
+  
+  async createProjectReport(report: InsertProjectReport): Promise<ProjectReport> {
+    const id = this.projectReportId++;
+    const now = new Date();
+    const newReport: ProjectReport = {
+      ...report,
+      id,
+      created_at: now,
+      updated_at: now
+    };
+    this.projectReports.set(id, newReport);
+    return newReport;
+  }
+  
+  async updateProjectReport(id: number, report: Partial<ProjectReport>): Promise<ProjectReport | undefined> {
+    const existingReport = await this.getProjectReport(id);
+    if (!existingReport) return undefined;
+    
+    const updatedReport = {
+      ...existingReport,
+      ...report,
+      updated_at: new Date()
+    };
+    this.projectReports.set(id, updatedReport);
+    return updatedReport;
+  }
+  
+  async deleteProjectReport(id: number): Promise<boolean> {
+    return this.projectReports.delete(id);
+  }
+  
+  async generateProjectReportPdf(id: number): Promise<string | undefined> {
+    const report = this.projectReports.get(id);
+    if (!report) return undefined;
+    
+    // In a real implementation, this would generate a PDF
+    // For now, we'll simulate a PDF URL
+    const pdfUrl = `/reports/report-${id}-${Date.now()}.pdf`;
+    
+    // Update the report with the PDF URL
+    report.pdf_url = pdfUrl;
+    report.updated_at = new Date();
+    this.projectReports.set(id, report);
+    
+    return pdfUrl;
   }
 }
 
-// Drizzle DB implementation
+// Single DrizzleStorage implementation
 export class DrizzleStorage implements IStorage {
   // Database access
   getDb() {
@@ -1566,7 +1499,7 @@ export class DrizzleStorage implements IStorage {
     
     // Using a raw SQL query with parameterized values for safe dynamic column access
     const result = await db.execute(
-      drizzleSql`SELECT * FROM users WHERE ${drizzleSql.identifier(snakeField)} = ${value} LIMIT 1`
+      sql`SELECT * FROM users WHERE ${sql.identifier(snakeField)} = ${value} LIMIT 1`
     );
     
     return result.length > 0 ? result[0] : undefined;
@@ -2349,7 +2282,7 @@ export class DrizzleStorage implements IStorage {
       throw error;
     }
   }
-  
+
   // Proposal methods
   async getProposals(userId: number): Promise<Proposal[]> {
     try {
@@ -2945,7 +2878,7 @@ export class DrizzleStorage implements IStorage {
       .where(
         and(
           eq(whatsappMessages.status, 'failed'),
-          drizzleSql`${whatsappMessages.retryCount} < ${maxRetries}`
+          sql`${whatsappMessages.retryCount} < ${maxRetries}`
         )
       )
       .orderBy(whatsappMessages.sentAt);
@@ -3297,7 +3230,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async getProjectLogsByRoom(roomId: number): Promise<ProjectLog[]> {
+  async getProjectLogsByRoom(projectId: number, roomId: string): Promise<ProjectLog[]> {
     try {
       return await db.select({
         id: projectLogs.id,
@@ -3312,9 +3245,9 @@ export class DrizzleStorage implements IStorage {
         photo_caption: projectLogs.photo_caption
       })
         .from(projectLogs)
-        .where(eq(projectLogs.room_id, roomId));
+        .where(eq(projectLogs.project_id, projectId) && eq(projectLogs.room_id, roomId));
     } catch (error) {
-      console.error(`Error fetching project logs for room ${roomId}:`, error);
+      console.error(`Error fetching project logs for project ${projectId} and room ${roomId}:`, error);
       return [];
     }
   }
@@ -3464,71 +3397,7 @@ export class DrizzleStorage implements IStorage {
   }
 }
 
-// Choose which implementation to use
-// export const storage = new MemStorage();
-// This adapter class helps to bridge the casing differences between our API (camelCase)
-// Helper functions to convert between camelCase and snake_case
-function toCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (match, group) => group.toUpperCase());
-}
-
-function toSnakeCase(str: string): string {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
-// Recursively convert object keys from camelCase to snake_case
-function convertKeysToSnakeCase(obj: any): any {
-  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
-    return obj;
-  }
-
-  const result: any = {};
-  Object.keys(obj).forEach(key => {
-    // Skip undefined values
-    if (obj[key] === undefined) return;
-    
-    // Convert the key to snake_case
-    const snakeKey = toSnakeCase(key);
-    
-    // Recursively convert nested objects
-    result[snakeKey] = typeof obj[key] === 'object' && obj[key] !== null 
-      ? convertKeysToSnakeCase(obj[key]) 
-      : obj[key];
-  });
-  
-  return result;
-}
-
-// Recursively convert object keys from snake_case to camelCase
-function convertKeysToCamelCase(obj: any): any {
-  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
-    return obj;
-  }
-
-  const result: any = {};
-  Object.keys(obj).forEach(key => {
-    // Convert the key to camelCase
-    const camelKey = toCamelCase(key);
-    
-    // Recursively convert nested objects (including arrays)
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      result[camelKey] = Array.isArray(obj[key])
-        ? obj[key].map((item: any) => 
-            typeof item === 'object' && item !== null 
-              ? convertKeysToCamelCase(item) 
-              : item
-          )
-        : convertKeysToCamelCase(obj[key]);
-    } else {
-      result[camelKey] = obj[key];
-    }
-  });
-  
-  return result;
-}
-
-// Adapter to handle conversion between our API naming convention (camelCase)
-// and our database schema (snake_case)
+// Single StorageAdapter implementation
 export class StorageAdapter implements IStorage {
   private drizzleStorage = new DrizzleStorage();
   
@@ -3633,6 +3502,7 @@ export class StorageAdapter implements IStorage {
     try {
       // Convert keys to snake case
       const snakeCaseLead = convertKeysToSnakeCase(lead);
+      
       
       // Remove the followUpDate/follow_up_date field since it doesn't exist in the database yet
       const { follow_up_date, ...leadData } = snakeCaseLead;
@@ -4100,6 +3970,43 @@ export class StorageAdapter implements IStorage {
   async generateProjectReportPdf(id: number): Promise<string | undefined> {
     return await this.drizzleStorage.generateProjectReportPdf(id);
   }
+}
+
+// Utility functions
+function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+}
+
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+function convertKeysToSnakeCase(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(convertKeysToSnakeCase);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.keys(obj).reduce((acc, key) => {
+      const snakeKey = toSnakeCase(key);
+      acc[snakeKey] = convertKeysToSnakeCase(obj[key]);
+      return acc;
+    }, {} as any);
+  }
+  return obj;
+}
+
+function convertKeysToCamelCase(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(convertKeysToCamelCase);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.keys(obj).reduce((acc, key) => {
+      const camelKey = toCamelCase(key);
+      acc[camelKey] = convertKeysToCamelCase(obj[key]);
+      return acc;
+    }, {} as any);
+  }
+  return obj;
 }
 
 export const storage = new StorageAdapter();
